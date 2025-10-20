@@ -7,19 +7,19 @@ const menuItems = [
     items: [
       {
         icon: "/home.png",
-        label: "Home",
+        label: "Accueil",
         href: "/",
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
         icon: "/teacher.png",
-        label: "Teachers",
+        label: "Enseignants",
         href: "/list/teachers",
         visible: ["admin", "teacher"],
       },
       {
         icon: "/student.png",
-        label: "Students",
+        label: "Élèves",
         href: "/list/students",
         visible: ["admin", "teacher"],
       },
@@ -31,7 +31,7 @@ const menuItems = [
       },
       {
         icon: "/subject.png",
-        label: "Subjects",
+        label: "Matières",
         href: "/list/subjects",
         visible: ["admin"],
       },
@@ -43,37 +43,37 @@ const menuItems = [
       },
       {
         icon: "/lesson.png",
-        label: "Lessons",
+        label: "Leçons",
         href: "/list/lessons",
         visible: ["admin", "teacher"],
       },
       {
         icon: "/exam.png",
-        label: "Exams",
+        label: "Examens",
         href: "/list/exams",
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
         icon: "/assignment.png",
-        label: "Assignments",
+        label: "Devoirs",
         href: "/list/assignments",
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
         icon: "/result.png",
-        label: "Results",
+        label: "Résultats",
         href: "/list/results",
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
         icon: "/attendance.png",
-        label: "Attendance",
+        label: "Présences",
         href: "/list/attendance",
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
         icon: "/calendar.png",
-        label: "Events",
+        label: "Événements",
         href: "/list/events",
         visible: ["admin", "teacher", "student", "parent"],
       },
@@ -85,30 +85,30 @@ const menuItems = [
       },
       {
         icon: "/announcement.png",
-        label: "Announcements",
+        label: "Annonces",
         href: "/list/announcements",
         visible: ["admin", "teacher", "student", "parent"],
       },
     ],
   },
   {
-    title: "OTHER",
+    title: "AUTRES",
     items: [
       {
         icon: "/profile.png",
-        label: "Profile",
+        label: "Profil",
         href: "/profile",
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
         icon: "/setting.png",
-        label: "Settings",
+        label: "Paramètres",
         href: "/settings",
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
         icon: "/logout.png",
-        label: "Logout",
+        label: "Déconnexion",
         href: "/logout",
         visible: ["admin", "teacher", "student", "parent"],
       },
@@ -116,14 +116,15 @@ const menuItems = [
   },
 ];
 
+
 const Menu = () => {
   return (
-    <div className='mt-4 text-sm p-2'>
+    <div className='text-sm p-2'>
       {menuItems.map(i => (
         <div className='flex flex-col gap-2' key={i.title}>
           <span className="hidden lg:block my-4 font-light">{i.title}</span>
           {i.items.map(item => (
-            <Link href={item.href} key={item.label} className="flex flex-center justify-center lg:justify-start gap-4">
+            <Link href={item.href} key={item.label} className="flex flex-center justify-center lg:justify-start gap-4 mt-2">
               <Image src={item.icon} alt="icon" width={20} height={20} />
               <span className="hidden lg:block">{item.label}</span>
             </Link>
