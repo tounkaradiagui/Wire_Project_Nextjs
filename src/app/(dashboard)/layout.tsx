@@ -16,12 +16,18 @@ export default function DashboardLayout({
             <Image src="/logo.png" alt="Logo" width={30} height={30} />
             <span className="hidden lg:block">Présencia</span>
           </Link>
+
+          {/* Sidebar Menu */}
           <Menu/>
+
         </div>
         {/* Right */}
-        <div className='w-5/6 bg-blue-50 md:w-[92%] lg:w-[84%] xl:w-[86%] bg-[#CCE8FA] overflow-scroll'>
+        <div className='w-5/6 bg-blue-50 md:w-[92%] lg:w-[84%] xl:w-[86%] overflow-scroll'>
+          {/* Top Nav */}
           <Navbar/>
+          {/* Content */}
           {children}
+
         </div>
       </div>
   );

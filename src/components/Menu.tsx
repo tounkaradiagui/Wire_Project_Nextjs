@@ -1,90 +1,103 @@
-import Image from "next/image";
+"use client";
 import Link from "next/link";
+
+import {
+  Home,
+  User,
+  Users,
+  GraduationCap,
+  BookOpen,
+  ClipboardList,
+  FileText,
+  Calendar,
+  MessageSquare,
+  Megaphone,
+  Settings,
+  LogOut,
+  UserCircle,
+  CheckSquare,
+  Trophy,
+  FileCheck2,
+} from "lucide-react";
 
 const menuItems = [
   {
     title: "MENU",
     items: [
       {
-        icon: "/home.png",
+        icon: Home,
         label: "Accueil",
         href: "/",
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
-        icon: "/teacher.png",
+        icon: User,
         label: "Enseignants",
         href: "/list/teachers",
         visible: ["admin", "teacher"],
       },
       {
-        icon: "/student.png",
+        icon: GraduationCap,
         label: "Élèves",
         href: "/list/students",
         visible: ["admin", "teacher"],
       },
       {
-        icon: "/parent.png",
+        icon: Users,
         label: "Parents",
         href: "/list/parents",
         visible: ["admin", "teacher"],
       },
       {
-        icon: "/subject.png",
+        icon: BookOpen,
         label: "Matières",
         href: "/list/subjects",
         visible: ["admin"],
       },
       {
-        icon: "/class.png",
+        icon: ClipboardList,
         label: "Classes",
         href: "/list/classes",
         visible: ["admin", "teacher"],
       },
       {
-        icon: "/lesson.png",
+        icon: FileText,
         label: "Leçons",
         href: "/list/lessons",
         visible: ["admin", "teacher"],
       },
       {
-        icon: "/exam.png",
+        icon: Trophy,
         label: "Examens",
         href: "/list/exams",
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
-        icon: "/assignment.png",
+        icon: FileCheck2,
         label: "Devoirs",
         href: "/list/assignments",
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
-        icon: "/result.png",
-        label: "Résultats",
-        href: "/list/results",
-        visible: ["admin", "teacher", "student", "parent"],
-      },
-      {
-        icon: "/attendance.png",
+        icon: CheckSquare,
         label: "Présences",
         href: "/list/attendance",
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
-        icon: "/calendar.png",
+        icon: Calendar,
         label: "Événements",
         href: "/list/events",
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
-        icon: "/message.png",
+        icon: MessageSquare,
         label: "Messages",
         href: "/list/messages",
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
-        icon: "/announcement.png",
+        icon: Megaphone,
         label: "Annonces",
         href: "/list/announcements",
         visible: ["admin", "teacher", "student", "parent"],
@@ -95,19 +108,19 @@ const menuItems = [
     title: "AUTRES",
     items: [
       {
-        icon: "/profile.png",
+        icon: UserCircle,
         label: "Profil",
         href: "/profile",
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
-        icon: "/setting.png",
+        icon: Settings,
         label: "Paramètres",
         href: "/settings",
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
-        icon: "/logout.png",
+        icon: LogOut,
         label: "Déconnexion",
         href: "/logout",
         visible: ["admin", "teacher", "student", "parent"],
@@ -119,20 +132,29 @@ const menuItems = [
 
 const Menu = () => {
   return (
-    <div className='text-sm p-2'>
-      {menuItems.map(i => (
-        <div className='flex flex-col gap-2' key={i.title}>
-          <span className="hidden lg:block my-4 font-light">{i.title}</span>
-          {i.items.map(item => (
-            <Link href={item.href} key={item.label} className="flex flex-center justify-center lg:justify-start gap-4 mt-2">
-              <Image src={item.icon} alt="icon" width={20} height={20} />
-              <span className="hidden lg:block">{item.label}</span>
-            </Link>
-          ))}
+    <div className="text-sm p-2">
+      {menuItems.map((section) => (
+        <div className="flex flex-col gap-2" key={section.title}>
+          <span className="hidden lg:block my-4 font-light text-white">
+            {section.title}
+          </span>
+          {section.items.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link
+                href={item.href}
+                key={item.label}
+                className="flex items-center justify-center lg:justify-start gap-4 mt-2 text-gray-700 hover:text-blue-600 transition-all duration-200"
+              >
+                <Icon size={25} color="#1E5CC5" />
+                <span className="hidden lg:block text-white">{item.label}</span>
+              </Link>
+            );
+          })}
         </div>
       ))}
     </div>
-  )
-}
+  );
+};
 
 export default Menu;
