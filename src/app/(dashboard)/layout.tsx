@@ -11,9 +11,9 @@ export default function DashboardLayout({
   return (
       <div className="h-screen flex">
         {/* Left */}
-        <div className='w-1/6 bg-gray-800 text-white md:w-[8%] lg:w-[16%] xl:w-[14%]'>
+        <div className='w-1/6 bg-gray-800 text-white md:w-[14%] lg:w-[16%] xl:w-[14%]'>
           <Link href="/" className="flex items-center gap-2 p-2 justify-center lg:justify-start">
-            <Image src="/logo.png" alt="Logo" width={30} height={30} />
+            <Image src="/logo.png" alt="Logo" width={50} height={50} />
             <span className="hidden lg:block">Présencia</span>
           </Link>
 
