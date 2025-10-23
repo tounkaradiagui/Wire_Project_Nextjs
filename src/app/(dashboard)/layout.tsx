@@ -24,7 +24,7 @@ export default function DashboardLayout({
         <Menu />
       </div>
       {/* Right */}
-      <div className="w-5/6 bg-blue-50 md:w-[92%] lg:w-[84%] xl:w-[86%] overflow-scroll">
+      <div className="w-5/6 bg-blue-50 md:w-[92%] lg:w-[84%] xl:w-[86%] overflow-scroll flex flex-col">
         {/* Top Nav */}
         <Navbar />
         {/* Content */}

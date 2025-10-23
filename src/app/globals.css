@@ -16,3 +16,102 @@
 .react-calendar__navigation__label__labelText {
   font-weight: 600 !important;
 }
+
+.rbc-btn-group:first-child {
+  display: none !important;
+}
+
+/* Calendar labels like back & next button */
+.rbc-toolbar-label {
+  text-align: right !important;
+  padding: 0px 20px !important;
+}
+
+.rbc-btn-group:last-child {
+  font-size: 15px !important;
+  border: none !important;
+}
+
+.rbc-btn-group:last-child button {
+  background-color: #f3f4f6 !important;
+  border-radius: 0.375rem !important;
+  border: none !important;
+  margin-left: 2px !important;
+}
+
+.rbc-toolbar button.rbc-active {
+  background-color: #2563eb !important;
+  color: white !important;
+  box-shadow: none !important;
+}
+
+.rbc-time-view {
+  border-color: #eee !important;
+}
+
+.rbc-time-header {
+  display: none !important;
+}
+
+.rbc-time-content {
+  border: none !important;
+}
+
+.rbc-event {
+  border: none !important;
+  color: black !important;
+  padding: 10px !important;
+  margin: 10px !important;
+  width: 99% !important;
+}
+
+.rbc-event:nth-child(1) {
+  background-color: #bfdbfe !important;
+}
+.rbc-event:nth-child(2) {
+  background-color: #bbf7d0 !important;
+}
+.rbc-event:nth-child(3) {
+  background-color: #fecaca !important;
+}
+.rbc-event:nth-child(4) {
+  background-color: #fef3c7 !important;
+}
+.rbc-event:nth-child(5) {
+  background-color: #ddd6fe !important;
+}
+.rbc-event:nth-child(6) {
+  background-color: #fbcfe8 !important;
+}
+.rbc-event:nth-child(7) {
+  background-color: #fcd34d !important;
+}
+.rbc-event:nth-child(8) {
+  background-color: #6ee7b7 !important;
+}
+
+.rbc-event-label {
+  color: gray !important;
+  font-weight: 600 !important;
+  font-family: "Inter" sans-serif !important;
+  margin-bottom: 5px !important;
+}
+
+/* Corrige l'affichage du texte des événements sur la page Teacher uniquement */
+.teacher-calendar-container .rbc-event-content {
+  white-space: normal !important; /* Permet le retour à la ligne */
+  line-height: 1.2 !important; /* Ajuste l'espacement vertical */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+/* Optionnel : améliore le rendu des blocs d'événements */
+.teacher-calendar-container .rbc-event {
+  padding: 6px 8px !important;
+  border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  border: none;
+}

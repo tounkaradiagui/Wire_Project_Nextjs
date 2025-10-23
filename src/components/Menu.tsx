@@ -19,6 +19,7 @@ import {
   Trophy,
   FileCheck2,
 } from "lucide-react";
+import { role } from "@/lib/data";
 
 const menuItems = [
   {
@@ -27,25 +28,25 @@ const menuItems = [
       {
         icon: Home,
         label: "Accueil",
-        href: "/",
+        href: "/admin",
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
         icon: User,
         label: "Enseignants",
-        href: "/list/teachers",
+        href: "/teacher",
         visible: ["admin", "teacher"],
       },
       {
         icon: GraduationCap,
         label: "Élèves",
-        href: "/list/students",
+        href: "/student",
         visible: ["admin", "teacher"],
       },
       {
         icon: Users,
         label: "Parents",
-        href: "/list/parents",
+        href: "/parent",
         visible: ["admin", "teacher"],
       },
       {
@@ -129,27 +130,30 @@ const menuItems = [
   },
 ];
 
-
 const Menu = () => {
   return (
     <div className="text-sm p-2">
-      {menuItems.map((section) => (
-        <div className="flex flex-col gap-2" key={section.title}>
+      {menuItems.map((i) => (
+        <div className="flex flex-col gap-2" key={i.title}>
           <span className="hidden lg:block my-4 font-light text-white">
-            {section.title}
+            {i.title}
           </span>
-          {section.items.map((item) => {
-            const Icon = item.icon;
-            return (
-              <Link
-                href={item.href}
-                key={item.label}
-                className="flex items-center justify-center lg:justify-start gap-4 mt-2 text-gray-700 hover:text-blue-600 transition-all duration-200"
-              >
-                <Icon size={25} color="#1E5CC5" />
-                <span className="hidden lg:block text-white">{item.label}</span>
-              </Link>
-            );
+          {i.items.map((item) => {
+            if (item.visible.includes(role)) {
+              const Icon = item.icon;
+              return (
+                <Link
+                  href={item.href}
+                  key={item.label}
+                  className="flex items-center justify-center lg:justify-start gap-4 mt-2 text-gray-700 transition-all duration-200"
+                >
+                  <Icon size={25} color="#1E5CC5" />
+                  <span className="hidden lg:block text-white">
+                    {item.label}
+                  </span>
+                </Link>
+              );
+            }
           })}
         </div>
       ))}

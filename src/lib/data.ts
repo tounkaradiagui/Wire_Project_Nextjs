@@ -1,6 +1,6 @@
 // TEMPORARY DATA
 
-export let role = "admin";
+export let role = "admin"; // Change this value to "admin", "teacher", "student", or "parent" to test different roles
 
 export const teachersData = [
   {
@@ -917,147 +917,60 @@ export const announcementsData = [
 
 
 // YOU SHOULD CHANGE THE DATES OF THE EVENTS TO THE CURRENT DATE TO SEE THE EVENTS ON THE CALENDAR
+
+import moment from "moment";
+
+import "moment/locale/fr"; // Import de la locale française
+
+moment.locale("fr");
+
+const subjects = [
+  "Mathématiques",
+  "Anglais",
+  "Biologie",
+  "Physique",
+  "Chimie",
+  "Histoire",
+];
+
+// Fonction pour obtenir la date d’un jour spécifique de la semaine courante
+const getDateForDay = (dayOffset: number, hour: number, minute: number) => {
+  const today = moment().startOf("week").add(1, "day"); // Lundi
+  return today.clone().add(dayOffset, "days").set({ hour, minute }).toDate();
+};
+
+// Génération automatique du planning
 export const calendarEvents = [
-  {
-    title: "Math",
-    allDay: false,
-    start: new Date(2024, 7, 12, 8, 0),
-    end: new Date(2024, 7, 12, 8, 45),
-  },
-  {
-    title: "English",
-    allDay: false,
-    start: new Date(2024, 7, 12, 9, 0),
-    end: new Date(2024, 7, 12, 9, 45),
-  },
-  {
-    title: "Biology",
-    allDay: false,
-    start: new Date(2024, 7, 12, 10, 0),
-    end: new Date(2024, 7, 12, 10, 45),
-  },
-  {
-    title: "Physics",
-    allDay: false,
-    start: new Date(2024, 7, 12, 11, 0),
-    end: new Date(2024, 7, 12, 11, 45),
-  },
-  {
-    title: "Chemistry",
-    allDay: false,
-    start: new Date(2024, 7, 12, 13, 0),
-    end: new Date(2024, 7, 12, 13, 45),
-  },
-  {
-    title: "History",
-    allDay: false,
-    start: new Date(2024, 7, 12, 14, 0),
-    end: new Date(2024, 7, 12, 14, 45),
-  },
-  {
-    title: "English",
-    allDay: false,
-    start: new Date(2024, 7, 13, 9, 0),
-    end: new Date(2024, 7, 13, 9, 45),
-  },
-  {
-    title: "Biology",
-    allDay: false,
-    start: new Date(2024, 7, 13, 10, 0),
-    end: new Date(2024, 7, 13, 10, 45),
-  },
-  {
-    title: "Physics",
-    allDay: false,
-    start: new Date(2024, 7, 13, 11, 0),
-    end: new Date(2024, 7, 13, 11, 45),
-  },
+  // Lundi
+  { title: "Mathématiques", start: getDateForDay(0, 8, 0), end: getDateForDay(0, 8, 45) },
+  { title: "Anglais", start: getDateForDay(0, 9, 0), end: getDateForDay(0, 9, 45) },
+  { title: "Biologie", start: getDateForDay(0, 10, 0), end: getDateForDay(0, 10, 45) },
+  { title: "Physique", start: getDateForDay(0, 11, 0), end: getDateForDay(0, 11, 45) },
+  { title: "Chimie", start: getDateForDay(0, 13, 0), end: getDateForDay(0, 13, 45) },
+  { title: "Histoire", start: getDateForDay(0, 14, 0), end: getDateForDay(0, 14, 45) },
 
-  {
-    title: "History",
-    allDay: false,
-    start: new Date(2024, 7, 13, 14, 0),
-    end: new Date(2024, 7, 13, 14, 45),
-  },
-  {
-    title: "Math",
-    allDay: false,
-    start: new Date(2024, 7, 14, 8, 0),
-    end: new Date(2024, 7, 14, 8, 45),
-  },
-  {
-    title: "Biology",
-    allDay: false,
-    start: new Date(2024, 7, 14, 10, 0),
-    end: new Date(2024, 7, 14, 10, 45),
-  },
+  // Mardi
+  { title: "Anglais", start: getDateForDay(1, 9, 0), end: getDateForDay(1, 9, 45) },
+  { title: "Biologie", start: getDateForDay(1, 10, 0), end: getDateForDay(1, 10, 45) },
+  { title: "Physique", start: getDateForDay(1, 11, 0), end: getDateForDay(1, 11, 45) },
+  { title: "Histoire", start: getDateForDay(1, 14, 0), end: getDateForDay(1, 14, 45) },
 
-  {
-    title: "Chemistry",
-    allDay: false,
-    start: new Date(2024, 7, 14, 13, 0),
-    end: new Date(2024, 7, 14, 13, 45),
-  },
-  {
-    title: "History",
-    allDay: false,
-    start: new Date(2024, 7, 14, 14, 0),
-    end: new Date(2024, 7, 13, 14, 45),
-  },
-  {
-    title: "English",
-    allDay: false,
-    start: new Date(2024, 7, 15, 9, 0),
-    end: new Date(2024, 7, 15, 9, 45),
-  },
-  {
-    title: "Biology",
-    allDay: false,
-    start: new Date(2024, 7, 15, 10, 0),
-    end: new Date(2024, 7, 15, 10, 45),
-  },
-  {
-    title: "Physics",
-    allDay: false,
-    start: new Date(2024, 7, 15, 11, 0),
-    end: new Date(2024, 7, 15, 11, 45),
-  },
+  // Mercredi
+  { title: "Mathématiques", start: getDateForDay(2, 8, 0), end: getDateForDay(2, 8, 45) },
+  { title: "Biologie", start: getDateForDay(2, 10, 0), end: getDateForDay(2, 10, 45) },
+  { title: "Chimie", start: getDateForDay(2, 13, 0), end: getDateForDay(2, 13, 45) },
+  { title: "Histoire", start: getDateForDay(2, 14, 0), end: getDateForDay(2, 14, 45) },
 
-  {
-    title: "History",
-    allDay: false,
-    start: new Date(2024, 7, 15, 14, 0),
-    end: new Date(2024, 7, 15, 14, 45),
-  },
-  {
-    title: "Math",
-    allDay: false,
-    start: new Date(2024, 7, 16, 8, 0),
-    end: new Date(2024, 7, 16, 8, 45),
-  },
-  {
-    title: "English",
-    allDay: false,
-    start: new Date(2024, 7, 16, 9, 0),
-    end: new Date(2024, 7, 16, 9, 45),
-  },
+  // Jeudi
+  { title: "Anglais", start: getDateForDay(3, 9, 0), end: getDateForDay(3, 9, 45) },
+  { title: "Biologie", start: getDateForDay(3, 10, 0), end: getDateForDay(3, 10, 45) },
+  { title: "Physique", start: getDateForDay(3, 11, 0), end: getDateForDay(3, 11, 45) },
+  { title: "Histoire", start: getDateForDay(3, 14, 0), end: getDateForDay(3, 14, 45) },
 
-  {
-    title: "Physics",
-    allDay: false,
-    start: new Date(2024, 7, 16, 11, 0),
-    end: new Date(2024, 7, 16, 11, 45),
-  },
-  {
-    title: "Chemistry",
-    allDay: false,
-    start: new Date(2024, 7, 16, 13, 0),
-    end: new Date(2024, 7, 16, 13, 45),
-  },
-  {
-    title: "History",
-    allDay: false,
-    start: new Date(2024, 7, 16, 14, 0),
-    end: new Date(2024, 7, 16, 14, 45),
-  },
+  // Vendredi
+  { title: "Mathématiques", start: getDateForDay(4, 8, 0), end: getDateForDay(4, 8, 45) },
+  { title: "Anglais", start: getDateForDay(4, 9, 0), end: getDateForDay(4, 9, 45) },
+  { title: "Physique", start: getDateForDay(4, 11, 0), end: getDateForDay(4, 11, 45) },
+  { title: "Chimie", start: getDateForDay(4, 13, 0), end: getDateForDay(4, 13, 45) },
+  { title: "Histoire", start: getDateForDay(4, 14, 0), end: getDateForDay(4, 14, 45) },
 ];

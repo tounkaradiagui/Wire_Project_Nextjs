@@ -1,0 +1,57 @@
+"use client";
+import { Calendar, momentLocalizer, View, Views } from "react-big-calendar";
+import moment from "moment";
+import "moment/locale/fr";
+import { calendarEvents } from "@/lib/data";
+import "react-big-calendar/lib/css/react-big-calendar.css";
+import { useState } from "react";
+
+moment.locale("fr");
+const localizer = momentLocalizer(moment);
+
+const BigCalendar = () => {
+  const [view, setView] = useState<View>(Views.WORK_WEEK);
+
+  const handleViewChange = (selectedView: View) => {
+    setView(selectedView);
+  };
+
+  // 🔹 Traduction complète des libellés
+  const messages = {
+    today: "Aujourd’hui",
+    previous: "Précédent",
+    next: "Suivant",
+    month: "Mois",
+    week: "Semaine",
+    work_week: "Semaine de travail",
+    day: "Jour",
+    agenda: "Agenda",
+    date: "Date",
+    time: "Heure",
+    event: "Événement",
+    allDay: "Toute la journée",
+    noEventsInRange: "Aucun événement dans cette période",
+    showMore: (total: number) => `+ ${total} de plus`,
+  };
+
+  return (
+    <Calendar
+      culture="fr" // Interface en français
+      localizer={localizer}
+      events={calendarEvents}
+      startAccessor="start"
+      endAccessor="end"
+      views={["work_week", "day", "month"]}
+      view={view}
+      onView={handleViewChange}
+      defaultView={Views.WORK_WEEK}
+      defaultDate={new Date()} // semaine actuelle
+      style={{ height: "98%" }}
+      min={new Date(0, 0, 0, 8, 0)} // 08:00
+      max={new Date(0, 0, 0, 17, 0)} // 17:00
+      messages={messages}
+    />
+  );
+};
+
+export default BigCalendar;
