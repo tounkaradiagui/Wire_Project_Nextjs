@@ -34,19 +34,19 @@ const menuItems = [
       {
         icon: User,
         label: "Enseignants",
-        href: "/teacher",
+        href: "/list/teachers",
         visible: ["admin", "teacher"],
       },
       {
         icon: GraduationCap,
         label: "Élèves",
-        href: "/student",
+        href: "/list/students",
         visible: ["admin", "teacher"],
       },
       {
         icon: Users,
         label: "Parents",
-        href: "/parent",
+        href: "/list/parents",
         visible: ["admin", "teacher"],
       },
       {
