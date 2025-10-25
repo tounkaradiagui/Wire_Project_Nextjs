@@ -22,8 +22,8 @@ const columns = [
 type Lesson = {
   id: number;
   subject: string;
-  class: number;
-  teacher: number;
+  class: string;
+  teacher: string;
 };
 
 const LessonListPage = () => {

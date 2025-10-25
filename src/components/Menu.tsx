@@ -80,6 +80,12 @@ const menuItems = [
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
+        icon: FileCheck2,
+        label: "Résultats",
+        href: "/list/results",
+        visible: ["admin", "teacher", "student", "parent"],
+      },
+      {
         icon: CheckSquare,
         label: "Présences",
         href: "/list/attendance",
