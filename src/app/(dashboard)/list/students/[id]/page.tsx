@@ -1,0 +1,159 @@
+import Announcements from "@/components/Announcements";
+import BigCalendar from "@/components/BigCalendar";
+import Performance from "@/components/Performance";
+import Image from "next/image";
+import Link from "next/link";
+
+const StudentDetailPage = () => {
+  return (
+    <div className="flex-1 p-4 flex flex-col xl:flex-row gap-4">
+      {/* Left */}
+      <div className="w-full xl:w-2/3">
+        {/* Top */}
+        <div className="flex flex-col lg:flex-row gap-4">
+          {/* User card infos */}
+          <div className="bg-blue-300 py-6 px-4 rounded-md flex-1 flex gap-4 transition-transform hover:scale-105">
+            <div className="w-1/3">
+              <Image
+                src="https://images.pexels.com/photos/936126/pexels-photo-936126.jpeg?auto=compress&cs=tinysrgb&w=1200"
+                alt=""
+                width={144}
+                height={144}
+                className="w-36 h-36 rounded-full object-cover"
+              />
+            </div>
+            <div className="w-2/3 flex flex-col justify-between gap-4">
+              <h1 className="text-xl font-semibold">Aminata Tounkara</h1>
+              <p className="text-sm text-gray-500">
+                Élève en 11ème classe au lycée, avec un taux de présence de 86%.
+              </p>
+              <div className="flex items-center justify-between gap-2 flex-wrap text-xs font-medium">
+                <div className="w-full md:w-1/3 lg:w-full 2xl:w-1/3 flex items-center gap-2">
+                  <Image src="/blood.png" alt="" width={14} height={14} />
+                  <span>A+</span>
+                </div>
+                <div className="w-full md:w-1/3 lg:w-full 2xl:w-1/3 flex items-center gap-2">
+                  <Image src="/date.png" alt="" width={14} height={14} />
+                  <span>09 Juin 2000</span>
+                </div>
+                <div className="w-full md:w-1/3 lg:w-full 2xl:w-1/3 flex items-center gap-2">
+                  <Image src="/mail.png" alt="" width={14} height={14} />
+                  <span>aminata@gmail.com</span>
+                </div>
+                <div className="w-full md:w-1/3 lg:w-full 2xl:w-1/3 flex items-center gap-2">
+                  <Image src="/phone.png" alt="" width={14} height={14} />
+                  <span>65116446</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          {/* Small card */}
+          <div className="flex-1 flex flex-wrap gap-4 justify-between">
+            {/* Présence */}
+            <div className="flex items-center gap-4 bg-blue-500 text-white p-5 rounded-2xl shadow-md flex-1 min-w-[180px] transition-transform hover:scale-105">
+              <div className="bg-white/20 p-3 rounded-xl">
+                <Image
+                  src="/singleAttendance.png"
+                  alt="Présence"
+                  width={28}
+                  height={28}
+                  className="w-7 h-7"
+                />
+              </div>
+              <div>
+                <h1 className="text-2xl font-semibold">86%</h1>
+                <span className="text-sm opacity-90">Présence</span>
+              </div>
+            </div>
+
+            {/* Matières */}
+            <div className="flex items-center gap-4 bg-yellow-400 text-white p-5 rounded-2xl shadow-md flex-1 min-w-[180px] transition-transform hover:scale-105">
+              <div className="bg-white/20 p-3 rounded-xl">
+                <Image
+                  src="/singleBranch.png"
+                  alt="Matières"
+                  width={28}
+                  height={28}
+                  className="w-7 h-7"
+                />
+              </div>
+              <div>
+                <h1 className="text-2xl font-semibold">Lycée</h1>
+                <span className="text-sm opacity-90">Niveau</span>
+              </div>
+            </div>
+
+            {/* Leçons */}
+            <div className="flex items-center gap-4 bg-purple-500 text-white p-5 rounded-2xl shadow-md flex-1 min-w-[180px] transition-transform hover:scale-105">
+              <div className="bg-white/20 p-3 rounded-xl">
+                <Image
+                  src="/singleLesson.png"
+                  alt="Leçons"
+                  width={28}
+                  height={28}
+                  className="w-7 h-7"
+                />
+              </div>
+              <div>
+                <h1 className="text-2xl font-semibold">13</h1>
+                <span className="text-sm opacity-90">Leçons</span>
+              </div>
+            </div>
+
+            {/* Classes */}
+            <div className="flex items-center gap-4 bg-green-500 text-white p-5 rounded-2xl shadow-md flex-1 min-w-[180px] transition-transform hover:scale-105">
+              <div className="bg-white/20 p-3 rounded-xl">
+                <Image
+                  src="/singleClass.png"
+                  alt="Classes"
+                  width={28}
+                  height={28}
+                  className="w-7 h-7"
+                />
+              </div>
+              <div>
+                <h1 className="text-2xl font-semibold">11ème</h1>
+                <span className="text-sm opacity-90">Classe</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        {/* Bottom */}
+        <div className="mt-4 bg-white p-4 rounded-md shadow-md h-[800px] teacher-calendar-container">
+          <h1>Emploi du temps</h1>
+          <BigCalendar />
+        </div>
+      </div>
+      {/* Right */}
+      <div className="w-full xl:w-1/3 flex flex-col gap-4">
+        <div className="bg-white p-4 rounded-md">
+          {/* Shortcuts */}
+          <h2 className="text-xl font-semibold mb-4">Raccourcis</h2>
+          <div className="mt-4 gap-4 flex flex-wrap text-xs text-gray-700">
+            <Link href="/" className="p-3 rounded-md bg-amber-200">
+              Leçons
+            </Link>
+            <Link href="/" className="p-3 rounded-md bg-lime-200">
+              Matières
+            </Link>
+            <Link href="/" className="p-3 rounded-md bg-cyan-200">
+              Enseignants
+            </Link>
+            <Link href="/" className="p-3 rounded-md bg-violet-200">
+              Résultats
+            </Link>
+            <Link href="/" className="p-3 rounded-md bg-rose-200">
+              Devoirs
+            </Link>
+          </div>
+        </div>
+        {/* Teacher performance */}
+        <Performance isAnimationActive={true} />
+        {/* Announcement */}
+        <Announcements />
+      </div>
+    </div>
+  );
+};
+
+export default StudentDetailPage;

@@ -121,7 +121,7 @@ const TeacherDetailPage = () => {
           </div>
         </div>
         {/* Bottom */}
-        <div className="mt-4 bg-white p-4 rounded-md shadow-md h-[800px]">
+        <div className="mt-4 bg-white p-4 rounded-md shadow-md h-[800px] teacher-calendar-container">
           <h1>Programme de l'Enseignant</h1>
           <BigCalendar />
         </div>
