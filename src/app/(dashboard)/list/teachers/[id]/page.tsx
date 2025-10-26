@@ -1,4 +1,8 @@
+import Announcements from "@/components/Announcements";
+import BigCalendar from "@/components/BigCalendar";
+import Performance from "@/components/Performance";
 import Image from "next/image";
+import Link from "next/link";
 
 const TeacherDetailPage = () => {
   return (
@@ -8,7 +12,7 @@ const TeacherDetailPage = () => {
         {/* Top */}
         <div className="flex flex-col lg:flex-row gap-4">
           {/* User card infos */}
-          <div className="bg-blue-300 py-6 px-4 rounded-md flex-1 flex gap-4">
+          <div className="bg-blue-300 py-6 px-4 rounded-md flex-1 flex gap-4 transition-transform hover:scale-105">
             <div className="w-1/3">
               <Image
                 src="https://images.pexels.com/photos/2888150/pexels-photo-2888150.jpeg?auto=compress&cs=tinysrgb&w=1200"
@@ -46,72 +50,113 @@ const TeacherDetailPage = () => {
             </div>
           </div>
           {/* Small card */}
-          <div className="flex-1 flex gap-4 justify-between flex-wrap">
-            {/* Card */}
-            <div className="flex gap-4 bg-white p-4 rounded-md flex-1 w-full md:w-[48%] xl:w-[45%] 2xl:w-[48%] min-w-[150px] ">
-              <Image
-                src="/singleAttendance.png"
-                alt=""
-                width={24}
-                height={24}
-                className="w-6 h-6"
-              />
+          <div className="flex-1 flex flex-wrap gap-4 justify-between">
+            {/* Présence */}
+            <div className="flex items-center gap-4 bg-blue-500 text-white p-5 rounded-2xl shadow-md flex-1 min-w-[180px] transition-transform hover:scale-105">
+              <div className="bg-white/20 p-3 rounded-xl">
+                <Image
+                  src="/singleAttendance.png"
+                  alt="Présence"
+                  width={28}
+                  height={28}
+                  className="w-7 h-7"
+                />
+              </div>
               <div>
-                <h1 className="text-xl font-semibold">90%</h1>
-                <span className="text-sm text-gray-600">Présence</span>
+                <h1 className="text-2xl font-semibold">90%</h1>
+                <span className="text-sm opacity-90">Présence</span>
               </div>
             </div>
-            {/* Card */}
-            <div className="flex gap-4 bg-white p-4 rounded-md flex-1 min-w-[150px] ">
-              <Image
-                src="/singleBranch.png"
-                alt=""
-                width={24}
-                height={24}
-                className="w-6 h-6"
-              />
+
+            {/* Matières */}
+            <div className="flex items-center gap-4 bg-yellow-400 text-white p-5 rounded-2xl shadow-md flex-1 min-w-[180px] transition-transform hover:scale-105">
+              <div className="bg-white/20 p-3 rounded-xl">
+                <Image
+                  src="/singleBranch.png"
+                  alt="Matières"
+                  width={28}
+                  height={28}
+                  className="w-7 h-7"
+                />
+              </div>
               <div>
-                <h1 className="text-xl font-semibold">12</h1>
-                <span className="text-sm text-gray-600">
-                  Matières enseignées
-                </span>
+                <h1 className="text-2xl font-semibold">12</h1>
+                <span className="text-sm opacity-90">Matières enseignées</span>
               </div>
             </div>
-            {/* Card */}
-            <div className="flex gap-4 bg-white p-4 rounded-md flex-1 min-w-[150px] ">
-              <Image
-                src="/singleLesson.png"
-                alt=""
-                width={24}
-                height={24}
-                className="w-6 h-6"
-              />
+
+            {/* Leçons */}
+            <div className="flex items-center gap-4 bg-purple-500 text-white p-5 rounded-2xl shadow-md flex-1 min-w-[180px] transition-transform hover:scale-105">
+              <div className="bg-white/20 p-3 rounded-xl">
+                <Image
+                  src="/singleLesson.png"
+                  alt="Leçons"
+                  width={28}
+                  height={28}
+                  className="w-7 h-7"
+                />
+              </div>
               <div>
-                <h1 className="text-xl font-semibold">8</h1>
-                <span className="text-sm text-gray-600">Leçons données</span>
+                <h1 className="text-2xl font-semibold">8</h1>
+                <span className="text-sm opacity-90">Leçons données</span>
               </div>
             </div>
-            {/* Card */}
-            <div className="flex gap-4 bg-white p-4 rounded-md flex-1 min-w-[150px] ">
-              <Image
-                src="/singleClass.png"
-                alt=""
-                width={24}
-                height={24}
-                className="w-6 h-6"
-              />
+
+            {/* Classes */}
+            <div className="flex items-center gap-4 bg-green-500 text-white p-5 rounded-2xl shadow-md flex-1 min-w-[180px] transition-transform hover:scale-105">
+              <div className="bg-white/20 p-3 rounded-xl">
+                <Image
+                  src="/singleClass.png"
+                  alt="Classes"
+                  width={28}
+                  height={28}
+                  className="w-7 h-7"
+                />
+              </div>
               <div>
-                <h1 className="text-xl font-semibold">5</h1>
-                <span className="text-sm text-gray-600">Classes assignées</span>
+                <h1 className="text-2xl font-semibold">5</h1>
+                <span className="text-sm opacity-90">Classes assignées</span>
               </div>
             </div>
           </div>
         </div>
         {/* Bottom */}
-        <div>Programme de l'enseignant</div>
+        <div className="mt-4 bg-white p-4 rounded-md shadow-md h-[800px]">
+          <h1>Programme de l'Enseignant</h1>
+          <BigCalendar />
+        </div>
       </div>
       {/* Right */}
-      <div className="w-full xl:w-1/3">R</div>
+      <div className="w-full xl:w-1/3 flex flex-col gap-4">
+        <div className="bg-white p-4 rounded-md">
+          {/* Shortcuts */}
+          <h2 className="text-xl font-semibold mb-4">Raccourcis</h2>
+          <div className="mt-4 gap-4 flex flex-wrap text-xs text-gray-700">
+            <Link href="/" className="p-3 rounded-md bg-amber-200">
+              Classes
+            </Link>
+            <Link href="/" className="p-3 rounded-md bg-lime-200">
+              Matières
+            </Link>
+            <Link href="/" className="p-3 rounded-md bg-cyan-200">
+              Leçons
+            </Link>
+            <Link href="/" className="p-3 rounded-md bg-pink-200">
+              Présence
+            </Link>
+            <Link href="/" className="p-3 rounded-md bg-violet-200">
+              Notes
+            </Link>
+            <Link href="/" className="p-3 rounded-md bg-rose-200">
+              Emploi du temps
+            </Link>
+          </div>
+        </div>
+        {/* Teacher performance */}
+        <Performance isAnimationActive={true} />
+        {/* Announcement */}
+        <Announcements />
+      </div>
     </div>
   );
 };
