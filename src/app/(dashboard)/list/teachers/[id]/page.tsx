@@ -1,5 +1,6 @@
 import Announcements from "@/components/Announcements";
 import BigCalendar from "@/components/BigCalendar";
+import FormModal from "@/components/FormModal";
 import Performance from "@/components/Performance";
 import Image from "next/image";
 import Link from "next/link";
@@ -12,7 +13,7 @@ const TeacherDetailPage = () => {
         {/* Top */}
         <div className="flex flex-col lg:flex-row gap-4">
           {/* User card infos */}
-          <div className="bg-blue-300 py-6 px-4 rounded-md flex-1 flex gap-4 transition-transform hover:scale-105">
+          <div className="bg-blue-300 py-6 px-4 rounded-md flex-1 flex gap-4">
             <div className="w-1/3">
               <Image
                 src="https://images.pexels.com/photos/2888150/pexels-photo-2888150.jpeg?auto=compress&cs=tinysrgb&w=1200"
@@ -23,7 +24,29 @@ const TeacherDetailPage = () => {
               />
             </div>
             <div className="w-2/3 flex flex-col justify-between gap-4">
-              <h1 className="text-xl font-semibold">James Watt</h1>
+              <div className="flex items-center gap-4">
+                <h1 className="text-xl font-semibold">James Watt</h1>
+                {/* Update user infos */}
+                <FormModal
+                  table="teacher"
+                  type="update"
+                  data={{
+                    id: "1",
+                    username: "james12",
+                    email: "james@gmil.co",
+                    password: "password",
+                    firstName: "james",
+                    lastName: "watt",
+                    phone: "8738292",
+                    address: "Bamako",
+                    bloodType: "0+",
+                    birthday: "2000-01-02",
+                    sex: "male",
+                    image:
+                      "https://images.pexels.com/photos/2888150/pexels-photo-2888150.jpeg?auto=compress&cs=tinysrgb&w=1200",
+                  }}
+                />
+              </div>
               <p className="text-sm text-gray-500">
                 Enseignant de mathématiques avec plus de 10 ans d'expérience
                 dans l'enseignement secondaire. Passionné par la pédagogie et

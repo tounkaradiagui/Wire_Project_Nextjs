@@ -1,1 +1,0 @@
-- [ ] Edit src/app/(dashboard)/list/students/[id]/page.tsx to add a simple French description for the student in the empty <p> tag.

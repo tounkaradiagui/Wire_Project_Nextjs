@@ -1,5 +1,6 @@
 "use client";
 
+import FormModal from "@/components/FormModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
@@ -45,27 +46,11 @@ const ExamListPage = () => {
       <td className="hidden md:table-cell">{item.date}</td>
       <td>
         <div className="flex items-center gap-2">
-          <Link href={`/list/exams/${item.id}`}>
-            <button className="bg-green-500 p-2 rounded-md w-7 h-7 flex items-center justify-center">
-              <Image
-                src="/edit.png"
-                alt="view"
-                width={16}
-                height={16}
-                className="cursor-pointer"
-              />
-            </button>
-          </Link>
           {role === "admin" && (
-            <button className="bg-gray-600 p-2 rounded-md w-7 h-7 flex items-center justify-center">
-              <Image
-                src="/delete.png"
-                alt="view"
-                width={16}
-                height={16}
-                className="cursor-pointer"
-              />
-            </button>
+            <>
+              <FormModal table="exam" type="update" data={item} />
+              <FormModal table="exam" type="delete" id={item.id} />
+            </>
           )}
         </div>
       </td>
@@ -99,17 +84,7 @@ const ExamListPage = () => {
                 className="cursor-pointer"
               />
             </button>
-            {role === "admin" && (
-              <button className="bg-green-500 text-white w-8 h-8 items-center justify-center rounded-full flex">
-                <Image
-                  src="/plus.png"
-                  alt="plus"
-                  width={14}
-                  height={14}
-                  className="cursor-pointer"
-                />
-              </button>
-            )}
+            {role === "admin" && <FormModal table="event" type="create" />}
           </div>
         </div>
       </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import FormModal from "@/components/FormModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
@@ -41,27 +42,11 @@ const SubjectListPage = () => {
       </td>
       <td>
         <div className="flex items-center gap-2">
-          <Link href={`/list/subjects/${item.id}`}>
-            <button className="bg-green-500 p-2 rounded-md w-7 h-7 flex items-center justify-center">
-              <Image
-                src="/edit.png"
-                alt="view"
-                width={16}
-                height={16}
-                className="cursor-pointer"
-              />
-            </button>
-          </Link>
           {role === "admin" && (
-            <button className="bg-gray-600 p-2 rounded-md w-7 h-7 flex items-center justify-center">
-              <Image
-                src="/delete.png"
-                alt="view"
-                width={16}
-                height={16}
-                className="cursor-pointer"
-              />
-            </button>
+            <>
+              <FormModal table="subject" type="update" data={item} />
+              <FormModal table="subject" type="delete" id={item.id} />
+            </>
           )}
         </div>
       </td>
@@ -72,7 +57,7 @@ const SubjectListPage = () => {
       {/* TOP SECTION */}
       <div className="flex items-center justify-between">
         <h1 className="hidden md:block text-lg font-semibold">
-          Liste des parents
+          Liste des matières
         </h1>
         <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto items-center">
           <TableSearch />
@@ -95,17 +80,7 @@ const SubjectListPage = () => {
                 className="cursor-pointer"
               />
             </button>
-            {role === "admin" && (
-              <button className="bg-green-500 text-white w-8 h-8 items-center justify-center rounded-full flex">
-                <Image
-                  src="/plus.png"
-                  alt="plus"
-                  width={14}
-                  height={14}
-                  className="cursor-pointer"
-                />
-              </button>
-            )}
+            {role === "admin" && <FormModal table="subject" type="create" />}
           </div>
         </div>
       </div>
