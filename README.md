@@ -93,6 +93,9 @@ Cette application web est conçue pour faciliter la gestion des absences dans un
    npm run build
    npm start
    ```
+6. Database:
+   Prisma ORM
+   Postgre SQL
 
 ## Utilisation
 
