@@ -1,3 +1,4 @@
+"use client";
 import Announcements from "@/components/Announcements";
 import BigCalendar from "@/components/BigCalendar";
 import FormModal from "@/components/FormModal";
@@ -159,7 +160,10 @@ const StudentDetailPage = () => {
             <Link href="/" className="p-3 rounded-md bg-lime-200">
               Matières
             </Link>
-            <Link href="/" className="p-3 rounded-md bg-cyan-200">
+            <Link
+              href={`/list/teachers?classId=${2}`}
+              className="p-3 rounded-md bg-cyan-200"
+            >
               Enseignants
             </Link>
             <Link href="/" className="p-3 rounded-md bg-violet-200">
