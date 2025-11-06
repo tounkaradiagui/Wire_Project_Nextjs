@@ -6,7 +6,7 @@ import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import { role } from "@/lib/data";
 import { ITEM_PER_PAGE } from "@/lib/settings";
-import { Class, Student } from "generated/prisma/client";
+import { Class, Prisma, Student } from "generated/prisma/client";
 import Image from "next/image";
 import prisma from "@/lib/prisma";
 
@@ -44,7 +44,6 @@ const renderRow = (item: StudentList) => (
       />
       <div className="flex flex-col">
         <h3 className="font-semibold">{item.name}</h3>
-        {/* <p className="text-xs text-gray-500">{item?.class.name}</p> */}
       </div>
     </td>
     <td className="hidden md:table-cell">{item.username}</td>
@@ -74,27 +73,29 @@ const StudentListPage = async ({
   const page = params?.page ? Math.max(1, parseInt(params.page, 10) || 1) : 1;
   const search = (params?.search || "").trim();
 
-  const where = search
-    ? {
-        OR: [
-          { name: { contains: search, mode: "insensitive" } },
-          { surname: { contains: search, mode: "insensitive" } },
-          { username: { contains: search, mode: "insensitive" } },
-          { email: { contains: search, mode: "insensitive" } },
-          { class: { name: { contains: search, mode: "insensitive" } } },
-        ],
-      }
-    : {};
+  let query: Prisma.StudentWhereInput = {};
+
+  if (search) {
+    query = {
+      OR: [
+        { name: { contains: search, mode: "insensitive" } },
+        { surname: { contains: search, mode: "insensitive" } },
+        { username: { contains: search, mode: "insensitive" } },
+        { email: { contains: search, mode: "insensitive" } },
+        { class: { name: { contains: search, mode: "insensitive" } } },
+      ],
+    };
+  }
 
   const [data, count] = await prisma.$transaction([
     prisma.student.findMany({
-      where,
+      where: query,
       include: { class: true },
       skip: (page - 1) * ITEM_PER_PAGE,
       take: ITEM_PER_PAGE,
       orderBy: { id: "asc" },
     }),
-    prisma.student.count({ where }),
+    prisma.student.count({ where: query }),
   ]);
 
   return (

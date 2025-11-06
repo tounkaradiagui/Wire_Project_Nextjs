@@ -155,7 +155,10 @@ const TeacherDetailPage = () => {
           {/* Shortcuts */}
           <h2 className="text-xl font-semibold mb-4">Raccourcis</h2>
           <div className="mt-4 gap-4 flex flex-wrap text-xs text-gray-700">
-            <Link href="/" className="p-3 rounded-md bg-amber-200">
+            <Link
+              href={`/list/classes?superviserId=${"teacher2"}`}
+              className="p-3 rounded-md bg-amber-200"
+            >
               Classes
             </Link>
             <Link href="/" className="p-3 rounded-md bg-lime-200">
@@ -167,7 +170,10 @@ const TeacherDetailPage = () => {
             <Link href="/" className="p-3 rounded-md bg-pink-200">
               Présence
             </Link>
-            <Link href={`/list/students?teacherId=${"teacher2"}`} className="p-3 rounded-md bg-violet-200">
+            <Link
+              href={`/list/students?teacherId=${"teacher2"}`}
+              className="p-3 rounded-md bg-violet-200"
+            >
               Elèves
             </Link>
             <Link href="/" className="p-3 rounded-md bg-rose-200">
