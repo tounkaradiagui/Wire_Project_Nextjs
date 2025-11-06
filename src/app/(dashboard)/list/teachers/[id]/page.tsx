@@ -167,8 +167,8 @@ const TeacherDetailPage = () => {
             <Link href="/" className="p-3 rounded-md bg-pink-200">
               Présence
             </Link>
-            <Link href="/" className="p-3 rounded-md bg-violet-200">
-              Notes
+            <Link href={`/list/students?teacherId=${"teacher2"}`} className="p-3 rounded-md bg-violet-200">
+              Elèves
             </Link>
             <Link href="/" className="p-3 rounded-md bg-rose-200">
               Emploi du temps
