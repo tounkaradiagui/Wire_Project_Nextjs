@@ -38,8 +38,10 @@ const renderRow = (item: ClassList) => (
       </div>
     </td>
     <td>{item.capacity}</td>
-    <td className="hidden md:table-cell">{item.grade.level}</td>
-    <td className="hidden md:table-cell">{item.supervisor.name}</td>
+    <td className="hidden md:table-cell">{item.name}</td>
+    <td className="hidden md:table-cell">
+      {item.supervisor.name} {item.supervisor.surname}
+    </td>
     <td>
       <div className="flex items-center gap-2">
         {role === "admin" && (
@@ -58,17 +60,29 @@ const ClassListPage = async ({
 }: {
   searchParams: { [key: string]: string | undefined };
 }) => {
-  const params = searchParams;
+  const { page, ...queryParams } = searchParams;
 
-  const page = params?.page ? Math.max(1, parseInt(params.page, 10) || 1) : 1;
-  const search = (params?.search || "").trim();
+  const p = page ? parseInt(page) : 1;
 
-  let query: Prisma.ClassWhereInput = {};
+  // URL PARAMS CONDITION
 
-  if (search) {
-    query = {
-      OR: [{ name: { contains: search, mode: "insensitive" } }],
-    };
+  const query: Prisma.ClassWhereInput = {};
+
+  if (queryParams) {
+    for (const [key, value] of Object.entries(queryParams)) {
+      if (value !== undefined) {
+        switch (key) {
+          case "supervisorId":
+            query.supervisorId = value;
+            break;
+          case "search":
+            query.name = { contains: value, mode: "insensitive" };
+            break;
+          default:
+            break;
+        }
+      }
+    }
   }
 
   const [data, count] = await prisma.$transaction([
@@ -76,11 +90,9 @@ const ClassListPage = async ({
       where: query,
       include: {
         supervisor: true,
-        grade: true,
       },
-      skip: (page - 1) * ITEM_PER_PAGE,
       take: ITEM_PER_PAGE,
-      orderBy: { id: "asc" },
+      skip: ITEM_PER_PAGE * (p - 1),
     }),
     prisma.class.count({ where: query }),
   ]);
@@ -118,11 +130,11 @@ const ClassListPage = async ({
         </div>
       </div>
 
-      {/* List of Students */}
+      {/* List of Classes */}
       <Table columns={columns} renderRow={renderRow} data={data} />
 
       {/* Pagination */}
-      <Pagination page={page} count={count} />
+      <Pagination page={p} count={count} />
     </div>
   );
 };

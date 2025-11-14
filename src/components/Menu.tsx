@@ -18,6 +18,8 @@ import {
   CheckSquare,
   Trophy,
   FileCheck2,
+  ClipboardCheck,
+  NotebookPen  
 } from "lucide-react";
 import { role } from "@/lib/data";
 
@@ -80,7 +82,7 @@ const menuItems = [
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
-        icon: FileCheck2,
+        icon: NotebookPen,
         label: "Résultats",
         href: "/list/results",
         visible: ["admin", "teacher", "student", "parent"],

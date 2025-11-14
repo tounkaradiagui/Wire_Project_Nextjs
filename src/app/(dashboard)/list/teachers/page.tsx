@@ -9,6 +9,7 @@ import { Class, Prisma, Subject, Teacher } from "generated/prisma/client";
 import Image from "next/image";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
+import Link from "next/link";
 
 type TeacherList = Teacher & { subjects: Subject[] } & { classes: Class[] };
 
@@ -63,9 +64,14 @@ const renderRow = (item: TeacherList) => (
     <td className="hidden lg:table-cell">{item.address}</td>
     <td>
       <div className="flex items-center gap-2">
+        <Link href={`/list/teachers/${item.id}`}>
+          <button className="w-7 h-7 flex items-center justify-center rounded-full bg-blue-200">
+            <Image src="/view.png" alt="" width={16} height={16} />
+          </button>
+        </Link>
         {role === "admin" && (
           <>
-            <FormModal table="teacher" type="update" data={item} />
+            {/* <FormModal table="teacher" type="update" data={item} /> */}
             <FormModal table="teacher" type="delete" id={item.id} />
           </>
         )}
@@ -81,43 +87,48 @@ const TeacherListPage = async ({
 }) => {
   const params = searchParams;
 
-  // safe parse
-  const page = params?.page ? Math.max(1, parseInt(params.page, 10) || 1) : 1;
-  const search = (params?.search || "").trim();
+  const { page, ...queryParams } = searchParams;
 
-  let query: Prisma.TeacherWhereInput = {};
+  const p = page ? parseInt(page) : 1;
 
-  if (search) {
-    query = {
-      OR: [
-        { name: { contains: search, mode: "insensitive" } },
-        { surname: { contains: search, mode: "insensitive" } },
-        { username: { contains: search, mode: "insensitive" } },
-        { email: { contains: search, mode: "insensitive" } },
-        {
-          subjects: {
-            some: { name: { contains: search, mode: "insensitive" } },
-          },
-        },
-        {
-          classes: {
-            some: { name: { contains: search, mode: "insensitive" } },
-          },
-        },
-      ],
-    };
+  // URL PARAMS CONDITION
+
+  const query: Prisma.TeacherWhereInput = {};
+
+  if (queryParams) {
+    for (const [key, value] of Object.entries(queryParams)) {
+      if (value !== undefined) {
+        switch (key) {
+          case "classId":
+            query.lessons = {
+              some: {
+                classId: parseInt(value),
+              },
+            };
+            break;
+          case "search":
+            query.name = { contains: value, mode: "insensitive" };
+            break;
+          default:
+            break;
+        }
+      }
+    }
   }
 
   const [data, count] = await prisma.$transaction([
     prisma.teacher.findMany({
       where: query,
-      include: { subjects: true, classes: true },
-      skip: (page - 1) * ITEM_PER_PAGE,
+      include: {
+        subjects: true,
+        classes: true,
+      },
       take: ITEM_PER_PAGE,
-      orderBy: { id: "asc" },
+      skip: ITEM_PER_PAGE * (p - 1),
     }),
     prisma.teacher.count({ where: query }),
   ]);
+
 
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
@@ -156,7 +167,7 @@ const TeacherListPage = async ({
       <Table columns={columns} renderRow={renderRow} data={data} />
 
       {/* PAGINATION */}
-      <Pagination page={page} count={count} />
+      <Pagination page={p} count={count} />
     </div>
   );
 };

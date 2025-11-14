@@ -154,7 +154,7 @@ const StudentDetailPage = () => {
           {/* Shortcuts */}
           <h2 className="text-xl font-semibold mb-4">Raccourcis</h2>
           <div className="mt-4 gap-4 flex flex-wrap text-xs text-gray-700">
-            <Link href="/" className="p-3 rounded-md bg-amber-200">
+            <Link href={`/list/lessons?classId=${2}`} className="p-3 rounded-md bg-amber-200">
               Leçons
             </Link>
             <Link href="/" className="p-3 rounded-md bg-lime-200">
@@ -166,11 +166,14 @@ const StudentDetailPage = () => {
             >
               Enseignants
             </Link>
-            <Link href="/" className="p-3 rounded-md bg-violet-200">
+            <Link href={`/list/results?studentId=${"student2"}`} className="p-3 rounded-md bg-violet-200">
               Résultats
             </Link>
-            <Link href="/" className="p-3 rounded-md bg-rose-200">
+            <Link href={`/list/assignments?classId=${2}`} className="p-3 rounded-md bg-rose-200">
               Devoirs
+            </Link>
+            <Link href={`/list/exams?classId=${2}`} className="p-3 rounded-md bg-rose-200">
+              Examens
             </Link>
           </div>
         </div>

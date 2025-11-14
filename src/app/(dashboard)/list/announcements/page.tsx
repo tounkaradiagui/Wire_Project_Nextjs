@@ -1,11 +1,17 @@
-"use client";
+"use server";
 
 import FormModal from "@/components/FormModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
-import { announcementsData, role } from "@/lib/data";
+import { role } from "@/lib/data";
 import Image from "next/image";
+import { Class, Announcement} from "generated/prisma/client";
+import { ITEM_PER_PAGE } from "@/lib/settings";
+
+
+
+type AnnouncementList = Announcement  & { class: Class };
 
 const columns = [
   { header: "Titre de l'annonce", accessor: "info" },
@@ -19,15 +25,47 @@ const columns = [
   { header: "Actions", accessor: "actions" },
 ];
 
-type Announcement = {
-  id: number;
-  title: string;
-  class: string;
-  date: string;
-};
+const AnnouncementListPage = async ({
+  searchParams,
+}: {
+  searchParams: { [key: string]: string | undefined };
+}) => {
+  const { page, ...queryParams } = searchParams;
 
-const AnnouncementListPage = () => {
-  const renderRow = (item: Announcement) => (
+  const p = page ? parseInt(page) : 1;
+
+  // URL PARAMS CONDITION
+  
+  const query: Prisma.AnnouncementWhereInput = {};
+
+   if (queryParams) {
+    for (const [key, value] of Object.entries(queryParams)) {
+      if (value !== undefined) {
+        switch (key) {
+          case "search":
+            query.title = { contains: value, mode: "insensitive" };
+            break;
+          default:
+            break;
+        }
+      }
+    }
+  }
+
+   const [data, count] = await prisma.$transaction([
+    prisma.announcement.findMany({
+      where: query,
+      include: {
+        class: true,
+      },
+      take: ITEM_PER_PAGE,
+      skip: ITEM_PER_PAGE * (p - 1),
+    }),
+    prisma.announcement.count({ where: query }),
+  ]);
+
+
+  const renderRow = (item: AnnouncementList) => (
     <tr
       key={item.id}
       className="border-b hover:bg-blue-200 even:bg-slate-50 border-t border-gray-200 border-l border-r"
@@ -37,8 +75,8 @@ const AnnouncementListPage = () => {
           <h3 className="font-semibold">{item.title}</h3>
         </div>
       </td>
-      <td>{item.class}</td>
-      <td className="hidden md:table-cell">{item.date}</td>
+      <td>{item.class?.name || "-"}</td>
+      <td className="hidden md:table-cell">{new Intl.DateTimeFormat("fr-FR").format(item.startTime)}</td>
       <td>
         <div className="flex items-center gap-2">
           {role === "admin" && (
@@ -51,6 +89,7 @@ const AnnouncementListPage = () => {
       </td>
     </tr>
   );
+
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
       {/* TOP SECTION */}
@@ -86,11 +125,11 @@ const AnnouncementListPage = () => {
         </div>
       </div>
 
-      {/* List of Students */}
-      <Table columns={columns} renderRow={renderRow} data={announcementsData} />
+      {/* List of Annoncement */}
+      <Table columns={columns} renderRow={renderRow} data={data} />
 
       {/* Pagination */}
-      <Pagination />
+      <Pagination page={p} count={count}/>
     </div>
   );
 };

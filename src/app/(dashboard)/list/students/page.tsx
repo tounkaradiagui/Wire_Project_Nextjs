@@ -8,7 +8,9 @@ import { role } from "@/lib/data";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Class, Prisma, Student } from "generated/prisma/client";
 import Image from "next/image";
+import Link from "next/link";
 import prisma from "@/lib/prisma";
+
 
 type StudentList = Student & { class: Class[] };
 
@@ -52,9 +54,14 @@ const renderRow = (item: StudentList) => (
     <td className="hidden lg:table-cell">{item.address}</td>
     <td>
       <div className="flex items-center gap-2">
+        <Link href={`/list/students/${item.id}`}>
+          <button className="w-7 h-7 flex items-center justify-center rounded-full bg-blue-500">
+            <Image src="/view.png" alt="" width={16} height={16} />
+          </button>
+        </Link>
         {role === "admin" && (
           <>
-            <FormModal table="student" type="update" data={item} />
+            {/* <FormModal table="student" type="update" data={item} /> */}
             <FormModal table="student" type="delete" id={item.id} />
           </>
         )}
@@ -68,32 +75,45 @@ const StudentListPage = async ({
 }: {
   searchParams: { [key: string]: string | undefined };
 }) => {
-  const params = searchParams;
+  const { page, ...queryParams } = searchParams;
 
-  const page = params?.page ? Math.max(1, parseInt(params.page, 10) || 1) : 1;
-  const search = (params?.search || "").trim();
+  const p = page ? parseInt(page) : 1;
 
-  let query: Prisma.StudentWhereInput = {};
+  // URL PARAMS CONDITION
 
-  if (search) {
-    query = {
-      OR: [
-        { name: { contains: search, mode: "insensitive" } },
-        { surname: { contains: search, mode: "insensitive" } },
-        { username: { contains: search, mode: "insensitive" } },
-        { email: { contains: search, mode: "insensitive" } },
-        { class: { name: { contains: search, mode: "insensitive" } } },
-      ],
-    };
+  const query: Prisma.StudentWhereInput = {};
+
+  if (queryParams) {
+    for (const [key, value] of Object.entries(queryParams)) {
+      if (value !== undefined) {
+        switch (key) {
+          case "teacherId":
+            query.class = {
+              lessons: {
+                some: {
+                  teacherId: value,
+                },
+              },
+            };
+            break;
+          case "search":
+            query.name = { contains: value, mode: "insensitive" };
+            break;
+          default:
+            break;
+        }
+      }
+    }
   }
 
   const [data, count] = await prisma.$transaction([
     prisma.student.findMany({
       where: query,
-      include: { class: true },
-      skip: (page - 1) * ITEM_PER_PAGE,
+      include: {
+        class: true,
+      },
       take: ITEM_PER_PAGE,
-      orderBy: { id: "asc" },
+      skip: ITEM_PER_PAGE * (p - 1),
     }),
     prisma.student.count({ where: query }),
   ]);
@@ -135,7 +155,7 @@ const StudentListPage = async ({
       <Table columns={columns} renderRow={renderRow} data={data} />
 
       {/* Pagination */}
-      <Pagination page={page} count={count} />
+      <Pagination page={p} count={count} />
     </div>
   );
 };
