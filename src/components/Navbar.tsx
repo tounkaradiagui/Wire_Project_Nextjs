@@ -1,3 +1,4 @@
+import { UserButton } from "@clerk/nextjs";
 import Image from "next/image";
 
 const NavbarPage = () => {
@@ -29,13 +30,14 @@ const NavbarPage = () => {
           <span className="text-sm font-medium">Diagui Tounkara</span>
           <span className="text-xs text-gray-500">Admin</span>
         </div>
-        <Image
+        <UserButton />
+        {/* <Image
           src="/avatar.png"
           alt="profile"
           width={40}
           height={40}
           className="rounded-full cursor-pointer"
-        />
+        /> */}
       </div>
     </div>
   );
