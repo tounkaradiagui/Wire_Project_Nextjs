@@ -11,7 +11,6 @@ import Image from "next/image";
 import Link from "next/link";
 import prisma from "@/lib/prisma";
 
-
 type StudentList = Student & { class: Class[] };
 
 const columns = [
@@ -49,7 +48,7 @@ const renderRow = (item: StudentList) => (
       </div>
     </td>
     <td className="hidden md:table-cell">{item.username}</td>
-    <td className="hidden md:table-cell">{item.class.name}</td>
+    <td className="hidden md:table-cell">{item.name}</td>
     <td className="hidden lg:table-cell">{item.phone}</td>
     <td className="hidden lg:table-cell">{item.address}</td>
     <td>

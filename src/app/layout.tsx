@@ -8,7 +8,10 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Présencia Dashboard",
   description: "Next.js School Management System",
+  //  className="dark:bg-gray-900 dark:text-white"
 };
+
+// console.log("Clerk Key:", process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
 
 export default function RootLayout({
   children,
@@ -17,7 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider>
-      <html lang="en" className="dark:bg-gray-900 dark:text-white">
+      <html lang="en">
         <body className={inter.className}>{children}</body>
       </html>
     </ClerkProvider>

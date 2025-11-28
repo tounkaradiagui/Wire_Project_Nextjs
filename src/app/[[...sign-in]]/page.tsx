@@ -17,18 +17,20 @@ export default function LoginPage() {
   const router = useRouter();
 
   useEffect(() => {
-    const role = user?.publicMetadata.role;
+    if (!isLoaded) return;
+    if (!isSignedIn) return; // User must be authenticated
 
+    const role = user?.publicMetadata?.role;
     if (role) {
-      router.push(`/${role}`);
+      router.replace(`/${role}`);
     }
-  }, [user, router]);
+  }, [isLoaded, isSignedIn, user, router]);
 
   return (
     <div
       className="
         min-h-screen flex flex-col items-center justify-center p-4
-        bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600
+        bg-gradient-to-br from-blue-500 via-indigo-500 to-blue-600
         dark:from-gray-900 dark:via-gray-800 dark:to-black
         animate-bgMove
       "
@@ -40,7 +42,7 @@ export default function LoginPage() {
         transition={{ duration: 0.8, ease: "easeOut" }}
         className="text-white text-2xl md:text-4xl font-semibold mb-6 text-center"
       >
-        Recto-univ-segou – Panel d'administrateur
+        Ecole de Gogui – Gestion des absences
       </motion.h1>
 
       {/* --- MAIN CARD --- */}
@@ -57,7 +59,7 @@ export default function LoginPage() {
         {/* LEFT IMAGE */}
         <div className="hidden md:block md:w-1/2">
           <img
-            src="/login-bg.jpg"
+            src="/login-bg.png"
             alt="Login"
             className="h-full w-full object-cover"
           />
@@ -92,12 +94,12 @@ export default function LoginPage() {
                   <motion.div whileFocus={{ scale: 1.02 }}>
                     <Clerk.Input
                       type="text"
-                      placeholder="admin"
+                      placeholder="Identifiant"
                       required
                       className="
                         w-full rounded-xl border-gray-300 dark:border-gray-700
                         bg-gray-100 dark:bg-gray-800 p-3 text-base md:text-lg
-                        focus:ring-2 focus:ring-purple-500 transition-all
+                        focus:ring-2 focus:ring-blue-500 transition-all
                       "
                     />
                   </motion.div>
@@ -113,11 +115,12 @@ export default function LoginPage() {
                   <motion.div whileFocus={{ scale: 1.02 }}>
                     <Clerk.Input
                       type="password"
+                      placeholder="Votre mot de passe"
                       required
                       className="
                         mt-1 w-full rounded-xl border-gray-300 dark:border-gray-700
                         bg-gray-100 dark:bg-gray-800 p-3 text-base md:text-lg
-                        focus:ring-2 focus:ring-purple-500 transition-all
+                        focus:ring-2 focus:ring-blue-500 transition-all
                       "
                     />
                   </motion.div>
@@ -140,7 +143,7 @@ export default function LoginPage() {
                   <SignIn.Action
                     submit
                     className="
-                      w-full bg-purple-600 hover:bg-purple-700 
+                      w-full bg-blue-600 hover:bg-blue-700 cursor-pointer
                       text-white py-3 rounded-xl font-semibold transition flex items-center justify-center
                     "
                     onClick={() => setLoading(true)}
@@ -154,14 +157,11 @@ export default function LoginPage() {
                 </motion.div>
 
                 {/* --- FORGOT PASSWORD --- */}
-                <div className="text-center mt-2">
-                  <a
-                    href="#"
-                    className="text-sm text-purple-600 hover:underline"
-                  >
+                {/* <div className="text-center mt-2">
+                  <a href="#" className="text-sm text-blue-600 hover:underline">
                     Mot de passe oublié ?
                   </a>
-                </div>
+                </div> */}
               </motion.div>
             </SignIn.Step>
           </SignIn.Root>

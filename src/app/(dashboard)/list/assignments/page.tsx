@@ -4,11 +4,17 @@ import FormModal from "@/components/FormModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
-import { role } from "@/lib/data";
 import Image from "next/image";
-import {Assignment, Class, Prisma, Teacher, Subject } from "generated/prisma/client";
+import {
+  Assignment,
+  Class,
+  Prisma,
+  Teacher,
+  Subject,
+} from "generated/prisma/client";
 import { ITEM_PER_PAGE } from "@/lib/settings";
-
+import prisma from "@/lib/prisma";
+import { currentUserId, role } from "@/lib/utils";
 
 type AssignmentList = Assignment & {
   lesson: {
@@ -33,9 +39,10 @@ const columns = [
     accessor: "dueDate",
     className: "hidden md:table-cell ",
   },
-  { header: "Actions", accessor: "actions" },
+  ...(role === "admin" || role === "teacher"
+    ? [{ header: "Actions", accessor: "actions" }]
+    : []),
 ];
-
 
 const renderRow = (item: AssignmentList) => (
   <tr
@@ -48,11 +55,15 @@ const renderRow = (item: AssignmentList) => (
       </div>
     </td>
     <td>{item.lesson.class.name}</td>
-    <td className="hidden md:table-cell">{item.lesson.teacher.name + " " + item.lesson.teacher.surname}</td>
-    <td className="hidden md:table-cell">{new Intl.DateTimeFormat("fr-FR").format(item.dueDate)}</td>
+    <td className="hidden md:table-cell">
+      {item.lesson.teacher.name + " " + item.lesson.teacher.surname}
+    </td>
+    <td className="hidden md:table-cell">
+      {new Intl.DateTimeFormat("fr-FR").format(item.dueDate)}
+    </td>
     <td>
       <div className="flex items-center gap-2">
-        {role === "admin" && (
+        {(role === "admin" || role === "teacher") && (
           <>
             <FormModal table="assignment" type="update" data={item} />
             <FormModal table="assignment" type="delete" id={item.id} />
@@ -62,7 +73,6 @@ const renderRow = (item: AssignmentList) => (
     </td>
   </tr>
 );
-
 
 const AssignmentListPage = async ({
   searchParams,
@@ -103,6 +113,35 @@ const AssignmentListPage = async ({
     }
   }
 
+  // Fetch data based on role conditions
+  switch (role) {
+    case "admin":
+      break;
+    case "teacher":
+      query.lesson.teacherId = currentUserId!;
+      break;
+    case "student":
+      query.lesson.class = {
+        students: {
+          some: {
+            id: currentUserId!,
+          },
+        },
+      };
+      break;
+    case "parent":
+      query.lesson.class = {
+        students: {
+          some: {
+            parentId: currentUserId!,
+          },
+        },
+      };
+      break;
+    default:
+      break;
+  }
+
   const [data, count] = await prisma.$transaction([
     prisma.assignment.findMany({
       where: query,
@@ -120,7 +159,6 @@ const AssignmentListPage = async ({
     }),
     prisma.assignment.count({ where: query }),
   ]);
-
 
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
@@ -159,7 +197,7 @@ const AssignmentListPage = async ({
       <Table columns={columns} renderRow={renderRow} data={data} />
 
       {/* Pagination */}
-      <Pagination page={p} count={count}/>
+      <Pagination page={p} count={count} />
     </div>
   );
 };

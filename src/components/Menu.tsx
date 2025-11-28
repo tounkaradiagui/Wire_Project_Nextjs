@@ -1,4 +1,4 @@
-"use client";
+"use server";
 import Link from "next/link";
 
 import {
@@ -19,9 +19,9 @@ import {
   Trophy,
   FileCheck2,
   ClipboardCheck,
-  NotebookPen  
+  NotebookPen,
 } from "lucide-react";
-import { role } from "@/lib/data";
+import { currentUser } from "@clerk/nextjs/server";
 
 const menuItems = [
   {
@@ -138,7 +138,10 @@ const menuItems = [
   },
 ];
 
-const Menu = () => {
+const Menu = async () => {
+  const user = await currentUser();
+  const role = (await user?.publicMetadata?.role) as string;
+
   return (
     <div className="text-sm p-2">
       {menuItems.map((i) => (
@@ -146,8 +149,9 @@ const Menu = () => {
           <span className="hidden lg:block my-4 font-light text-white">
             {i.title}
           </span>
+
           {i.items.map((item) => {
-            if (item.visible.includes(role)) {
+            if (role && item.visible.includes(role)) {
               const Icon = item.icon;
               return (
                 <Link

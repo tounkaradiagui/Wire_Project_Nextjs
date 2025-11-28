@@ -6,10 +6,9 @@ import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import { examsData, role } from "@/lib/data";
 import Image from "next/image";
-import {Exam, Class, Prisma, Teacher, Subject } from "generated/prisma/client";
-import Link from "next/link";
+import { Exam, Class, Prisma, Teacher, Subject } from "generated/prisma/client";
+import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
-
 
 type ExamList = Exam & {
   lesson: {
@@ -33,7 +32,6 @@ const columns = [
   { header: "Actions", accessor: "actions" },
 ];
 
-
 const renderRow = (item: ExamList) => (
   <tr
     key={item.id}
@@ -45,7 +43,9 @@ const renderRow = (item: ExamList) => (
       </div>
     </td>
     <td>{item.lesson.class.name}</td>
-    <td className="hidden md:table-cell">{item.lesson.teacher.name + " " + item.lesson.teacher.surname}</td>
+    <td className="hidden md:table-cell">
+      {item.lesson.teacher.name + " " + item.lesson.teacher.surname}
+    </td>
     <td className="hidden md:table-cell">
       {new Intl.DateTimeFormat("fr-FR").format(item.startTime)}
     </td>
@@ -151,7 +151,7 @@ const ExamListPage = async ({
       <Table columns={columns} renderRow={renderRow} data={data} />
 
       {/* Pagination */}
-      <Pagination page={p} count={count}/>
+      <Pagination page={p} count={count} />
     </div>
   );
 };

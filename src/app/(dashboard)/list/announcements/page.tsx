@@ -4,14 +4,15 @@ import FormModal from "@/components/FormModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
-import { role } from "@/lib/data";
 import Image from "next/image";
-import { Class, Announcement} from "generated/prisma/client";
+import { Class, Announcement } from "generated/prisma/client";
 import { ITEM_PER_PAGE } from "@/lib/settings";
+import { Prisma } from "@/generated/prisma/client";
+import prisma from "@/lib/prisma";
+import { role } from "@/lib/utils";
+import { auth } from "@clerk/nextjs/server";
 
-
-
-type AnnouncementList = Announcement  & { class: Class };
+type AnnouncementList = Announcement & { class: Class };
 
 const columns = [
   { header: "Titre de l'annonce", accessor: "info" },
@@ -22,7 +23,7 @@ const columns = [
     accessor: "date",
     className: "hidden md:table-cell ",
   },
-  { header: "Actions", accessor: "actions" },
+  ...(role === "admin" ? [{ header: "Actions", accessor: "actions" }] : []),
 ];
 
 const AnnouncementListPage = async ({
@@ -34,11 +35,15 @@ const AnnouncementListPage = async ({
 
   const p = page ? parseInt(page) : 1;
 
+  const { userId, sessionClaims } = await auth();
+  const role = (sessionClaims?.metadata as { role?: string })?.role;
+  const currentUserId = userId;
+
   // URL PARAMS CONDITION
-  
+
   const query: Prisma.AnnouncementWhereInput = {};
 
-   if (queryParams) {
+  if (queryParams) {
     for (const [key, value] of Object.entries(queryParams)) {
       if (value !== undefined) {
         switch (key) {
@@ -52,7 +57,21 @@ const AnnouncementListPage = async ({
     }
   }
 
-   const [data, count] = await prisma.$transaction([
+  // Fetch data according to user role
+  const roleConditions = {
+    teacher: { lessons: { some: { teacherId: currentUserId! } } },
+    student: { students: { some: { id: currentUserId! } } },
+    parent: { students: { some: { parentId: currentUserId! } } },
+  };
+
+  query.OR = [
+    { classId: null },
+    {
+      class: roleConditions[role as keyof typeof roleConditions] || {},
+    },
+  ];
+
+  const [data, count] = await prisma.$transaction([
     prisma.announcement.findMany({
       where: query,
       include: {
@@ -63,7 +82,6 @@ const AnnouncementListPage = async ({
     }),
     prisma.announcement.count({ where: query }),
   ]);
-
 
   const renderRow = (item: AnnouncementList) => (
     <tr
@@ -76,7 +94,9 @@ const AnnouncementListPage = async ({
         </div>
       </td>
       <td>{item.class?.name || "-"}</td>
-      <td className="hidden md:table-cell">{new Intl.DateTimeFormat("fr-FR").format(item.startTime)}</td>
+      <td className="hidden md:table-cell">
+        {new Intl.DateTimeFormat("fr-FR").format(item.date)}
+      </td>
       <td>
         <div className="flex items-center gap-2">
           {role === "admin" && (
@@ -129,7 +149,7 @@ const AnnouncementListPage = async ({
       <Table columns={columns} renderRow={renderRow} data={data} />
 
       {/* Pagination */}
-      <Pagination page={p} count={count}/>
+      <Pagination page={p} count={count} />
     </div>
   );
 };
