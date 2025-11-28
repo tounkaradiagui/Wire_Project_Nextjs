@@ -4,11 +4,12 @@ import FormModal from "@/components/FormModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
-import { examsData, role } from "@/lib/data";
 import Image from "next/image";
 import { Exam, Class, Prisma, Teacher, Subject } from "generated/prisma/client";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
+import { role } from "@/lib/utils";
+import { auth } from "@clerk/nextjs/server";
 
 type ExamList = Exam & {
   lesson: {
@@ -29,7 +30,9 @@ const columns = [
   { header: "Enseignant", accessor: "teacher" },
 
   { header: "Date", accessor: "date", className: "hidden md:table-cell " },
-  { header: "Actions", accessor: "actions" },
+  ...(role === "admin" || role === "teacher"
+    ? [{ header: "Actions", accessor: "actions" }]
+    : []),
 ];
 
 const renderRow = (item: ExamList) => (
@@ -51,7 +54,7 @@ const renderRow = (item: ExamList) => (
     </td>
     <td>
       <div className="flex items-center gap-2">
-        {role === "admin" && (
+        {(role === "admin" || role === "teacher") && (
           <>
             <FormModal table="exam" type="update" data={item} />
             <FormModal table="exam" type="delete" id={item.id} />
@@ -68,12 +71,16 @@ const ExamListPage = async ({
   searchParams: { [key: string]: string | undefined };
 }) => {
   const { page, ...queryParams } = searchParams;
-
   const p = page ? parseInt(page) : 1;
+
+  const { userId, sessionClaims } = await auth();
+  const role = (sessionClaims?.metadata as { role?: string })?.role;
+  const currentUserId = userId;
 
   const query: Prisma.ExamWhereInput = {};
 
   query.lesson = {};
+
   if (queryParams) {
     for (const [key, value] of Object.entries(queryParams)) {
       if (value !== undefined) {
@@ -94,6 +101,36 @@ const ExamListPage = async ({
         }
       }
     }
+  }
+
+  // Fetch data according to user role
+  switch (role) {
+    case "admin":
+      break;
+    case "teacher":
+      query.lesson.teacherId = currentUserId!;
+      break;
+    case "student":
+      query.lesson.class = {
+        students: {
+          some: {
+            id: currentUserId!,
+          },
+        },
+      };
+      break;
+    case "parent":
+      query.lesson.class = {
+        students: {
+          some: {
+            parentId: currentUserId!,
+          },
+        },
+      };
+      break;
+
+    default:
+      break;
   }
 
   const [data, count] = await prisma.$transaction([
@@ -142,7 +179,9 @@ const ExamListPage = async ({
                 className="cursor-pointer"
               />
             </button>
-            {role === "admin" && <FormModal table="event" type="create" />}
+            {(role === "admin" || role === "teacher") && (
+              <FormModal table="exam" type="create" />
+            )}
           </div>
         </div>
       </div>

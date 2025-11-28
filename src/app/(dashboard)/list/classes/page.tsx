@@ -125,7 +125,7 @@ const ClassListPage = async ({
                 className="cursor-pointer"
               />
             </button>
-            {role === "admin" && <FormModal table="parent" type="create" />}
+            {role === "admin" && <FormModal table="class" type="create" />}
           </div>
         </div>
       </div>

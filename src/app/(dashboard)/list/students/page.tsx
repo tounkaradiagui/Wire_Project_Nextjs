@@ -4,12 +4,12 @@ import FormModal from "@/components/FormModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
-import { role } from "@/lib/data";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Class, Prisma, Student } from "generated/prisma/client";
 import Image from "next/image";
 import Link from "next/link";
 import prisma from "@/lib/prisma";
+import { role } from "@/lib/utils";
 
 type StudentList = Student & { class: Class[] };
 
@@ -27,7 +27,7 @@ const columns = [
   },
   { header: "Téléphone", accessor: "phone", className: "hidden md:table-cell" },
   { header: "Adresse", accessor: "address", className: "hidden md:table-cell" },
-  { header: "Actions", accessor: "actions" },
+  ...(role === "admin" ? [{ header: "Actions", accessor: "actions" }] : []),
 ];
 
 const renderRow = (item: StudentList) => (

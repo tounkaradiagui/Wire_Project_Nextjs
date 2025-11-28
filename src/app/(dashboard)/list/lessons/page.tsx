@@ -4,15 +4,21 @@ import FormModal from "@/components/FormModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
-import { role } from "@/lib/data";
-import { Class, Lesson, Prisma, Teacher, Subject } from "generated/prisma/client";
+import {
+  Class,
+  Lesson,
+  Prisma,
+  Teacher,
+  Subject,
+} from "generated/prisma/client";
 import Image from "next/image";
-import Link from "next/link";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
+import { role } from "@/lib/utils";
 
-
-type LessonList = Lesson & {subject: Subject} & {class: Class} & {teacher: Teacher};
+type LessonList = Lesson & { subject: Subject } & { class: Class } & {
+  teacher: Teacher;
+};
 
 const columns = [
   { header: "Nom de la matière", accessor: "info" },
@@ -23,7 +29,7 @@ const columns = [
     className: "hidden md:table-cell ",
   },
   { header: "Enseignant", accessor: "teacher" },
-  { header: "Actions", accessor: "actions" },
+  ...(role === "admin" ? [{ header: "Actions", accessor: "actions" }] : []),
 ];
 
 const renderRow = (item: LessonList) => (
@@ -38,7 +44,9 @@ const renderRow = (item: LessonList) => (
     </td>
     {/* <td className="hidden md:table-cell">{item.name}</td> */}
     <td>{item.class.name}</td>
-    <td className="hidden md:table-cell">{item.teacher.name + " " + item.teacher.surname}</td>
+    <td className="hidden md:table-cell">
+      {item.teacher.name + " " + item.teacher.surname}
+    </td>
     <td>
       <div className="flex items-center gap-2">
         {role === "admin" && (
@@ -139,7 +147,7 @@ const LessonListPage = async ({
       <Table columns={columns} renderRow={renderRow} data={data} />
 
       {/* Pagination */}
-      <Pagination page={p} count={count}/>
+      <Pagination page={p} count={count} />
     </div>
   );
 };
