@@ -1,4 +1,3 @@
-"use server";
 import Link from "next/link";
 
 import {
@@ -140,7 +139,13 @@ const menuItems = [
 
 const Menu = async () => {
   const user = await currentUser();
-  const role = (await user?.publicMetadata?.role) as string;
+
+  // évite crash serveur
+  if (!user) {
+    return null;
+  }
+
+  const role = user.publicMetadata?.role as string;
 
   return (
     <div className="text-sm p-2">
