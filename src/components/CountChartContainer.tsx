@@ -13,9 +13,10 @@ const CountChartContainer = async () => {
   const girlsData = data.find((item) => item.sex === "FEMALE")?._count || 0;
 
   return (
-    <div className="bg-white rounded-xl w-full h-full p-4 shadow-md">
+      <div className="bg-white rounded-xl p-4 shadow-md h-full w-full">
+
       {/* Bar title */}
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex justify-between items-center">
         <h2 className="text-lg font-semibold">Elèves</h2>
         <Image
           src="/moreDark.png"
@@ -33,14 +34,15 @@ const CountChartContainer = async () => {
           <div className="w-5 h-5 bg-green-500 rounded-full" />
           <h1 className="text-bold">{boysData}</h1>
           <h1 className="text-bold text-gray-600">
-            Garçons {Math.round((boysData / (girlsData + boysData)) * 100)}%)
+            Garçons {Math.round((boysData / (girlsData + boysData)) * 100)}%
           </h1>
         </div>
+        
         <div className=" flex flex-col gap-1">
           <div className="w-5 h-5 bg-yellow-500 rounded-full" />
           <h1 className="text-bold">{girlsData}</h1>
           <h1 className="text-bold text-gray-700">
-            Filles {Math.round((girlsData / (boysData + girlsData)) * 100)}%)
+            Filles {Math.round((girlsData / (boysData + girlsData)) * 100)}%
           </h1>
         </div>
       </div>

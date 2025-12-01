@@ -85,17 +85,18 @@ const UserCards = async ({ type }: UserCardsProps) => {
 
   return (
     <div
-      className={`${meta.color} text-white flex flex-col justify-between p-4 rounded-xl shadow-md w-full md:w-56 h-32 mb-2`}
+      className={`${meta.color} text-white flex flex-col justify-between p-2 rounded-xl shadow-md w-full
+       md:w-42 h-26 mb-2`}
     >
       <div className="flex justify-between items-start">
         <div>
-          <h2 className="text-3xl font-bold">{dynamicCount}</h2>
+          <h2 className="text-xl font-bold">{dynamicCount}</h2>
           <p className="text-sm">{meta.title}</p>
         </div>
         {meta.icon}
       </div>
 
-      <button className="mt-4 text-sm bg-white/10 hover:bg-white/20 cursor-pointer transition-colors duration-300 rounded-md px-3 py-1 flex items-center justify-center">
+      <button className="mt-2 text-sm bg-white/10 hover:bg-white/20 cursor-pointer transition-colors duration-300 rounded-md px-3 py-1 flex items-center justify-center">
         Voir plus →
       </button>
     </div>

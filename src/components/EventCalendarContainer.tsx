@@ -7,9 +7,8 @@ const EventCalendarContainer = async ({
 }: {
   searchParams: { [keys: string]: string | undefined };
 }) => {
-  // --- 1. Récupérer les événements depuis la base de données ---
 
-  const { date } = searchParams;
+  const { date } = await searchParams;
 
   return (
     <div className="bg-white rounded p-4 shadow-md">
@@ -37,3 +36,7 @@ const EventCalendarContainer = async ({
 };
 
 export default EventCalendarContainer;
+
+
+
+
