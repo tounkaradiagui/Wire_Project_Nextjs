@@ -2,10 +2,32 @@
 
 import dynamic from "next/dynamic";
 import Image from "next/image";
-import { useState } from "react";
-import type { JSX } from "react";
-// import TeacherForm from "./forms/TeacherForm";
-// import StudentForm from "./forms/StudentForm";
+import {
+  useState,
+  Dispatch,
+  SetStateAction,
+  useEffect,
+  useActionState,
+} from "react";
+import { toast } from "react-toastify";
+import { useRouter } from "next/navigation";
+import { deleteSubject } from "@/lib/actions";
+
+const deleteActionMap = {
+  subject: deleteSubject,
+  // teacher: deleteTeacher,
+  // student: deleteStudent,
+  // class: deleteClass,
+  // exam: deleteExam,
+  // announcement: deleteAnnouncement,
+  // assignment: deleteAssignment,
+  // lesson: deleteLesson,
+  // parent: deleteParent,
+  // result: deleteResult,
+  // attendance: deleteAttendance,
+  // event: deleteEvent,
+  // student: deleteStudent,
+};
 
 const TeacherForm = dynamic(() => import("./forms/TeacherForm"), {
   loading: () => <h1>Chargement...</h1>,
@@ -15,11 +37,26 @@ const StudentForm = dynamic(() => import("./forms/StudentForm"), {
   loading: () => <h1>Chargement...</h1>,
 });
 
+const SubjectForm = dynamic(() => import("./forms/SubjectForm"), {
+  loading: () => <h1>Chargement...</h1>,
+});
+
 const forms: {
-  [key: string]: (type: "create" | "update", data?: any) => React.JSX.Element;
+  [key: string]: (
+    setOpen: Dispatch<SetStateAction<boolean>>,
+    type: "create" | "update",
+    data?: any
+  ) => React.JSX.Element;
 } = {
-  teacher: (type, data) => <TeacherForm type={type} data={data} />,
-  student: (type, data) => <StudentForm type={type} data={data} />,
+  subject: (setOpen, type, data) => (
+    <SubjectForm type={type} data={data} setOpen={setOpen} />
+  ),
+  teacher: (type, data, setOpen) => (
+    <TeacherForm type={type} data={data} setOpen={setOpen} />
+  ),
+  student: (type, data, setOpen) => (
+    <StudentForm type={type} data={data} setOpen={setOpen} />
+  ),
 };
 
 const FormModal = ({
@@ -50,10 +87,44 @@ const FormModal = ({
 
   const [open, setOpen] = useState(false);
 
-  // Seul le modal de teacher est afficher, il y'a certainement une erreur dans la condition
   const Form = () => {
+    const [state, formAction] = useActionState(deleteActionMap[table], {
+      success: false,
+      error: false,
+    });
+
+    const router = useRouter();
+
+    useEffect(() => {
+      if (state.success) {
+        toast.success(`La matière a été supprimée avec succès" !`, {
+          style: {
+            background: "dark",
+            color: "#ffffff",
+            fontWeight: "bold",
+            fontSize: "14px",
+          },
+        });
+        setOpen(false);
+        router.refresh();
+      }
+
+      if (state.error) {
+        toast.error("Erreur serveur, veuillez réessayer", {
+          style: {
+            background: "#f87171",
+            color: "#ffffff",
+            fontWeight: "bold",
+            fontSize: "14px",
+          },
+        });
+        router.refresh();
+      }
+    }, [state.success, state.error]);
+
     return type === "delete" && id ? (
-      <form className="p-6 flex flex-col gap-6">
+      <form action={formAction} className="p-6 flex flex-col gap-6">
+        <input type="text | number" defaultValue={id} name="id" hidden />
         <p className="text-center text-gray-700 font-medium">
           Voulez-vous vraiment supprimer cet élément de la liste ?
         </p>
@@ -74,7 +145,7 @@ const FormModal = ({
         </div>
       </form>
     ) : type === "create" || type === "update" ? (
-      forms[table](type, data)
+      forms[table](setOpen, type, data)
     ) : (
       "Formulaire introuvable"
     );

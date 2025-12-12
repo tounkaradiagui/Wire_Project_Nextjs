@@ -138,12 +138,17 @@ const menuItems = [
 ];
 
 const Menu = async () => {
-  const user = await currentUser();
+  let user = null;
 
-  // évite crash serveur
-  if (!user) {
-    return null;
+  try {
+    user = await currentUser();
+  } catch (error) {
+    console.error("Clerk error (maybe offline):", error);
+    return null; // avoid crash when offline
   }
+
+  // No user → no menu
+  if (!user) return null;
 
   const role = user.publicMetadata?.role as string;
 
@@ -177,5 +182,6 @@ const Menu = async () => {
     </div>
   );
 };
+
 
 export default Menu;

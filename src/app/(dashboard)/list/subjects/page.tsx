@@ -4,8 +4,8 @@ import FormModal from "@/components/FormModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
-import { role, subjectsData } from "@/lib/data";
 import { Prisma, Subject, Teacher } from "generated/prisma/client";
+import { role } from "@/lib/utils";
 import Image from "next/image";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
@@ -39,12 +39,10 @@ const renderRow = (item: SubjectList) => (
     </td>
     <td>
       <div className="flex items-center gap-2">
-        {role === "admin" && (
-          <>
-            <FormModal table="subject" type="update" data={item} />
-            <FormModal table="subject" type="delete" id={item.id} />
-          </>
-        )}
+        <>
+          <FormModal table="subject" type="update" data={item} />
+          <FormModal table="subject" type="delete" id={item.id} />
+        </>
       </div>
     </td>
   </tr>
@@ -53,12 +51,12 @@ const renderRow = (item: SubjectList) => (
 const SubjectListPage = async ({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | undefined };
+  searchParams: Promise<{ [key: string]: string | undefined }>;
 }) => {
-  const params = searchParams;
+  const params = await searchParams;
 
-  const page = params?.page ? Math.max(1, parseInt(params.page, 10) || 1) : 1;
-  const search = (params?.search || "").trim();
+  const page = params.page ? Math.max(1, parseInt(params.page, 10) || 1) : 1;
+  const search = (params.search || "").trim();
 
   let query: Prisma.SubjectWhereInput = {};
 
@@ -109,17 +107,16 @@ const SubjectListPage = async ({
                 className="cursor-pointer"
               />
             </button>
-            {role === "admin" && <FormModal table="subject" type="create" />}
+            <FormModal table="subject" type="create" />
           </div>
         </div>
       </div>
 
-      {/* List of Students */}
       <Table columns={columns} renderRow={renderRow} data={data} />
 
-      {/* Pagination */}
       <Pagination page={page} count={count} />
     </div>
   );
 };
+
 export default SubjectListPage;
