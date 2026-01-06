@@ -1,11 +1,36 @@
 import Announcements from "@/components/Announcements";
-import BigCalendar from "@/components/BigCalendar";
-import FormModal from "@/components/FormModal";
+import BigCalendarContainer from "@/components/BigCalendarContainer";
+import FormContainer from "@/components/FormContainer";
 import Performance from "@/components/Performance";
 import Image from "next/image";
 import Link from "next/link";
+import { Teacher } from "generated/prisma/client";
+import prisma from "@/lib/prisma";
+import {notFound} from "next/navigation"
+import { auth } from "@clerk/nextjs/server";
 
-const TeacherDetailPage = () => {
+const TeacherDetailPage = async ({params:{id}, } : {params: {id:string}; }) => {
+
+  const teacher: (Teacher & {_count:{subjects:number, lessons:number, classes:number}}) | null = await prisma.teacher.findUnique({
+    where:{id},
+    include:{
+    _count:{
+      select:{
+        subjects:true,
+        lessons:true,
+        classes:true
+      }
+    }
+    }
+  });
+
+  if(!teacher) {
+    return notFound();
+  }
+
+  const { sessionClaims } = await auth();
+  const role = (sessionClaims?.metadata as { role?: string })?.role;
+
   return (
     <div className="flex-1 p-4 flex flex-col xl:flex-row gap-4">
       {/* Left */}
@@ -16,7 +41,7 @@ const TeacherDetailPage = () => {
           <div className="bg-blue-300 py-6 px-4 rounded-md flex-1 flex gap-4">
             <div className="w-1/3">
               <Image
-                src="https://images.pexels.com/photos/2888150/pexels-photo-2888150.jpeg?auto=compress&cs=tinysrgb&w=1200"
+                src={teacher.image || "/noAvatar.png"}
                 alt=""
                 width={144}
                 height={144}
@@ -25,27 +50,13 @@ const TeacherDetailPage = () => {
             </div>
             <div className="w-2/3 flex flex-col justify-between gap-4">
               <div className="flex items-center gap-4">
-                <h1 className="text-xl font-semibold">James Watt</h1>
+                <h1 className="text-xl font-semibold">{teacher.name + " " + teacher.surname}</h1>
                 {/* Update user infos */}
-                <FormModal
+                {role === "admin" && (<FormContainer
                   table="teacher"
                   type="update"
-                  data={{
-                    id: "1",
-                    username: "james12",
-                    email: "james@gmil.co",
-                    password: "password",
-                    firstName: "james",
-                    lastName: "watt",
-                    phone: "8738292",
-                    address: "Bamako",
-                    bloodType: "0+",
-                    birthday: "2000-01-02",
-                    sex: "male",
-                    image:
-                      "https://images.pexels.com/photos/2888150/pexels-photo-2888150.jpeg?auto=compress&cs=tinysrgb&w=1200",
-                  }}
-                />
+                  data={teacher}
+                />)}
               </div>
               <p className="text-sm text-gray-500">
                 Enseignant de mathématiques avec plus de 10 ans d'expérience
@@ -55,19 +66,19 @@ const TeacherDetailPage = () => {
               <div className="flex items-center justify-between gap-2 flex-wrap text-xs font-medium">
                 <div className="w-full md:w-1/3 lg:w-full 2xl:w-1/3 flex items-center gap-2">
                   <Image src="/blood.png" alt="" width={14} height={14} />
-                  <span>O+</span>
+                  <span>{teacher.bloodType}</span>
                 </div>
                 <div className="w-full md:w-1/3 lg:w-full 2xl:w-1/3 flex items-center gap-2">
                   <Image src="/date.png" alt="" width={14} height={14} />
-                  <span>15 Mars 1980</span>
+                  <span>{new Intl.DateTimeFormat("fr-FR").format(teacher.birthday)}</span>
                 </div>
                 <div className="w-full md:w-1/3 lg:w-full 2xl:w-1/3 flex items-center gap-2">
                   <Image src="/mail.png" alt="" width={14} height={14} />
-                  <span>jameswatt@gmail.com</span>
+                  <span>{teacher.email || "-"}</span>
                 </div>
                 <div className="w-full md:w-1/3 lg:w-full 2xl:w-1/3 flex items-center gap-2">
                   <Image src="/phone.png" alt="" width={14} height={14} />
-                  <span>76292270</span>
+                  <span>{teacher.phone || "-"}</span>
                 </div>
               </div>
             </div>
@@ -103,7 +114,7 @@ const TeacherDetailPage = () => {
                 />
               </div>
               <div>
-                <h1 className="text-2xl font-semibold">12</h1>
+                <h1 className="text-2xl font-semibold">{teacher._count.subjects}</h1>
                 <span className="text-sm opacity-90">Matières enseignées</span>
               </div>
             </div>
@@ -120,7 +131,7 @@ const TeacherDetailPage = () => {
                 />
               </div>
               <div>
-                <h1 className="text-2xl font-semibold">8</h1>
+                <h1 className="text-2xl font-semibold">{teacher._count.lessons}</h1>
                 <span className="text-sm opacity-90">Leçons données</span>
               </div>
             </div>
@@ -137,7 +148,7 @@ const TeacherDetailPage = () => {
                 />
               </div>
               <div>
-                <h1 className="text-2xl font-semibold">5</h1>
+                <h1 className="text-2xl font-semibold">{teacher._count.classes}</h1>
                 <span className="text-sm opacity-90">Classes assignées</span>
               </div>
             </div>
@@ -146,7 +157,7 @@ const TeacherDetailPage = () => {
         {/* Bottom */}
         <div className="mt-4 bg-white p-4 rounded-md shadow-md h-[800px] teacher-calendar-container">
           <h1>Programme de l'Enseignant</h1>
-          <BigCalendar />
+          <BigCalendarContainer type="teacherId" id={teacher.id}/>
         </div>
       </div>
       {/* Right */}

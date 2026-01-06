@@ -5939,6 +5939,7 @@ export namespace Prisma {
     address: string | null
     image: string | null
     createdAt: Date | null
+    birthday: Date | null
   }
 
   export type ParentMaxAggregateOutputType = {
@@ -5951,6 +5952,7 @@ export namespace Prisma {
     address: string | null
     image: string | null
     createdAt: Date | null
+    birthday: Date | null
   }
 
   export type ParentCountAggregateOutputType = {
@@ -5963,6 +5965,7 @@ export namespace Prisma {
     address: number
     image: number
     createdAt: number
+    birthday: number
     _all: number
   }
 
@@ -5977,6 +5980,7 @@ export namespace Prisma {
     address?: true
     image?: true
     createdAt?: true
+    birthday?: true
   }
 
   export type ParentMaxAggregateInputType = {
@@ -5989,6 +5993,7 @@ export namespace Prisma {
     address?: true
     image?: true
     createdAt?: true
+    birthday?: true
   }
 
   export type ParentCountAggregateInputType = {
@@ -6001,6 +6006,7 @@ export namespace Prisma {
     address?: true
     image?: true
     createdAt?: true
+    birthday?: true
     _all?: true
   }
 
@@ -6086,6 +6092,7 @@ export namespace Prisma {
     address: string
     image: string | null
     createdAt: Date
+    birthday: Date | null
     _count: ParentCountAggregateOutputType | null
     _min: ParentMinAggregateOutputType | null
     _max: ParentMaxAggregateOutputType | null
@@ -6115,6 +6122,7 @@ export namespace Prisma {
     address?: boolean
     image?: boolean
     createdAt?: boolean
+    birthday?: boolean
     students?: boolean | Parent$studentsArgs<ExtArgs>
     _count?: boolean | ParentCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["parent"]>
@@ -6129,6 +6137,7 @@ export namespace Prisma {
     address?: boolean
     image?: boolean
     createdAt?: boolean
+    birthday?: boolean
   }, ExtArgs["result"]["parent"]>
 
   export type ParentSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -6141,6 +6150,7 @@ export namespace Prisma {
     address?: boolean
     image?: boolean
     createdAt?: boolean
+    birthday?: boolean
   }, ExtArgs["result"]["parent"]>
 
   export type ParentSelectScalar = {
@@ -6153,9 +6163,10 @@ export namespace Prisma {
     address?: boolean
     image?: boolean
     createdAt?: boolean
+    birthday?: boolean
   }
 
-  export type ParentOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "username" | "name" | "surname" | "email" | "phone" | "address" | "image" | "createdAt", ExtArgs["result"]["parent"]>
+  export type ParentOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "username" | "name" | "surname" | "email" | "phone" | "address" | "image" | "createdAt" | "birthday", ExtArgs["result"]["parent"]>
   export type ParentInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     students?: boolean | Parent$studentsArgs<ExtArgs>
     _count?: boolean | ParentCountOutputTypeDefaultArgs<ExtArgs>
@@ -6178,6 +6189,7 @@ export namespace Prisma {
       address: string
       image: string | null
       createdAt: Date
+      birthday: Date | null
     }, ExtArgs["result"]["parent"]>
     composites: {}
   }
@@ -6611,6 +6623,7 @@ export namespace Prisma {
     readonly address: FieldRef<"Parent", 'String'>
     readonly image: FieldRef<"Parent", 'String'>
     readonly createdAt: FieldRef<"Parent", 'DateTime'>
+    readonly birthday: FieldRef<"Parent", 'DateTime'>
   }
     
 
@@ -18540,7 +18553,8 @@ export namespace Prisma {
     phone: 'phone',
     address: 'address',
     image: 'image',
-    createdAt: 'createdAt'
+    createdAt: 'createdAt',
+    birthday: 'birthday'
   };
 
   export type ParentScalarFieldEnum = (typeof ParentScalarFieldEnum)[keyof typeof ParentScalarFieldEnum]
@@ -19042,6 +19056,7 @@ export namespace Prisma {
     address?: StringFilter<"Parent"> | string
     image?: StringNullableFilter<"Parent"> | string | null
     createdAt?: DateTimeFilter<"Parent"> | Date | string
+    birthday?: DateTimeNullableFilter<"Parent"> | Date | string | null
     students?: StudentListRelationFilter
   }
 
@@ -19055,6 +19070,7 @@ export namespace Prisma {
     address?: SortOrder
     image?: SortOrderInput | SortOrder
     createdAt?: SortOrder
+    birthday?: SortOrderInput | SortOrder
     students?: StudentOrderByRelationAggregateInput
   }
 
@@ -19071,6 +19087,7 @@ export namespace Prisma {
     address?: StringFilter<"Parent"> | string
     image?: StringNullableFilter<"Parent"> | string | null
     createdAt?: DateTimeFilter<"Parent"> | Date | string
+    birthday?: DateTimeNullableFilter<"Parent"> | Date | string | null
     students?: StudentListRelationFilter
   }, "id" | "username" | "email" | "phone">
 
@@ -19084,6 +19101,7 @@ export namespace Prisma {
     address?: SortOrder
     image?: SortOrderInput | SortOrder
     createdAt?: SortOrder
+    birthday?: SortOrderInput | SortOrder
     _count?: ParentCountOrderByAggregateInput
     _max?: ParentMaxOrderByAggregateInput
     _min?: ParentMinOrderByAggregateInput
@@ -19102,6 +19120,7 @@ export namespace Prisma {
     address?: StringWithAggregatesFilter<"Parent"> | string
     image?: StringNullableWithAggregatesFilter<"Parent"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"Parent"> | Date | string
+    birthday?: DateTimeNullableWithAggregatesFilter<"Parent"> | Date | string | null
   }
 
   export type GradeWhereInput = {
@@ -20008,6 +20027,7 @@ export namespace Prisma {
     address: string
     image?: string | null
     createdAt?: Date | string
+    birthday?: Date | string | null
     students?: StudentCreateNestedManyWithoutParentInput
   }
 
@@ -20021,6 +20041,7 @@ export namespace Prisma {
     address: string
     image?: string | null
     createdAt?: Date | string
+    birthday?: Date | string | null
     students?: StudentUncheckedCreateNestedManyWithoutParentInput
   }
 
@@ -20034,6 +20055,7 @@ export namespace Prisma {
     address?: StringFieldUpdateOperationsInput | string
     image?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    birthday?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     students?: StudentUpdateManyWithoutParentNestedInput
   }
 
@@ -20047,6 +20069,7 @@ export namespace Prisma {
     address?: StringFieldUpdateOperationsInput | string
     image?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    birthday?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     students?: StudentUncheckedUpdateManyWithoutParentNestedInput
   }
 
@@ -20060,6 +20083,7 @@ export namespace Prisma {
     address: string
     image?: string | null
     createdAt?: Date | string
+    birthday?: Date | string | null
   }
 
   export type ParentUpdateManyMutationInput = {
@@ -20072,6 +20096,7 @@ export namespace Prisma {
     address?: StringFieldUpdateOperationsInput | string
     image?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    birthday?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type ParentUncheckedUpdateManyInput = {
@@ -20084,6 +20109,7 @@ export namespace Prisma {
     address?: StringFieldUpdateOperationsInput | string
     image?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    birthday?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type GradeCreateInput = {
@@ -21014,6 +21040,7 @@ export namespace Prisma {
     address?: SortOrder
     image?: SortOrder
     createdAt?: SortOrder
+    birthday?: SortOrder
   }
 
   export type ParentMaxOrderByAggregateInput = {
@@ -21026,6 +21053,7 @@ export namespace Prisma {
     address?: SortOrder
     image?: SortOrder
     createdAt?: SortOrder
+    birthday?: SortOrder
   }
 
   export type ParentMinOrderByAggregateInput = {
@@ -21038,6 +21066,7 @@ export namespace Prisma {
     address?: SortOrder
     image?: SortOrder
     createdAt?: SortOrder
+    birthday?: SortOrder
   }
 
   export type GradeCountOrderByAggregateInput = {
@@ -22854,6 +22883,7 @@ export namespace Prisma {
     address: string
     image?: string | null
     createdAt?: Date | string
+    birthday?: Date | string | null
   }
 
   export type ParentUncheckedCreateWithoutStudentsInput = {
@@ -22866,6 +22896,7 @@ export namespace Prisma {
     address: string
     image?: string | null
     createdAt?: Date | string
+    birthday?: Date | string | null
   }
 
   export type ParentCreateOrConnectWithoutStudentsInput = {
@@ -22982,6 +23013,7 @@ export namespace Prisma {
     address?: StringFieldUpdateOperationsInput | string
     image?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    birthday?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type ParentUncheckedUpdateWithoutStudentsInput = {
@@ -22994,6 +23026,7 @@ export namespace Prisma {
     address?: StringFieldUpdateOperationsInput | string
     image?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    birthday?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type ClassUpsertWithoutStudentsInput = {

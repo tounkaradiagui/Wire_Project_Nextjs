@@ -1,6 +1,6 @@
 "use server";
 
-import FormModal from "@/components/FormModal";
+import FormContainer from "@/components/FormContainer";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
@@ -9,87 +9,100 @@ import Image from "next/image";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import Link from "next/link";
-import { role } from "@/lib/utils";
+import { auth } from "@clerk/nextjs/server";
 
 type TeacherList = Teacher & { subjects: Subject[] } & { classes: Class[] };
-
-const columns = [
-  { header: "Infos", accessor: "info" },
-  {
-    header: "Identifiant",
-    accessor: "teacherId",
-    className: "hidden md:table-cell",
-  },
-  {
-    header: "Matière",
-    accessor: "subjects",
-    className: "hidden md:table-cell",
-  },
-  { header: "Classes", accessor: "classes", className: "hidden lg:table-cell" },
-  { header: "Téléphone", accessor: "phone", className: "hidden lg:table-cell" },
-  { header: "Adresse", accessor: "address", className: "hidden lg:table-cell" },
-  ...(role === "admin" ? [{ header: "Actions", accessor: "actions" }] : []),
-];
-
-const renderRow = (item: TeacherList) => (
-  <tr
-    key={item.id}
-    className="border-b hover:bg-blue-200 even:bg-slate-50 border-t border-gray-200 border-l border-r"
-  >
-    <td className="flex items-center gap-4 p-4">
-      <Image
-        src={item.image || "/noAvatar.png"}
-        width={40}
-        height={40}
-        alt=""
-        className="md:hidden xl:block w-10 h-10 object-cover rounded-full"
-      />
-      <div className="flex flex-col">
-        <h3 className="font-semibold">{item.name}</h3>
-        <p className="text-xs text-gray-600">{item?.email}</p>
-      </div>
-    </td>
-    <td className="hidden md:table-cell">{item.username}</td>
-    <td className="hidden md:table-cell">
-      {Array.isArray(item.subjects)
-        ? item.subjects.map((s) => s.name).join(", ")
-        : item.subjects || "—"}
-    </td>
-    <td className="hidden md:table-cell">
-      {Array.isArray(item.classes)
-        ? item.classes.map((c) => c.name).join(", ")
-        : item.classes || "—"}
-    </td>
-    <td className="hidden lg:table-cell">{item.phone}</td>
-    <td className="hidden lg:table-cell">{item.address}</td>
-    <td>
-      <div className="flex items-center gap-2">
-        <Link href={`/list/teachers/${item.id}`}>
-          <button className="w-7 h-7 flex items-center justify-center rounded-full bg-blue-200">
-            <Image src="/view.png" alt="" width={16} height={16} />
-          </button>
-        </Link>
-        {role === "admin" && (
-          <>
-            {/* <FormModal table="teacher" type="update" data={item} /> */}
-            <FormModal table="teacher" type="delete" id={item.id} />
-          </>
-        )}
-      </div>
-    </td>
-  </tr>
-);
 
 const TeacherListPage = async ({
   searchParams,
 }: {
   searchParams: { [key: string]: string | undefined };
 }) => {
-  const params = searchParams;
-
-  const { page, ...queryParams } = searchParams;
+  const { page, ...queryParams } = await searchParams;
 
   const p = page ? parseInt(page) : 1;
+
+  const { sessionClaims } = await auth();
+  const role = (sessionClaims?.metadata as { role?: string })?.role;
+
+  const columns = [
+    { header: "Infos", accessor: "info" },
+    {
+      header: "Identifiant",
+      accessor: "teacherId",
+      className: "hidden md:table-cell",
+    },
+    {
+      header: "Matière",
+      accessor: "subjects",
+      className: "hidden md:table-cell",
+    },
+    {
+      header: "Classes",
+      accessor: "classes",
+      className: "hidden lg:table-cell",
+    },
+    {
+      header: "Téléphone",
+      accessor: "phone",
+      className: "hidden lg:table-cell",
+    },
+    {
+      header: "Adresse",
+      accessor: "address",
+      className: "hidden lg:table-cell",
+    },
+    ...(role === "admin" ? [{ header: "Actions", accessor: "actions" }] : []),
+  ];
+
+  const renderRow = (item: TeacherList) => (
+    <tr
+      key={item.id}
+      className="border-b hover:bg-blue-200 even:bg-slate-50 border-t border-gray-200 border-l border-r"
+    >
+      <td className="flex items-center gap-4 p-4">
+        <Image
+          src={item.image || "/noAvatar.png"}
+          width={40}
+          height={40}
+          alt=""
+          className="md:hidden xl:block w-10 h-10 object-cover rounded-full"
+        />
+        <div className="flex flex-col">
+          <h3 className="font-semibold">{item.name}</h3>
+          <p className="text-xs text-gray-600">{item?.email}</p>
+        </div>
+      </td>
+      <td className="hidden md:table-cell">{item.username}</td>
+      <td className="hidden md:table-cell">
+        {Array.isArray(item.subjects)
+          ? item.subjects.map((s) => s.name).join(", ")
+          : item.subjects || "—"}
+      </td>
+      <td className="hidden md:table-cell">
+        {Array.isArray(item.classes)
+          ? item.classes.map((c) => c.name).join(", ")
+          : item.classes || "—"}
+      </td>
+      <td className="hidden lg:table-cell">{item.phone}</td>
+      <td className="hidden lg:table-cell">{item.address}</td>
+      <td>
+        <div className="flex items-center gap-2">
+          <Link href={`/list/teachers/${item.id}`}>
+            <button className="w-7 h-7 flex items-center cursor-pointer justify-center rounded-full bg-blue-200">
+              <Image src="/view.png" alt="" width={16} height={16} />
+            </button>
+          </Link>
+          {role === "admin" && (
+            <>
+              <FormContainer table="teacher" type="update" data={item} />
+              <FormContainer table="teacher" type="delete" id={item.id} />
+            </>
+          )}
+        </div>
+      </td>
+    </tr>
+  );
 
   // URL PARAMS CONDITION
 
@@ -157,7 +170,9 @@ const TeacherListPage = async ({
                 className="cursor-pointer"
               />
             </button>
-            {role === "admin" && <FormModal table="teacher" type="create" />}
+            {role === "admin" && (
+              <FormContainer table="teacher" type="create" />
+            )}
           </div>
         </div>
       </div>

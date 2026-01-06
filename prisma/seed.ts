@@ -111,6 +111,7 @@ async function main() {
         email: `parent${i}@example.com`,
         phone: `123-456-789${i}`,
         address: `Address${i}`,
+        birthday: new Date(new Date().setFullYear(new Date().getFullYear() - 20)),
       },
     });
   }

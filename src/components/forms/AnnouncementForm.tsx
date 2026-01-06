@@ -143,8 +143,8 @@ const AnnouncementForm = ({
             defaultValue={data?.sex}
           >
             <option value="">Selectionner</option>
-            <option value="male">Masculin</option>
-            <option value="female">Feminin</option>
+            <option value="MALE">Masculin</option>
+            <option value="FEMALE">Feminin</option>
           </select>
           {errors.sex && (
             <p className="text-xs text-red-500">

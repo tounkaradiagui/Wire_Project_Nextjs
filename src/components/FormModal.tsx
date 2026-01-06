@@ -11,17 +11,18 @@ import {
 } from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
-import { deleteSubject } from "@/lib/actions";
+import { deleteTeacher, deleteClass, deleteSubject, deleteStudent, deleteExam } from "@/lib/actions";
+import { FormContainerProps } from "./FormContainer";
 
 const deleteActionMap = {
   subject: deleteSubject,
-  // teacher: deleteTeacher,
-  // student: deleteStudent,
-  // class: deleteClass,
-  // exam: deleteExam,
+  teacher: deleteTeacher,
+  student: deleteStudent,
+  class: deleteClass,
+  exam: deleteExam,
   // announcement: deleteAnnouncement,
   // assignment: deleteAssignment,
-  // lesson: deleteLesson,
+  // lesson: deleteLesson, %
   // parent: deleteParent,
   // result: deleteResult,
   // attendance: deleteAttendance,
@@ -41,21 +42,62 @@ const SubjectForm = dynamic(() => import("./forms/SubjectForm"), {
   loading: () => <h1>Chargement...</h1>,
 });
 
+const ClassForm = dynamic(() => import("./forms/ClassForm"), {
+  loading: () => <h1>Chargement...</h1>,
+});
+
+const ExamForm = dynamic(() => import("./forms/ExamForm"), {
+  loading: () => <h1>Chargement...</h1>,
+});
+
 const forms: {
   [key: string]: (
     setOpen: Dispatch<SetStateAction<boolean>>,
     type: "create" | "update",
-    data?: any
+    data?: any,
+    relatedData?: any
   ) => React.JSX.Element;
 } = {
-  subject: (setOpen, type, data) => (
-    <SubjectForm type={type} data={data} setOpen={setOpen} />
+  subject: (setOpen, type, data, relatedData) => (
+    <SubjectForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
   ),
-  teacher: (type, data, setOpen) => (
-    <TeacherForm type={type} data={data} setOpen={setOpen} />
+  class: (setOpen, type, data, relatedData) => (
+    <ClassForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
   ),
-  student: (type, data, setOpen) => (
-    <StudentForm type={type} data={data} setOpen={setOpen} />
+  teacher: (setOpen, type, data, relatedData) => (
+    <TeacherForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
+  student: (setOpen, type, data, relatedData) => (
+    <StudentForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
+
+  exam: (setOpen, type, data, relatedData) => (
+    <ExamForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
   ),
 };
 
@@ -64,24 +106,8 @@ const FormModal = ({
   type,
   data,
   id,
-}: {
-  table:
-    | "teacher"
-    | "student"
-    | "parent"
-    | "subject"
-    | "class"
-    | "lesson"
-    | "exam"
-    | "assignment"
-    | "result"
-    | "attendance"
-    | "event"
-    | "announcement";
-  type: "create" | "update" | "delete";
-  data?: any;
-  id?: number | string;
-}) => {
+  relatedData,
+}: FormContainerProps & { relatedData?: any }) => {
   const size = type === "create" ? "w-8 h-8" : "w-7 h-7";
   const bgColor = type === "create" ? "bg-green-500" : "bg-blue-300";
 
@@ -97,7 +123,7 @@ const FormModal = ({
 
     useEffect(() => {
       if (state.success) {
-        toast.success(`La matière a été supprimée avec succès" !`, {
+        toast.success(`Elément supprimé avec succès" !`, {
           style: {
             background: "dark",
             color: "#ffffff",
@@ -145,7 +171,7 @@ const FormModal = ({
         </div>
       </form>
     ) : type === "create" || type === "update" ? (
-      forms[table](setOpen, type, data)
+      forms[table](setOpen, type, data, relatedData)
     ) : (
       "Formulaire introuvable"
     );

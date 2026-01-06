@@ -167,7 +167,8 @@ exports.Prisma.ParentScalarFieldEnum = {
   phone: 'phone',
   address: 'address',
   image: 'image',
-  createdAt: 'createdAt'
+  createdAt: 'createdAt',
+  birthday: 'birthday'
 };
 
 exports.Prisma.GradeScalarFieldEnum = {

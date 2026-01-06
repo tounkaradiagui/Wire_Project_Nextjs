@@ -1,14 +1,14 @@
 "use server";
 
-import FormModal from "@/components/FormModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import { Prisma, Subject, Teacher } from "generated/prisma/client";
-import { role } from "@/lib/utils";
 import Image from "next/image";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
+import FormModal from "@/components/FormModal";
+import FormContainer from "@/components/FormContainer";
 
 type SubjectList = Subject & { teachers: Teacher[] };
 
@@ -40,8 +40,8 @@ const renderRow = (item: SubjectList) => (
     <td>
       <div className="flex items-center gap-2">
         <>
-          <FormModal table="subject" type="update" data={item} />
-          <FormModal table="subject" type="delete" id={item.id} />
+          <FormContainer table="subject" type="update" data={item} />
+          <FormContainer table="subject" type="delete" id={item.id} />
         </>
       </div>
     </td>
@@ -107,7 +107,7 @@ const SubjectListPage = async ({
                 className="cursor-pointer"
               />
             </button>
-            <FormModal table="subject" type="create" />
+            <FormContainer table="subject" type="create" />
           </div>
         </div>
       </div>

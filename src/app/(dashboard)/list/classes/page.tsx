@@ -1,6 +1,6 @@
 "use server";
 
-import FormModal from "@/components/FormModal";
+import FormContainer from "@/components/FormContainer";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
@@ -8,52 +8,10 @@ import Image from "next/image";
 import { Class, Grade, Prisma, Teacher } from "generated/prisma/client";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
-import { role } from "@/lib/utils";
+// import { role } from "@/lib/utils";
+import { auth } from "@clerk/nextjs/server";
 
 type ClassList = Class & { supervisor: Teacher } & { grade: Grade };
-
-const columns = [
-  { header: "Nom de la classe", accessor: "info" },
-  {
-    header: "Capacité",
-    accessor: "capacity",
-  },
-  {
-    header: "Niveau",
-    accessor: "grade",
-    className: "hidden md:table-cell ",
-  },
-  { header: "Surveillant", accessor: "supervisor" },
-  ...(role === "admin" ? [{ header: "Actions", accessor: "actions" }] : []),
-];
-
-const renderRow = (item: ClassList) => (
-  <tr
-    key={item.id}
-    className="border-b hover:bg-blue-200 even:bg-slate-50 border-t border-gray-200 border-l border-r"
-  >
-    <td className="flex items-center gap-4 p-4">
-      <div className="flex flex-col">
-        <h3 className="font-semibold">{item.name}</h3>
-      </div>
-    </td>
-    <td>{item.capacity}</td>
-    <td className="hidden md:table-cell">{item.name}</td>
-    <td className="hidden md:table-cell">
-      {item.supervisor.name} {item.supervisor.surname}
-    </td>
-    <td>
-      <div className="flex items-center gap-2">
-        {role === "admin" && (
-          <>
-            <FormModal table="class" type="update" data={item} />
-            <FormModal table="class" type="delete" id={item.id} />
-          </>
-        )}
-      </div>
-    </td>
-  </tr>
-);
 
 const ClassListPage = async ({
   searchParams,
@@ -63,6 +21,52 @@ const ClassListPage = async ({
   const { page, ...queryParams } = searchParams;
 
   const p = page ? parseInt(page) : 1;
+
+  const { sessionClaims } = await auth();
+  const role = (sessionClaims?.metadata as { role?: string })?.role;
+
+  const columns = [
+    { header: "Nom de la classe", accessor: "info" },
+    {
+      header: "Capacité",
+      accessor: "capacity",
+    },
+    {
+      header: "Niveau",
+      accessor: "grade",
+      className: "hidden md:table-cell ",
+    },
+    { header: "Surveillant", accessor: "supervisor" },
+    ...(role === "admin" ? [{ header: "Actions", accessor: "actions" }] : []),
+  ];
+
+  const renderRow = (item: ClassList) => (
+    <tr
+      key={item.id}
+      className="border-b hover:bg-blue-200 even:bg-slate-50 border-t border-gray-200 border-l border-r"
+    >
+      <td className="flex items-center gap-4 p-4">
+        <div className="flex flex-col">
+          <h3 className="font-semibold">{item.name}</h3>
+        </div>
+      </td>
+      <td>{item.capacity}</td>
+      <td className="hidden md:table-cell">{item.grade?.level ?? "-"}</td>
+      <td className="hidden md:table-cell">
+        {item.supervisor.name} {item.supervisor.surname}
+      </td>
+      <td>
+        <div className="flex items-center gap-2">
+          {role === "admin" && (
+            <>
+              <FormContainer table="class" type="update" data={item} />
+              <FormContainer table="class" type="delete" id={item.id} />
+            </>
+          )}
+        </div>
+      </td>
+    </tr>
+  );
 
   // URL PARAMS CONDITION
 
@@ -90,6 +94,7 @@ const ClassListPage = async ({
       where: query,
       include: {
         supervisor: true,
+        grade: true,
       },
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
@@ -125,7 +130,7 @@ const ClassListPage = async ({
                 className="cursor-pointer"
               />
             </button>
-            {role === "admin" && <FormModal table="class" type="create" />}
+            {role === "admin" && <FormContainer table="class" type="create" />}
           </div>
         </div>
       </div>
