@@ -163,6 +163,7 @@ exports.Prisma.ParentScalarFieldEnum = {
   username: 'username',
   name: 'name',
   surname: 'surname',
+  sex: 'sex',
   email: 'email',
   phone: 'phone',
   address: 'address',

@@ -1,141 +1,193 @@
-# Application de Gestion des Absences avec Next.js, Turbopack et Microservices
+# 🎓 Application de Gestion des Absences
 
-## Description
+> Application web moderne pour la gestion académique et le suivi des absences dans un établissement éducatif, construite avec **Next.js**, **TypeScript**, **Turbopack** et une **architecture microservices**.
 
-Cette application web est conçue pour faciliter la gestion des absences dans un établissement éducatif. Développée avec Next.js, Turbopack et une architecture de microservices, elle offre une interface moderne et performante pour les administrateurs, enseignants, élèves, parents et secrétaires. L'application permet de suivre les absences, consulter les notes, emplois du temps, et communiquer entre les différents acteurs de l'établissement.
+---
 
-## Fonctionnalités
+## 📌 Présentation
 
-### Tâches Réalisées
+Cette application vise à centraliser et simplifier la gestion des absences, des notes, des emplois du temps et de la communication entre **administrateurs**, **enseignants**, **élèves**, **parents** et **secrétaires**. Elle propose une interface rapide, sécurisée et évolutive adaptée aux besoins des établissements scolaires modernes.
 
-1. **Page de Bienvenue**
+---
 
-   - Barre de navigation avec liens vers : Nom de l'établissement, Accueil, À Propos, Contact, Connexion
-   - Carousel d'images représentant le site et ses activités
-   - Sections de la page d'accueil :
-     - Description de l'établissement
-     - Vidéos YouTube de la vie quotidienne (visionnable en plein écran)
-     - Informations sur l'admission et horaires
-     - Formulaire de contact (nom, prénom, email, sujet, message)
-   - Footer avec navigation et adresses
+## 🚀 Fonctionnalités
 
-2. **Page "À Propos"**
+### 🌐 Pages Publiques
 
-   - Informations générales sur l'établissement et le personnel
-   - Téléchargement du cahier des charges
+* **Page d’accueil**
 
-3. **Page "Contact"**
+  * Barre de navigation (Accueil, À propos, Contact, Connexion)
+  * Carousel d’images de l’établissement
+  * Présentation générale et informations clés
+  * Vidéos YouTube intégrées (plein écran)
+  * Informations d’admission et horaires
+  * Formulaire de contact (nom, prénom, email, sujet, message)
+  * Footer avec navigation et coordonnées
 
-   - Formulaire obligatoire : nom, prénom, email, sujet, message
+* **Page À propos**
 
-4. **Authentification Utilisateur**
+  * Présentation de l’établissement et du personnel
+  * Téléchargement du cahier des charges
 
-   - Inscription : nom, prénom, email, mot de passe, confirmation
-   - Connexion : email, mot de passe
+* **Page Contact**
 
-5. **Administration**
-   - **Utilisateur Parent d'Élève** :
-     - Inscrire/modifier ses enfants
-     - Consulter absences, cours, notes, emplois du temps des enfants
-     - Envoyer messages privés aux enseignants
-     - Gérer son profil
-   - **Utilisateur Élève** :
-     - Connexion et consultation de cours, emplois du temps, notes
-     - Renseigner absences (avec justificatif optionnel)
-     - Recevoir messages des enseignants
-     - Gérer son profil
-   - **Utilisateur Enseignant** :
-     - Assigner et consulter absences de sa classe
-     - Envoyer messages aux parents
-     - Consulter notes et emplois du temps de la classe
-     - Accéder à ses matières
-     - Gérer son profil
-   - **Utilisateur Administrateur** :
-     - Tous les droits
-     - Gérer utilisateurs, niveaux scolaires, classes, matières
-     - Gérer son profil
-   - **Utilisateur Secrétaire** :
-     - Droits similaires à l'administrateur sauf gestion utilisateurs/niveaux
-     - Initier messages privés avec tous les utilisateurs
+  * Formulaire de contact avec validation des champs
 
-### Tâches en Cours
+---
 
-6. **Notifications**
-   - Envoi automatique de notifications aux parents concernant les absences de leurs enfants
+### 🔐 Authentification & Sécurité
 
-## Installation
+* Inscription utilisateur
+* Connexion sécurisée
+* Gestion des rôles et permissions
+* Protection des routes sensibles
 
-1. Cloner le dépôt :
+---
 
-   ```
-   git clone [URL du dépôt]
-   ```
+### 👥 Espaces Utilisateurs
 
-2. Installer les dépendances :
+#### 👨‍👩‍👧 Parent d’élève
 
-   ```
-   npm install
-   ```
+* Inscription et gestion des profils des enfants
+* Consultation des absences, notes, cours et emplois du temps
+* Communication directe avec les enseignants
+* Gestion du profil personnel
 
-3. Configurer l'environnement :
+#### 🎒 Élève
 
-   - Copier `.env.example` vers `.env.local`
-   - Configurer les variables d'environnement pour les microservices et la base de données
+* Consultation des cours, notes et emplois du temps
+* Déclaration d’absences (avec justificatif optionnel)
+* Réception de messages des enseignants
+* Gestion du profil
 
-4. Démarrer le serveur de développement :
+#### 👩‍🏫 Enseignant
 
-   ```
-   npm run dev
-   ```
+* Gestion et suivi des absences par classe
+* Communication avec les parents
+* Consultation des notes et emplois du temps
+* Accès aux matières enseignées
+* Gestion du profil
 
-5. (Optionnel) Construire pour la production :
-   ```
-   npm run build
-   npm start
-   ```
-6. Database:
-   Prisma ORM
-   Postgre SQL
+#### 🧑‍💼 Administrateur
 
-## Utilisation
+* Accès complet à toutes les fonctionnalités
+* Gestion des utilisateurs (élèves, parents, enseignants, secrétaires)
+* Gestion des niveaux, classes et matières
+* Supervision globale du système
 
-- Accéder à l'application via le navigateur à l'adresse locale (généralement http://localhost:3000)
-- S'inscrire ou se connecter selon le rôle
-- Naviguer dans les différentes sections selon les permissions
+#### 🗂️ Secrétaire
 
-## Technologies Utilisées
+* Accès administratif partiel
+* Gestion académique (hors utilisateurs et niveaux)
+* Communication avec tous les acteurs
 
-- Next.js (avec Turbopack pour un développement rapide)
-- React
-- TypeScript
-- Tailwind CSS
-- Architecture de microservices
-- Base de données (MySQL/PostgreSQL ou autre selon configuration)
+---
 
-## Architecture
+### 🔔 Fonctionnalités en Cours
 
-L'application utilise une architecture de microservices pour une meilleure scalabilité et maintenabilité. Les services incluent :
+* Notifications automatiques des absences envoyées aux parents
+* Historique et statistiques des absences
 
-- Service d'authentification
-- Service de gestion des utilisateurs
-- Service de gestion des absences
-- Service de notifications
-- Etc.
+---
 
-## Contribution
+## 🛠️ Stack Technique
 
-Les contributions sont les bienvenues. Veuillez suivre les étapes suivantes :
+* **Framework** : Next.js (App Router)
+* **Bundler** : Turbopack
+* **Langage** : TypeScript
+* **UI** : Tailwind CSS
+* **Backend** : Architecture Microservices
+* **ORM** : Prisma
+* **Base de données** : PostgreSQL
+* **Authentification** : JWT / Auth Provider (selon configuration)
 
-1. Forker le projet
-2. Créer une branche pour votre fonctionnalité (`git checkout -b feature/NouvelleFonctionnalite`)
-3. Commiter vos changements (`git commit -am 'Ajouter NouvelleFonctionnalite'`)
-4. Pousser vers la branche (`git push origin feature/NouvelleFonctionnalite`)
+---
+
+## 🧱 Architecture
+
+Architecture basée sur des microservices pour assurer la scalabilité et la maintenabilité :
+
+* Service d’authentification
+* Service de gestion des utilisateurs
+* Service académique (absences, notes, classes)
+* Service de notifications
+* API Gateway
+
+---
+
+## ⚙️ Installation & Configuration
+
+### 1️⃣ Cloner le projet
+
+```bash
+git clone https://github.com/
+cd gestion-absences
+```
+
+### 2️⃣ Installer les dépendances
+
+```bash
+npm install
+```
+
+### 3️⃣ Configuration de l’environnement
+
+```bash
+cp .env.example .env.local
+```
+
+Configurer les variables :
+
+* Base de données
+* Services backend
+* Clés d’authentification
+
+### 4️⃣ Lancer le projet en développement
+
+```bash
+npm run dev
+```
+
+### 5️⃣ Build production (optionnel)
+
+```bash
+npm run build
+npm start
+```
+
+---
+
+## 🧪 Utilisation
+
+* Accéder à l’application via : `http://localhost:3000`
+* Créer un compte ou se connecter
+* Naviguer selon le rôle attribué
+
+---
+
+## 🤝 Contribution
+
+Les contributions sont bienvenues 🙌
+
+1. Forker le dépôt
+2. Créer une branche (`feature/ma-fonctionnalite`)
+3. Commiter vos changements
+4. Pousser la branche
 5. Ouvrir une Pull Request
 
-## Licence
+---
 
-Ce projet est sous licence [MIT](LICENSE).
+## 📄 Licence
 
-## Contact
+Distribué sous licence **MIT**. Voir le fichier `LICENSE` pour plus d’informations.
 
-Pour toute question ou suggestion, veuillez contacter tounkaradiagui@gmail.com ou ouvrir une issue sur GitHub.
+---
+
+## 📬 Contact
+
+📧 Email : **[tounkaradiagui@gmail.com](mailto:tounkaradiagui@gmail.com)**
+🐙 GitHub : Ouvrez une issue pour toute question ou suggestion
+
+---
+
+> ✨ Projet conçu pour évoluer avec les besoins réels des établissements éducatifs modernes.

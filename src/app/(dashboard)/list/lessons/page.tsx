@@ -1,6 +1,6 @@
 "use server";
 
-import FormModal from "@/components/FormModal";
+import FormContainer from "@/components/FormContainer";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
@@ -14,51 +14,12 @@ import {
 import Image from "next/image";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
-import { role } from "@/lib/utils";
+import { auth } from "@clerk/nextjs/server";
 
 type LessonList = Lesson & { subject: Subject } & { class: Class } & {
   teacher: Teacher;
 };
 
-const columns = [
-  { header: "Nom de la matière", accessor: "info" },
-
-  {
-    header: "Classe",
-    accessor: "class",
-    className: "hidden md:table-cell ",
-  },
-  { header: "Enseignant", accessor: "teacher" },
-  ...(role === "admin" ? [{ header: "Actions", accessor: "actions" }] : []),
-];
-
-const renderRow = (item: LessonList) => (
-  <tr
-    key={item.id}
-    className="border-b hover:bg-blue-200 even:bg-slate-50 border-t border-gray-200 border-l border-r"
-  >
-    <td className="flex items-center gap-4 p-4">
-      <div className="flex flex-col">
-        <h3 className="font-semibold">{item.subject.name}</h3>
-      </div>
-    </td>
-    {/* <td className="hidden md:table-cell">{item.name}</td> */}
-    <td>{item.class.name}</td>
-    <td className="hidden md:table-cell">
-      {item.teacher.name + " " + item.teacher.surname}
-    </td>
-    <td>
-      <div className="flex items-center gap-2">
-        {role === "admin" && (
-          <>
-            <FormModal table="lesson" type="update" data={item} />
-            <FormModal table="lesson" type="delete" id={item.id} />
-          </>
-        )}
-      </div>
-    </td>
-  </tr>
-);
 
 const LessonListPage = async ({
   searchParams,
@@ -68,6 +29,69 @@ const LessonListPage = async ({
   const { page, ...queryParams } = await searchParams;
 
   const p = page ? parseInt(page) : 1;
+
+  const { sessionClaims } = await auth();
+  const role = (sessionClaims?.metadata as { role?: string })?.role;
+
+  const columns = [
+    { header: "Nom de la matière", accessor: "info" },
+
+    {
+      header: "Leçon",
+      accessor: "leçon",
+      className: "hidden md:table-cell ",
+    },
+    {
+      header: "Classe",
+      accessor: "class",
+      className: "hidden md:table-cell ",
+    },
+    { header: "Enseignant", accessor: "teacher" },
+    { header: "Date de début", accessor: "startTimr", className: "hidden md:table-cell " },
+    { header: "Date de fin", accessor: "endTime", className: "hidden md:table-cell " },
+    ...(role === "admin" ? [{ header: "Actions", accessor: "actions" }] : []),
+  ];
+
+  const renderRow = (item: LessonList) => (
+    <tr
+      key={item.id}
+      className="border-b hover:bg-blue-200 even:bg-slate-50 border-t border-gray-200 border-l border-r"
+    >
+      <td className="flex items-center gap-4 p-4">
+        <div className="flex flex-col">
+          <h3 className="font-semibold">{item.subject.name}</h3>
+        </div>
+      </td>
+      <td className="hidden md:table-cell">{item.name}</td>
+      <td>{item.class.name}</td>
+      <td className="hidden md:table-cell">
+        {item.teacher.name + " " + item.teacher.surname}
+      </td>
+      <td className="hidden md:table-cell">
+        {new Intl.DateTimeFormat("fr-FR", {
+          dateStyle: "short",
+          timeStyle: "short",
+        }).format(item.startTime)}
+      </td>
+      <td className="hidden md:table-cell">
+        {new Intl.DateTimeFormat("fr-FR", {
+          dateStyle: "short",
+          timeStyle: "short",
+        }).format(item.endTime)}
+      </td>
+      <td>
+        <div className="flex items-center gap-2">
+          {role === "admin" && (
+            <>
+              <FormContainer table="lesson" type="update" data={item} />
+              <FormContainer table="lesson" type="delete" id={item.id} />
+            </>
+          )}
+        </div>
+      </td>
+    </tr>
+  );
+
 
   // URL PARAMS CONDITION
 
@@ -138,7 +162,7 @@ const LessonListPage = async ({
                 className="cursor-pointer"
               />
             </button>
-            {role === "admin" && <FormModal table="lesson" type="create" />}
+            {role === "admin" && <FormContainer table="lesson" type="create" />}
           </div>
         </div>
       </div>

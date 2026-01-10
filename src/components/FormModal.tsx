@@ -11,7 +11,7 @@ import {
 } from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
-import { deleteTeacher, deleteClass, deleteSubject, deleteStudent, deleteExam } from "@/lib/actions";
+import { deleteLesson, deleteTeacher, deleteClass, deleteSubject, deleteStudent, deleteExam, deleteParent } from "@/lib/actions";
 import { FormContainerProps } from "./FormContainer";
 
 const deleteActionMap = {
@@ -20,10 +20,10 @@ const deleteActionMap = {
   student: deleteStudent,
   class: deleteClass,
   exam: deleteExam,
+  parent: deleteParent,
+  lesson: deleteLesson,
   // announcement: deleteAnnouncement,
   // assignment: deleteAssignment,
-  // lesson: deleteLesson, %
-  // parent: deleteParent,
   // result: deleteResult,
   // attendance: deleteAttendance,
   // event: deleteEvent,
@@ -47,6 +47,14 @@ const ClassForm = dynamic(() => import("./forms/ClassForm"), {
 });
 
 const ExamForm = dynamic(() => import("./forms/ExamForm"), {
+  loading: () => <h1>Chargement...</h1>,
+});
+
+const ParentForm = dynamic(() => import("./forms/ParentForm"), {
+  loading: () => <h1>Chargement...</h1>,
+});
+
+const LessonForm = dynamic(() => import("./forms/LessonForm"), {
   loading: () => <h1>Chargement...</h1>,
 });
 
@@ -90,9 +98,26 @@ const forms: {
       relatedData={relatedData}
     />
   ),
+  parent: (setOpen, type, data, relatedData) => (
+    <ParentForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
 
   exam: (setOpen, type, data, relatedData) => (
     <ExamForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
+
+  lesson: (setOpen, type, data, relatedData) => (
+    <LessonForm
       type={type}
       data={data}
       setOpen={setOpen}

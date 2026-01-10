@@ -24,7 +24,7 @@ model Student {
   image       String?
   bloodType   String
   sex         UserSex
-  birthday  DateTime?
+  birthday    DateTime?
   createdAt   DateTime     @default(now())
   parentId    String
   parent      Parent       @relation(fields: [parentId], references: [id])
@@ -51,7 +51,7 @@ model Teacher {
   createdAt DateTime  @default(now())
   subjects  Subject[]
   lessons   Lesson[]
-  classes   Class[]
+  classes   Class[] //relation many to many ie un enseignant peut donner un cours dans plusieurs classes
 }
 
 model Parent {
@@ -59,6 +59,7 @@ model Parent {
   username  String    @unique
   name      String
   surname   String
+  sex       UserSex
   email     String?   @unique
   phone     String    @unique
   address   String
@@ -165,12 +166,12 @@ model Event {
 }
 
 model Announcement {
-  id      Int      @id @default(autoincrement())
-  title   String
-  date    DateTime
+  id          Int      @id @default(autoincrement())
+  title       String
+  date        DateTime
   description String?
-  classId Int?
-  class   Class?   @relation(fields: [classId], references: [id])
+  classId     Int?
+  class       Class?   @relation(fields: [classId], references: [id])
 }
 
 enum Day {
@@ -187,5 +188,3 @@ enum UserSex {
   MALE
   FEMALE
 }
-
-

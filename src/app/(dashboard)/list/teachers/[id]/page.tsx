@@ -6,25 +6,25 @@ import Image from "next/image";
 import Link from "next/link";
 import { Teacher } from "generated/prisma/client";
 import prisma from "@/lib/prisma";
-import {notFound} from "next/navigation"
+import { notFound } from "next/navigation"
 import { auth } from "@clerk/nextjs/server";
 
-const TeacherDetailPage = async ({params:{id}, } : {params: {id:string}; }) => {
+const TeacherDetailPage = async ({ params: { id }, }: { params: { id: string }; }) => {
 
-  const teacher: (Teacher & {_count:{subjects:number, lessons:number, classes:number}}) | null = await prisma.teacher.findUnique({
-    where:{id},
-    include:{
-    _count:{
-      select:{
-        subjects:true,
-        lessons:true,
-        classes:true
+  const teacher: (Teacher & { _count: { subjects: number, lessons: number, classes: number } }) | null = await prisma.teacher.findUnique({
+    where: { id },
+    include: {
+      _count: {
+        select: {
+          subjects: true,
+          lessons: true,
+          classes: true
+        }
       }
-    }
     }
   });
 
-  if(!teacher) {
+  if (!teacher) {
     return notFound();
   }
 
@@ -157,7 +157,7 @@ const TeacherDetailPage = async ({params:{id}, } : {params: {id:string}; }) => {
         {/* Bottom */}
         <div className="mt-4 bg-white p-4 rounded-md shadow-md h-[800px] teacher-calendar-container">
           <h1>Programme de l'Enseignant</h1>
-          <BigCalendarContainer type="teacherId" id={teacher.id}/>
+          <BigCalendarContainer type="teacherId" id={teacher.id} />
         </div>
       </div>
       {/* Right */}
@@ -167,34 +167,31 @@ const TeacherDetailPage = async ({params:{id}, } : {params: {id:string}; }) => {
           <h2 className="text-xl font-semibold mb-4">Raccourcis</h2>
           <div className="mt-4 gap-4 flex flex-wrap text-xs text-gray-700">
             <Link
-              href={`/list/classes?supervisorId=${"teacher2"}`}
+              href={`/list/classes?supervisorId=${teacher.id}`}
               className="p-3 rounded-md bg-amber-200"
             >
               Classes
             </Link>
-            <Link href={`/list/subjects?teacherId=${"teacher2"}`} className="p-3 rounded-md bg-lime-200">
+            <Link href={`/list/subjects?teacherId=${teacher.id}`} className="p-3 rounded-md bg-lime-200">
               Matières
             </Link>
-            <Link href={`/list/exams?teacherId=${"teacher2"}`} className="p-3 rounded-md bg-lime-200">
+            <Link href={`/list/exams?teacherId=${teacher.id}`} className="p-3 rounded-md bg-lime-200">
               Examens
             </Link>
-            <Link href={`/list/assignments?teacherId=${"teacher2"}`} className="p-3 rounded-md bg-lime-200">
+            <Link href={`/list/assignments?teacherId=${teacher.id}`} className="p-3 rounded-md bg-lime-200">
               Devoirs
             </Link>
-            <Link href={`/list/lessons?teacherId=${"teacher2"}`} className="p-3 rounded-md bg-cyan-200">
+            <Link href={`/list/lessons?teacherId=${teacher.id}`} className="p-3 rounded-md bg-cyan-200">
               Leçons
             </Link>
-            <Link href="/" className="p-3 rounded-md bg-pink-200">
+            <Link href={`/list/attendance?teacherId=${teacher.id}`} className="p-3 rounded-md bg-pink-200">
               Présence
             </Link>
             <Link
-              href={`/list/students?teacherId=${"teacher2"}`}
+              href={`/list/students?teacherId=${teacher.id}`}
               className="p-3 rounded-md bg-violet-200"
             >
               Elèves
-            </Link>
-            <Link href="/" className="p-3 rounded-md bg-rose-200">
-              Emploi du temps
             </Link>
           </div>
         </div>

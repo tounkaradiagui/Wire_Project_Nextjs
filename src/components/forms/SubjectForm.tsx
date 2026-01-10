@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import InputField from "../InputField";
 import { SubjectSchemaInput, subjectSchema } from "@/lib/formValidationSchemas";
 import { createSubject, updateSubject } from "@/lib/actions";
-import { Dispatch, SetStateAction, useActionState, useEffect } from "react";
+import { Dispatch, SetStateAction, useActionState, useEffect, startTransition } from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { BookOpen, Users, Save, X, Loader2 } from "lucide-react";
@@ -39,7 +39,9 @@ const SubjectForm = ({
   );
 
   const onSubmit = handleSubmit((data) => {
-    formAction(data);
+    startTransition(() => {
+      formAction(data);
+    });
   });
 
   const router = useRouter();
@@ -47,8 +49,7 @@ const SubjectForm = ({
   useEffect(() => {
     if (state.success) {
       toast.success(
-        `La matière a été ${
-          type === "create" ? "ajoutée avec succès" : "mise à jour avec succès"
+        `La matière a été ${type === "create" ? "ajoutée avec succès" : "mise à jour avec succès"
         }`,
         {
           style: {
@@ -172,11 +173,10 @@ const SubjectForm = ({
           disabled={isPending}
           className={`flex items-center gap-1.5 px-3 py-1.5 text-xs
       rounded-md text-white transition
-      ${
-        isPending
-          ? "bg-blue-300 cursor-not-allowed"
-          : "bg-blue-600 hover:bg-blue-700"
-      }`}
+      ${isPending
+              ? "bg-blue-300 cursor-not-allowed"
+              : "bg-blue-600 hover:bg-blue-700"
+            }`}
         >
           {isPending ? (
             <Loader2 className="w-3.5 h-3.5 animate-spin" />

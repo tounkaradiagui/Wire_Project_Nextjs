@@ -21,12 +21,12 @@ const StudentListPage = async ({
   searchParams: { [key: string]: string | undefined };
 }) => {
   const { page, ...queryParams } = await searchParams;
-  
+
   const p = page ? parseInt(page) : 1;
-  
+
   const { sessionClaims } = await auth();
   const role = (sessionClaims?.metadata as { role?: string })?.role;
-  
+
   const columns = [
     { header: "Infos", accessor: "info" },
     {
@@ -43,7 +43,7 @@ const StudentListPage = async ({
     { header: "Adresse", accessor: "address", className: "hidden md:table-cell" },
     ...(role === "admin" ? [{ header: "Actions", accessor: "actions" }] : []),
   ];
-  
+
   const renderRow = (item: StudentList) => (
     <tr
       key={item.id}

@@ -8,7 +8,6 @@ import Image from "next/image";
 import { Class, Grade, Prisma, Teacher } from "generated/prisma/client";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
-// import { role } from "@/lib/utils";
 import { auth } from "@clerk/nextjs/server";
 
 type ClassList = Class & { supervisor: Teacher } & { grade: Grade };
@@ -18,7 +17,7 @@ const ClassListPage = async ({
 }: {
   searchParams: { [key: string]: string | undefined };
 }) => {
-  const { page, ...queryParams } = searchParams;
+  const { page, ...queryParams } = await searchParams;
 
   const p = page ? parseInt(page) : 1;
 

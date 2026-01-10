@@ -8,9 +8,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { Student } from "generated/prisma/client";
 import prisma from "@/lib/prisma";
-import {notFound} from "next/navigation"
+import { notFound } from "next/navigation"
 import { auth } from "@clerk/nextjs/server";
-import {Suspense} from "react"
+import { Suspense } from "react"
 
 const StudentDetailPage = async (props: {
   params: Promise<{ id: string }>;
@@ -100,7 +100,7 @@ const StudentDetailPage = async (props: {
                   className="w-7 h-7"
                 />
                 <Suspense fallback="loading...">
-                  <StudentAttendanceCard id={student.id}/>
+                  <StudentAttendanceCard id={student.id} />
                 </Suspense>
               </div>
             </div>
@@ -160,7 +160,7 @@ const StudentDetailPage = async (props: {
         {/* Bottom */}
         <div className="mt-4 bg-white p-4 rounded-md shadow-md h-[800px] teacher-calendar-container">
           <h1>Emploi du temps</h1>
-          <BigCalendarContainer type="classId" id={student.class.id}/>
+          <BigCalendarContainer type="classId" id={student.class.id} />
         </div>
       </div>
       {/* Right */}
@@ -169,25 +169,25 @@ const StudentDetailPage = async (props: {
           {/* Shortcuts */}
           <h2 className="text-xl font-semibold mb-4">Raccourcis</h2>
           <div className="mt-4 gap-4 flex flex-wrap text-xs text-gray-700">
-            <Link href={`/list/lessons?classId=${2}`} className="p-3 rounded-md bg-amber-200">
+            <Link href={`/list/lessons?classId=${student.class.id}`} className="p-3 rounded-md bg-amber-200">
               Leçons
             </Link>
-            <Link href="/" className="p-3 rounded-md bg-lime-200">
+            <Link href={`/list/subjects?classId=${student.class.id}`} className="p-3 rounded-md bg-lime-200">
               Matières
             </Link>
             <Link
-              href={`/list/teachers?classId=${2}`}
+              href={`/list/teachers?classId=${student.class.id}`}
               className="p-3 rounded-md bg-cyan-200"
             >
               Enseignants
             </Link>
-            <Link href={`/list/results?studentId=${"student2"}`} className="p-3 rounded-md bg-violet-200">
+            <Link href={`/list/results?studentId=${student.id}`} className="p-3 rounded-md bg-violet-200">
               Résultats
             </Link>
-            <Link href={`/list/assignments?classId=${2}`} className="p-3 rounded-md bg-rose-200">
+            <Link href={`/list/assignments?classId=${student.class.id}`} className="p-3 rounded-md bg-rose-200">
               Devoirs
             </Link>
-            <Link href={`/list/exams?classId=${2}`} className="p-3 rounded-md bg-rose-200">
+            <Link href={`/list/exams?classId=${student.class.id}`} className="p-3 rounded-md bg-rose-200">
               Examens
             </Link>
           </div>

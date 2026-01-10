@@ -5934,6 +5934,7 @@ export namespace Prisma {
     username: string | null
     name: string | null
     surname: string | null
+    sex: $Enums.UserSex | null
     email: string | null
     phone: string | null
     address: string | null
@@ -5947,6 +5948,7 @@ export namespace Prisma {
     username: string | null
     name: string | null
     surname: string | null
+    sex: $Enums.UserSex | null
     email: string | null
     phone: string | null
     address: string | null
@@ -5960,6 +5962,7 @@ export namespace Prisma {
     username: number
     name: number
     surname: number
+    sex: number
     email: number
     phone: number
     address: number
@@ -5975,6 +5978,7 @@ export namespace Prisma {
     username?: true
     name?: true
     surname?: true
+    sex?: true
     email?: true
     phone?: true
     address?: true
@@ -5988,6 +5992,7 @@ export namespace Prisma {
     username?: true
     name?: true
     surname?: true
+    sex?: true
     email?: true
     phone?: true
     address?: true
@@ -6001,6 +6006,7 @@ export namespace Prisma {
     username?: true
     name?: true
     surname?: true
+    sex?: true
     email?: true
     phone?: true
     address?: true
@@ -6087,6 +6093,7 @@ export namespace Prisma {
     username: string
     name: string
     surname: string
+    sex: $Enums.UserSex
     email: string | null
     phone: string
     address: string
@@ -6117,6 +6124,7 @@ export namespace Prisma {
     username?: boolean
     name?: boolean
     surname?: boolean
+    sex?: boolean
     email?: boolean
     phone?: boolean
     address?: boolean
@@ -6132,6 +6140,7 @@ export namespace Prisma {
     username?: boolean
     name?: boolean
     surname?: boolean
+    sex?: boolean
     email?: boolean
     phone?: boolean
     address?: boolean
@@ -6145,6 +6154,7 @@ export namespace Prisma {
     username?: boolean
     name?: boolean
     surname?: boolean
+    sex?: boolean
     email?: boolean
     phone?: boolean
     address?: boolean
@@ -6158,6 +6168,7 @@ export namespace Prisma {
     username?: boolean
     name?: boolean
     surname?: boolean
+    sex?: boolean
     email?: boolean
     phone?: boolean
     address?: boolean
@@ -6166,7 +6177,7 @@ export namespace Prisma {
     birthday?: boolean
   }
 
-  export type ParentOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "username" | "name" | "surname" | "email" | "phone" | "address" | "image" | "createdAt" | "birthday", ExtArgs["result"]["parent"]>
+  export type ParentOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "username" | "name" | "surname" | "sex" | "email" | "phone" | "address" | "image" | "createdAt" | "birthday", ExtArgs["result"]["parent"]>
   export type ParentInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     students?: boolean | Parent$studentsArgs<ExtArgs>
     _count?: boolean | ParentCountOutputTypeDefaultArgs<ExtArgs>
@@ -6184,6 +6195,7 @@ export namespace Prisma {
       username: string
       name: string
       surname: string
+      sex: $Enums.UserSex
       email: string | null
       phone: string
       address: string
@@ -6618,6 +6630,7 @@ export namespace Prisma {
     readonly username: FieldRef<"Parent", 'String'>
     readonly name: FieldRef<"Parent", 'String'>
     readonly surname: FieldRef<"Parent", 'String'>
+    readonly sex: FieldRef<"Parent", 'UserSex'>
     readonly email: FieldRef<"Parent", 'String'>
     readonly phone: FieldRef<"Parent", 'String'>
     readonly address: FieldRef<"Parent", 'String'>
@@ -18549,6 +18562,7 @@ export namespace Prisma {
     username: 'username',
     name: 'name',
     surname: 'surname',
+    sex: 'sex',
     email: 'email',
     phone: 'phone',
     address: 'address',
@@ -19051,6 +19065,7 @@ export namespace Prisma {
     username?: StringFilter<"Parent"> | string
     name?: StringFilter<"Parent"> | string
     surname?: StringFilter<"Parent"> | string
+    sex?: EnumUserSexFilter<"Parent"> | $Enums.UserSex
     email?: StringNullableFilter<"Parent"> | string | null
     phone?: StringFilter<"Parent"> | string
     address?: StringFilter<"Parent"> | string
@@ -19065,6 +19080,7 @@ export namespace Prisma {
     username?: SortOrder
     name?: SortOrder
     surname?: SortOrder
+    sex?: SortOrder
     email?: SortOrderInput | SortOrder
     phone?: SortOrder
     address?: SortOrder
@@ -19084,6 +19100,7 @@ export namespace Prisma {
     NOT?: ParentWhereInput | ParentWhereInput[]
     name?: StringFilter<"Parent"> | string
     surname?: StringFilter<"Parent"> | string
+    sex?: EnumUserSexFilter<"Parent"> | $Enums.UserSex
     address?: StringFilter<"Parent"> | string
     image?: StringNullableFilter<"Parent"> | string | null
     createdAt?: DateTimeFilter<"Parent"> | Date | string
@@ -19096,6 +19113,7 @@ export namespace Prisma {
     username?: SortOrder
     name?: SortOrder
     surname?: SortOrder
+    sex?: SortOrder
     email?: SortOrderInput | SortOrder
     phone?: SortOrder
     address?: SortOrder
@@ -19115,6 +19133,7 @@ export namespace Prisma {
     username?: StringWithAggregatesFilter<"Parent"> | string
     name?: StringWithAggregatesFilter<"Parent"> | string
     surname?: StringWithAggregatesFilter<"Parent"> | string
+    sex?: EnumUserSexWithAggregatesFilter<"Parent"> | $Enums.UserSex
     email?: StringNullableWithAggregatesFilter<"Parent"> | string | null
     phone?: StringWithAggregatesFilter<"Parent"> | string
     address?: StringWithAggregatesFilter<"Parent"> | string
@@ -20022,6 +20041,7 @@ export namespace Prisma {
     username: string
     name: string
     surname: string
+    sex: $Enums.UserSex
     email?: string | null
     phone: string
     address: string
@@ -20036,6 +20056,7 @@ export namespace Prisma {
     username: string
     name: string
     surname: string
+    sex: $Enums.UserSex
     email?: string | null
     phone: string
     address: string
@@ -20050,6 +20071,7 @@ export namespace Prisma {
     username?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     surname?: StringFieldUpdateOperationsInput | string
+    sex?: EnumUserSexFieldUpdateOperationsInput | $Enums.UserSex
     email?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: StringFieldUpdateOperationsInput | string
     address?: StringFieldUpdateOperationsInput | string
@@ -20064,6 +20086,7 @@ export namespace Prisma {
     username?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     surname?: StringFieldUpdateOperationsInput | string
+    sex?: EnumUserSexFieldUpdateOperationsInput | $Enums.UserSex
     email?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: StringFieldUpdateOperationsInput | string
     address?: StringFieldUpdateOperationsInput | string
@@ -20078,6 +20101,7 @@ export namespace Prisma {
     username: string
     name: string
     surname: string
+    sex: $Enums.UserSex
     email?: string | null
     phone: string
     address: string
@@ -20091,6 +20115,7 @@ export namespace Prisma {
     username?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     surname?: StringFieldUpdateOperationsInput | string
+    sex?: EnumUserSexFieldUpdateOperationsInput | $Enums.UserSex
     email?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: StringFieldUpdateOperationsInput | string
     address?: StringFieldUpdateOperationsInput | string
@@ -20104,6 +20129,7 @@ export namespace Prisma {
     username?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     surname?: StringFieldUpdateOperationsInput | string
+    sex?: EnumUserSexFieldUpdateOperationsInput | $Enums.UserSex
     email?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: StringFieldUpdateOperationsInput | string
     address?: StringFieldUpdateOperationsInput | string
@@ -21035,6 +21061,7 @@ export namespace Prisma {
     username?: SortOrder
     name?: SortOrder
     surname?: SortOrder
+    sex?: SortOrder
     email?: SortOrder
     phone?: SortOrder
     address?: SortOrder
@@ -21048,6 +21075,7 @@ export namespace Prisma {
     username?: SortOrder
     name?: SortOrder
     surname?: SortOrder
+    sex?: SortOrder
     email?: SortOrder
     phone?: SortOrder
     address?: SortOrder
@@ -21061,6 +21089,7 @@ export namespace Prisma {
     username?: SortOrder
     name?: SortOrder
     surname?: SortOrder
+    sex?: SortOrder
     email?: SortOrder
     phone?: SortOrder
     address?: SortOrder
@@ -22878,6 +22907,7 @@ export namespace Prisma {
     username: string
     name: string
     surname: string
+    sex: $Enums.UserSex
     email?: string | null
     phone: string
     address: string
@@ -22891,6 +22921,7 @@ export namespace Prisma {
     username: string
     name: string
     surname: string
+    sex: $Enums.UserSex
     email?: string | null
     phone: string
     address: string
@@ -23008,6 +23039,7 @@ export namespace Prisma {
     username?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     surname?: StringFieldUpdateOperationsInput | string
+    sex?: EnumUserSexFieldUpdateOperationsInput | $Enums.UserSex
     email?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: StringFieldUpdateOperationsInput | string
     address?: StringFieldUpdateOperationsInput | string
@@ -23021,6 +23053,7 @@ export namespace Prisma {
     username?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     surname?: StringFieldUpdateOperationsInput | string
+    sex?: EnumUserSexFieldUpdateOperationsInput | $Enums.UserSex
     email?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: StringFieldUpdateOperationsInput | string
     address?: StringFieldUpdateOperationsInput | string

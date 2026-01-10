@@ -7,7 +7,6 @@ import { Prisma, Subject, Teacher } from "generated/prisma/client";
 import Image from "next/image";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
-import FormModal from "@/components/FormModal";
 import FormContainer from "@/components/FormContainer";
 
 type SubjectList = Subject & { teachers: Teacher[] };

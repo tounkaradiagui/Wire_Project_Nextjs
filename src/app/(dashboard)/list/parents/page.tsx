@@ -1,6 +1,6 @@
 "use server";
 
-import FormModal from "@/components/FormModal";
+import FormContainer from "@/components/FormContainer";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
@@ -8,62 +8,66 @@ import { ITEM_PER_PAGE } from "@/lib/settings";
 import Image from "next/image";
 import prisma from "@/lib/prisma";
 import { Parent, Prisma, Student } from "generated/prisma/client";
-import { role } from "@/lib/utils";
+import { auth } from "@clerk/nextjs/server";
 
 type ParentList = Parent & { students: Student[] };
 
-const columns = [
-  { header: "Infos", accessor: "info" },
-  {
-    header: "Nom des élèves",
-    accessor: "students",
-    className: "hidden md:table-cell ",
-  },
-  { header: "Téléphone", accessor: "phone", className: "hidden md:table-cell" },
-  { header: "Adresse", accessor: "address", className: "hidden md:table-cell" },
-  ...(role === "admin" ? [{ header: "Actions", accessor: "actions" }] : []),
-];
-
-const renderRow = (item: ParentList) => (
-  <tr
-    key={item.id}
-    className="border-b hover:bg-blue-200 even:bg-slate-50 border-t border-gray-200 border-l border-r"
-  >
-    <td className="flex items-center gap-4 p-4">
-      <div className="flex flex-col">
-        <h3 className="font-semibold">{item.name}</h3>
-        <p className="text-xs text-gray-500">{item?.email}</p>
-      </div>
-    </td>
-    <td className="hidden lg:table-cell">
-      {Array.isArray(item.students)
-        ? item.students.map((c) => c.name).join(", ")
-        : item.students || "—"}
-    </td>
-    <td className="hidden lg:table-cell">{item.phone}</td>
-    <td className="hidden lg:table-cell">{item.address}</td>
-    <td>
-      <div className="flex items-center gap-2">
-        {role === "admin" && (
-          <>
-            <FormModal table="parent" type="update" data={item} />
-            <FormModal table="parent" type="delete" id={item.id} />
-          </>
-        )}
-      </div>
-    </td>
-  </tr>
-);
 
 const ParentListPage = async ({
   searchParams,
 }: {
   searchParams: { [key: string]: string | undefined };
 }) => {
-  const params = searchParams;
+  const params = await searchParams;
 
   const page = params?.page ? Math.max(1, parseInt(params.page, 10) || 1) : 1;
   const search = (params?.search || "").trim();
+
+  const { sessionClaims } = await auth();
+  const role = (sessionClaims?.metadata as { role?: string })?.role;
+
+  const columns = [
+    { header: "Infos", accessor: "info" },
+    {
+      header: "Nom des élèves",
+      accessor: "students",
+      className: "hidden md:table-cell ",
+    },
+    { header: "Téléphone", accessor: "phone", className: "hidden md:table-cell" },
+    { header: "Adresse", accessor: "address", className: "hidden md:table-cell" },
+    ...(role === "admin" ? [{ header: "Actions", accessor: "actions" }] : []),
+  ];
+
+  const renderRow = (item: ParentList) => (
+    <tr
+      key={item.id}
+      className="border-b hover:bg-blue-200 even:bg-slate-50 border-t border-gray-200 border-l border-r"
+    >
+      <td className="flex items-center gap-4 p-4">
+        <div className="flex flex-col">
+          <h3 className="font-semibold">{item.name}</h3>
+          <p className="text-xs text-gray-500">{item?.email}</p>
+        </div>
+      </td>
+      <td className="hidden lg:table-cell">
+        {Array.isArray(item.students)
+          ? item.students.map((c) => c.name).join(", ")
+          : item.students || "—"}
+      </td>
+      <td className="hidden lg:table-cell">{item.phone}</td>
+      <td className="hidden lg:table-cell">{item.address}</td>
+      <td>
+        <div className="flex items-center gap-2">
+          {role === "admin" && (
+            <>
+              <FormContainer table="parent" type="update" data={item} />
+              <FormContainer table="parent" type="delete" id={item.id} />
+            </>
+          )}
+        </div>
+      </td>
+    </tr>
+  );
 
   let query: Prisma.ParentWhereInput = {};
 
@@ -119,7 +123,7 @@ const ParentListPage = async ({
                 className="cursor-pointer"
               />
             </button>
-            {role === "admin" && <FormModal table="parent" type="create" />}
+            {role === "admin" && <FormContainer table="parent" type="create" />}
           </div>
         </div>
       </div>
