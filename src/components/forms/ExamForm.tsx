@@ -8,7 +8,6 @@ import { createExam, updateExam } from "@/lib/actions";
 import { Dispatch, SetStateAction, startTransition, useActionState, useEffect } from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
-import { Users } from "lucide-react";
 
 const ExamForm = ({
     setOpen,

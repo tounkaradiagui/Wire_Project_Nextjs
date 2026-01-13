@@ -11,7 +11,7 @@ import {
 } from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
-import { deleteLesson, deleteTeacher, deleteClass, deleteSubject, deleteStudent, deleteExam, deleteParent } from "@/lib/actions";
+import { deleteResult, deleteAssignment, deleteLesson, deleteTeacher, deleteClass, deleteSubject, deleteStudent, deleteExam, deleteParent } from "@/lib/actions";
 import { FormContainerProps } from "./FormContainer";
 
 const deleteActionMap = {
@@ -22,9 +22,9 @@ const deleteActionMap = {
   exam: deleteExam,
   parent: deleteParent,
   lesson: deleteLesson,
+  assignment: deleteAssignment,
+  result: deleteResult,
   // announcement: deleteAnnouncement,
-  // assignment: deleteAssignment,
-  // result: deleteResult,
   // attendance: deleteAttendance,
   // event: deleteEvent,
   // student: deleteStudent,
@@ -55,6 +55,14 @@ const ParentForm = dynamic(() => import("./forms/ParentForm"), {
 });
 
 const LessonForm = dynamic(() => import("./forms/LessonForm"), {
+  loading: () => <h1>Chargement...</h1>,
+});
+
+const AssignmentForm = dynamic(() => import("./forms/AssignmentForm"), {
+  loading: () => <h1>Chargement...</h1>,
+});
+
+const ResultForm = dynamic(() => import("./forms/ResultForm"), {
   loading: () => <h1>Chargement...</h1>,
 });
 
@@ -124,6 +132,24 @@ const forms: {
       relatedData={relatedData}
     />
   ),
+
+  assignment: (setOpen, type, data, relatedData) => (
+    <AssignmentForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
+
+  result: (setOpen, type, data, relatedData) => (
+    <ResultForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
 };
 
 const FormModal = ({
@@ -139,7 +165,7 @@ const FormModal = ({
   const [open, setOpen] = useState(false);
 
   const Form = () => {
-    const [state, formAction] = useActionState(deleteActionMap[table], {
+    const [state, formAction, isPending] = useActionState(deleteActionMap[table], {
       success: false,
       error: false,
     });
@@ -189,10 +215,20 @@ const FormModal = ({
           </button>
           <button
             type="submit"
-            className="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-md cursor-pointer"
+            disabled={isPending}
+            className={`"bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-md cursor-pointer
+                    ${isPending
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-red-600 hover:bg-red-700 cursor-pointer"}
+                    `}
           >
-            Supprimer
+            {isPending
+              ? "Chargement..."
+              : type === "delete"
+                ? "Supprimer"
+                : "Suppression"}
           </button>
+
         </div>
       </form>
     ) : type === "create" || type === "update" ? (

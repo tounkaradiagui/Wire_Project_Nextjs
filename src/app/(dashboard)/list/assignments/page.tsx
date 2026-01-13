@@ -1,6 +1,6 @@
 "use server";
 
-import FormModal from "@/components/FormModal";
+import FormContainer from "@/components/FormContainer";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
@@ -14,7 +14,7 @@ import {
 } from "generated/prisma/client";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import prisma from "@/lib/prisma";
-import { currentUserId, role } from "@/lib/utils";
+import { auth } from "@clerk/nextjs/server";
 
 type AssignmentList = Assignment & {
   lesson: {
@@ -24,55 +24,6 @@ type AssignmentList = Assignment & {
   };
 };
 
-const columns = [
-  { header: "Matière", accessor: "info" },
-
-  {
-    header: "Classe",
-    accessor: "class",
-    className: "hidden md:table-cell ",
-  },
-  { header: "Enseignant", accessor: "teacher" },
-
-  {
-    header: "Date de rendu",
-    accessor: "dueDate",
-    className: "hidden md:table-cell ",
-  },
-  ...(role === "admin" || role === "teacher"
-    ? [{ header: "Actions", accessor: "actions" }]
-    : []),
-];
-
-const renderRow = (item: AssignmentList) => (
-  <tr
-    key={item.id}
-    className="border-b hover:bg-blue-200 even:bg-slate-50 border-t border-gray-200 border-l border-r"
-  >
-    <td className="flex items-center gap-4 p-4">
-      <div className="flex flex-col">
-        <h3 className="font-semibold">{item.lesson.subject.name}</h3>
-      </div>
-    </td>
-    <td>{item.lesson.class.name}</td>
-    <td className="hidden md:table-cell">
-      {item.lesson.teacher.name + " " + item.lesson.teacher.surname}
-    </td>
-    <td className="hidden md:table-cell">
-      {new Intl.DateTimeFormat("fr-FR").format(item.dueDate)}
-    </td>
-    <td>
-      <div className="flex items-center gap-2">
-        {(role === "admin" || role === "teacher") && (
-          <>
-            <FormModal table="assignment" type="update" data={item} />
-            <FormModal table="assignment" type="delete" id={item.id} />
-          </>
-        )}
-      </div>
-    </td>
-  </tr>
-);
 
 const AssignmentListPage = async ({
   searchParams,
@@ -81,9 +32,80 @@ const AssignmentListPage = async ({
 }) => {
   const params = searchParams;
 
-  const { page, ...queryParams } = searchParams;
+  const { page, ...queryParams } = await searchParams;
 
   const p = page ? parseInt(page) : 1;
+
+  const { userId, sessionClaims } = await auth();
+  const role = (sessionClaims?.metadata as { role?: string })?.role;
+  const currentUserId = userId;
+
+  const columns = [
+    { header: "Matière", accessor: "info" },
+
+    {
+      header: "Titre",
+      accessor: "title",
+      className: "hidden md:table-cell ",
+    },
+
+    {
+      header: "Classe",
+      accessor: "class",
+      className: "hidden md:table-cell ",
+    },
+
+    { header: "Enseignant", accessor: "teacher" },
+
+    {
+      header: "Date de debut",
+      accessor: "startDate",
+      className: "hidden md:table-cell ",
+    },
+
+    {
+      header: "Date de rendu",
+      accessor: "dueDate",
+      className: "hidden md:table-cell ",
+    },
+    ...(role === "admin" || role === "teacher"
+      ? [{ header: "Actions", accessor: "actions" }]
+      : []),
+  ];
+
+  const renderRow = (item: AssignmentList) => (
+    <tr
+      key={item.id}
+      className="border-b hover:bg-blue-200 even:bg-slate-50 border-t border-gray-200 border-l border-r"
+    >
+      <td className="flex items-center gap-4 p-4">
+        <div className="flex flex-col">
+          <h3 className="font-semibold">{item.lesson.subject.name}</h3>
+        </div>
+      </td>
+      <td>{item.title}</td>
+      <td>{item.lesson.class.name}</td>
+      <td className="hidden md:table-cell">
+        {item.lesson.teacher.name + " " + item.lesson.teacher.surname}
+      </td>
+      <td className="hidden md:table-cell">
+        {new Intl.DateTimeFormat("fr-FR").format(item.startDate)}
+      </td>
+      <td className="hidden md:table-cell">
+        {new Intl.DateTimeFormat("fr-FR").format(item.dueDate)}
+      </td>
+      <td>
+        <div className="flex items-center gap-2">
+          {(role === "admin" || role === "teacher") && (
+            <>
+              <FormContainer table="assignment" type="update" data={item} />
+              <FormContainer table="assignment" type="delete" id={item.id} />
+            </>
+          )}
+        </div>
+      </td>
+    </tr>
+  );
 
   // URL PARAMS CONDITION
 
@@ -188,7 +210,7 @@ const AssignmentListPage = async ({
                 className="cursor-pointer"
               />
             </button>
-            {role === "admin" && <FormModal table="assignment" type="create" />}
+            {role === "admin" && <FormContainer table="assignment" type="create" />}
           </div>
         </div>
       </div>

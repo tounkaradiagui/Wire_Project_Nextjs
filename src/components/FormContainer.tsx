@@ -111,6 +111,16 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
         relatedData = { lessons: examLessons };
         break;
 
+      case "assignment":
+        const assignmentLessons = await prisma.lesson.findMany({
+          select: {
+            id: true,
+            name: true,
+          },
+        });
+        relatedData = { lessons: assignmentLessons };
+        break;
+
       case "lesson": {
         const { userId, sessionClaims } = await auth();
         const role = (sessionClaims?.metadata as { role?: string })?.role;

@@ -67,7 +67,7 @@ export const examSchema = z.object({
     }),
   startTime: z.coerce.date({ message: "La date et l'heure de départ sont réquis !" }),
   endTime: z.coerce.date({ message: "La date et l'heure de fin sont réquis !" }),
-  lessonId: z.coerce.number({ message: "Veuillez affecter cet examen à une lesson !" })
+  lessonId: z.coerce.number({ message: "Veuillez affecter une lesson !" })
 });
 
 export type ExamSchemaInput = z.infer<typeof examSchema>;
@@ -185,3 +185,34 @@ export const lessonSchema = z.object({
   );
 
 export type LessonSchemaInput = z.infer<typeof lessonSchema>;
+
+export const assignmentSchema = z.object({
+  id: z.coerce.number().optional(),
+  title: z
+    .string()
+    .min(1, {
+      message: "Le titre est réquis.",
+    }),
+  startDate: z.coerce.date({ message: "La date de début est requise !" }),
+  dueDate: z.coerce.date({ message: "La date de remise est requise !" }),
+  lessonId: z.coerce.number({ message: "La leçon est requise !" })
+});
+
+export type AssignmentSchemaInput = z.infer<typeof assignmentSchema>;
+
+
+export const resultSchema = z.object({
+  id: z.coerce.number().optional(),
+  title: z
+    .string()
+    .min(1, {
+      message: "Le titre est réquis.",
+    }),
+  startDate: z.coerce.date({ message: "La date de début est requise !" }),
+  dueDate: z.coerce.date({ message: "La date de remise est requise !" }),
+  lessonId: z.coerce.number({ message: "La leçon est requise !" })
+});
+
+export type ResultSchemaInput = z.infer<typeof resultSchema>;
+
+
