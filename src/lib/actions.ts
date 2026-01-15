@@ -672,8 +672,7 @@ export const createLesson = async (
             return { success: false, error: true };
         }
 
-        const teacherId =
-            role === "teacher" ? userId : data.teacherId;
+        const teacherId = role === "teacher" ? userId : data.teacherId;
 
         // 🔎 Vérification conflit
         const conflict = await prisma.lesson.findFirst({
@@ -732,7 +731,7 @@ export const updateLesson = async (currentState: currentState, data: LessonSchem
             })
 
             if (!teacherLesson) {
-                return { success: false, error: true };
+                return { success: false, error: "Ce cours ne vous appartient pas" };
             }
         }
 
@@ -816,7 +815,7 @@ export const createAssignment = async (
             });
 
             if (!teacherLesson) {
-                return { success: false, error: true };
+                return { success: false, error: "Ce cours ne vous appartient pas" };
             }
         }
 
@@ -836,7 +835,6 @@ export const createAssignment = async (
         return { success: false, error: true };
     }
 };
-
 
 export const updateAssignment = async (
     currentState: currentState,
@@ -878,7 +876,7 @@ export const updateAssignment = async (
             });
 
             if (!teacherLesson) {
-                return { success: false, error: true };
+                return { success: false, error: "Ce cours ne vous appartient pas" };
             }
         }
 
@@ -928,77 +926,77 @@ export const deleteAssignment = async (currentState: currentState, data: FormDat
 };
 
 // Create Result Action
-export const createResult = async (currentState: currentState, data: ResultSchemaInput) => {
+export const createResult = async (
+    currentState: currentState,
+    data: ResultSchemaInput
+) => {
     const { userId, sessionClaims } = await auth();
     const role = (sessionClaims?.metadata as { role?: string })?.role;
 
+    // 🔒 Sécurité : seul l'enseignant peut enregister un note
+    if (!userId || role !== "teacher") {
+        return {
+            success: false,
+            error: "Vous n'êtes pas autorisé à enregistrer une note",
+        };
+    }
+
     try {
-        if (role === "teacher") {
-            const teacherExam = await prisma.exam.findFirst({
-                where: {
-                    teacherId: userId!,
-                    id: data.resultId
-                }
-            })
-
-            if (!teacherExam) {
-                return { success: false, error: true };
-            }
-        }
-
-
         await prisma.result.create({
             data: {
                 score: data.score,
-                examId: data.examId,
-                assignmentId: data.assignmentId,
-                studentId: data.studentId
-            }
+                examId: data.examId ?? null,
+                assignmentId: data.assignmentId ?? null,
+                studentId: data.studentId,
+            },
         });
-        return { success: true, error: false }
 
+        return { success: true, error: false };
     } catch (error) {
-        console.log(error)
-        return { success: false, error: true };
+        console.error(error);
+        return {
+            success: false,
+            error: "Erreur lors de l'enregistrement de la note",
+        };
     }
 };
 
-export const updateResult = async (currentState: currentState, data: ResultSchemaInput) => {
+export const updateResult = async (
+    currentState: currentState,
+    data: ResultSchemaInput
+) => {
     const { userId, sessionClaims } = await auth();
     const role = (sessionClaims?.metadata as { role?: string })?.role;
 
+    // 🔒 Sécurité : seul l'enseignant peut modifier une note
+    if (!userId || role !== "teacher") {
+        return {
+            success: false,
+            error: "Vous n'êtes pas autorisé à modifier une note",
+        };
+    }
+
     try {
-        if (role === "teacher") {
-            const teacherLesson = await prisma.lesson.findFirst({
-                where: {
-                    teacherId: userId!,
-                    id: data.lessonId
-                }
-            })
-
-            if (!teacherLesson) {
-                return { success: false, error: true };
-            }
-        }
-
-        await prisma.assignment.update({
-            where: {
-                id: data.id,
-            },
+        await prisma.result.update({
+            where: { id: data.id },
             data: {
-                title: data.title,
-                startDate: data.startDate,
-                dueDate: data.dueDate,
-                lessonId: data.lessonId
-            }
+                score: data.score,
+                examId: data.examId ?? null,
+                assignmentId: data.assignmentId ?? null,
+                studentId: data.studentId,
+            },
         });
-        return { success: true, error: false }
 
+        return { success: true, error: false };
     } catch (error) {
-        console.log(error)
-        return { success: false, error: true };
+        console.error(error);
+        return {
+            success: false,
+            error: "Erreur lors de la modification de la note",
+        };
     }
 };
+
 
 export const deleteResult = async (currentState: currentState, data: FormData) => {
     const id = data.get("id") as string;
@@ -1006,8 +1004,16 @@ export const deleteResult = async (currentState: currentState, data: FormData) =
     const { userId, sessionClaims } = await auth();
     const role = (sessionClaims?.metadata as { role?: string })?.role;
 
+    // 🔒 Sécurité : seul l'enseignant peut supprimer une note
+    if (!userId || role !== "teacher") {
+        return {
+            success: false,
+            error: "Vous n'êtes pas autorisé à supprimer une note",
+        };
+    }
+
     try {
-        await prisma.assignment.delete({
+        await prisma.result.delete({
             where: {
                 id: parseInt(id),
                 ...(role === "teacher" ? { teacherId: userId! } : {}),

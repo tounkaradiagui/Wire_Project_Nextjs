@@ -18,7 +18,6 @@ type ExamList = Exam & {
   };
 };
 
-
 const ExamListPage = async ({
   searchParams,
 }: {
@@ -26,7 +25,7 @@ const ExamListPage = async ({
 }) => {
   const { page, ...queryParams } = await searchParams;
   const p = page ? parseInt(page) : 1;
-  
+
   const { userId, sessionClaims } = await auth();
   const role = (sessionClaims?.metadata as { role?: string })?.role;
   const currentUserId = userId;
@@ -34,21 +33,21 @@ const ExamListPage = async ({
   const columns = [
     { header: "Titre", accessor: "title" },
     { header: "Nom de la matière", accessor: "info" },
-  
+
     {
       header: "Classe",
       accessor: "class",
       className: "hidden md:table-cell ",
     },
     { header: "Enseignant", accessor: "teacher" },
-  
+
     { header: "Date de début", accessor: "startTimr", className: "hidden md:table-cell " },
     { header: "Date de fin", accessor: "endTime", className: "hidden md:table-cell " },
     ...(role === "admin" || role === "teacher"
       ? [{ header: "Actions", accessor: "actions" }]
       : []),
   ];
-  
+
   const renderRow = (item: ExamList) => (
     <tr
       key={item.id}
@@ -90,6 +89,12 @@ const ExamListPage = async ({
   );
 
   const query: Prisma.ExamWhereInput = {};
+
+  if (role === "teacher") {
+    query.lesson = {
+      teacherId: userId!,
+    };
+  }
 
   query.lesson = {};
 
@@ -150,10 +155,10 @@ const ExamListPage = async ({
       where: query,
       include: {
         lesson: {
-          select: {
+          include: {
+            class: { select: { name: true } },
             subject: { select: { name: true } },
             teacher: { select: { name: true, surname: true } },
-            class: { select: { name: true } },
           },
         },
       },

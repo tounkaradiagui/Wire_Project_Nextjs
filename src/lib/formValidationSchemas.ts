@@ -200,18 +200,31 @@ export const assignmentSchema = z.object({
 
 export type AssignmentSchemaInput = z.infer<typeof assignmentSchema>;
 
+export const resultSchema = z
+  .object({
+    id: z.coerce.number().optional(),
 
-export const resultSchema = z.object({
-  id: z.coerce.number().optional(),
-  title: z
-    .string()
-    .min(1, {
-      message: "Le titre est réquis.",
+    score: z.coerce
+      .number()
+      .min(0, { message: "La note ne peut pas être négative" })
+      .max(20, { message: "La note ne peut pas dépasser 20" }),
+
+    examId: z.coerce.number().optional().nullable(),
+    assignmentId: z.coerce.number().optional().nullable(),
+
+    studentId: z.string().min(1, {
+      message: "L'élève est requis",
     }),
-  startDate: z.coerce.date({ message: "La date de début est requise !" }),
-  dueDate: z.coerce.date({ message: "La date de remise est requise !" }),
-  lessonId: z.coerce.number({ message: "La leçon est requise !" })
-});
+  })
+  .refine(
+    (data) =>
+      (data.examId && !data.assignmentId) ||
+      (!data.examId && data.assignmentId),
+    {
+      message: "Veuillez choisir soit un examen soit un devoir",
+      path: ["examId"],
+    }
+  );
 
 export type ResultSchemaInput = z.infer<typeof resultSchema>;
 

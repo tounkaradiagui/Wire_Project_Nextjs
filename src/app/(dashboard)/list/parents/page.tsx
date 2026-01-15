@@ -9,6 +9,8 @@ import Image from "next/image";
 import prisma from "@/lib/prisma";
 import { Parent, Prisma, Student } from "generated/prisma/client";
 import { auth } from "@clerk/nextjs/server";
+import { parentRoleFilter } from "@/lib/roleFilters";
+
 
 type ParentList = Parent & { students: Student[] };
 
@@ -19,11 +21,13 @@ const ParentListPage = async ({
   searchParams: { [key: string]: string | undefined };
 }) => {
   const params = await searchParams;
+  const { page, ...queryParams } = await searchParams;
 
-  const page = params?.page ? Math.max(1, parseInt(params.page, 10) || 1) : 1;
+  const p = page ? parseInt(page) : 1;
+
   const search = (params?.search || "").trim();
 
-  const { sessionClaims } = await auth();
+  const { userId, sessionClaims } = await auth();
   const role = (sessionClaims?.metadata as { role?: string })?.role;
 
   const columns = [
@@ -45,7 +49,7 @@ const ParentListPage = async ({
     >
       <td className="flex items-center gap-4 p-4">
         <div className="flex flex-col">
-          <h3 className="font-semibold">{item.name}</h3>
+          <h3 className="font-semibold">{item.name}  {item.surname} </h3>
           <p className="text-xs text-gray-500">{item?.email}</p>
         </div>
       </td>
@@ -64,12 +68,23 @@ const ParentListPage = async ({
               <FormContainer table="parent" type="delete" id={item.id} />
             </>
           )}
+          {/* Add parent details button here to fetch each parent details page (admin & teacher role)*/}
         </div>
       </td>
     </tr>
   );
 
-  let query: Prisma.ParentWhereInput = {};
+  let query: Prisma.ParentWhereInput = {
+    ...parentRoleFilter(role, userId),
+  };
+
+  // Recherche
+  if (queryParams?.search) {
+    query.name = {
+      contains: queryParams.search,
+      mode: "insensitive",
+    };
+  }
 
   if (search) {
     query = {
@@ -86,11 +101,14 @@ const ParentListPage = async ({
     prisma.parent.findMany({
       where: query,
       include: {
-        students: true,
+        students: {
+          include: {
+            class: true,
+          },
+        },
       },
-      skip: (page - 1) * ITEM_PER_PAGE,
       take: ITEM_PER_PAGE,
-      orderBy: { id: "asc" },
+      skip: ITEM_PER_PAGE * (p - 1),
     }),
     prisma.parent.count({ where: query }),
   ]);

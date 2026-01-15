@@ -110,6 +110,11 @@ const AssignmentListPage = async ({
   // URL PARAMS CONDITION
 
   const query: Prisma.AssignmentWhereInput = {};
+  if (role === "teacher") {
+    query.lesson = {
+      teacherId: userId!,
+    };
+  }
 
   query.lesson = {};
 
@@ -169,7 +174,7 @@ const AssignmentListPage = async ({
       where: query,
       include: {
         lesson: {
-          select: {
+          include: {
             subject: { select: { name: true } },
             teacher: { select: { name: true, surname: true } },
             class: { select: { name: true } },

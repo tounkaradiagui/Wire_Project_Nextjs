@@ -176,6 +176,60 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
         break;
       }
 
+      case "result": {
+        const { userId, sessionClaims } = await auth();
+        const role = (sessionClaims?.metadata as { role?: string })?.role;
+
+        // Élèves
+        const students = await prisma.student.findMany({
+          select: {
+            id: true,
+            name: true,
+            surname: true,
+          },
+        });
+
+        // Exams (filtrés si teacher)
+        const exams = await prisma.exam.findMany({
+          where: {
+            ...(role === "teacher"
+              ? {
+                lesson: {
+                  teacherId: userId!,
+                },
+              }
+              : {}),
+          },
+          select: {
+            id: true,
+            title: true,
+          },
+        });
+
+        // Assignments (filtrés si teacher)
+        const assignments = await prisma.assignment.findMany({
+          where: {
+            ...(role === "teacher"
+              ? {
+                lesson: {
+                  teacherId: userId!,
+                },
+              }
+              : {}),
+          },
+          select: {
+            id: true,
+            title: true,
+          },
+        });
+
+        relatedData = {
+          students,
+          exams,
+          assignments,
+        };
+        break;
+      }
 
       default:
         break;

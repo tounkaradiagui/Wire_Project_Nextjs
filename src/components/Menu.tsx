@@ -36,7 +36,7 @@ const menuItems = [
         icon: User,
         label: "Enseignants",
         href: "/list/teachers",
-        visible: ["admin", "teacher"],
+        visible: ["admin"],
       },
       {
         icon: GraduationCap,
@@ -60,7 +60,7 @@ const menuItems = [
         icon: ClipboardList,
         label: "Classes",
         href: "/list/classes",
-        visible: ["admin", "teacher"],
+        visible: ["admin"],
       },
       {
         icon: FileText,
@@ -70,7 +70,7 @@ const menuItems = [
       },
       {
         icon: Trophy,
-        label: "Examens",
+        label: "Trimestre",
         href: "/list/exams",
         visible: ["admin", "teacher", "student", "parent"],
       },
@@ -89,6 +89,12 @@ const menuItems = [
       {
         icon: CheckSquare,
         label: "Présences",
+        href: "/list/attendance",
+        visible: ["admin", "teacher", "student", "parent"],
+      },
+      {
+        icon: NotebookPen,
+        label: "Absences",
         href: "/list/attendance",
         visible: ["admin", "teacher", "student", "parent"],
       },

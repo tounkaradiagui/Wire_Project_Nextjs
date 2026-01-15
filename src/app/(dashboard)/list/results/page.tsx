@@ -10,6 +10,7 @@ import { ITEM_PER_PAGE } from "@/lib/settings";
 import { role } from "@/lib/utils";
 import prisma from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
+import { resultRoleFilter } from "@/lib/roleFilters";
 
 type ResultList = {
   id: number;
@@ -98,7 +99,9 @@ const ResultListPage = async ({
 
   // URL PARAMS CONDITION
 
-  const query: Prisma.ResultWhereInput = {};
+  const query: Prisma.ResultWhereInput = {
+    ...resultRoleFilter(role, userId),
+  };
 
   if (queryParams) {
     for (const [key, value] of Object.entries(queryParams)) {

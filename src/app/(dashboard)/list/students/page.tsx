@@ -5,14 +5,16 @@ import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import { ITEM_PER_PAGE } from "@/lib/settings";
-import { Class, Prisma, Student } from "generated/prisma/client";
+import { Class, Prisma, Student, Grade } from "generated/prisma/client";
 import Image from "next/image";
 import Link from "next/link";
 import prisma from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
+import { studentRoleFilter } from "@/lib/roleFilters";
 
 
-type StudentList = Student & { class: Class[] };
+
+type StudentList = Student & { class: Class[] } & { grade: Grade[] };
 
 
 const StudentListPage = async ({
@@ -24,7 +26,7 @@ const StudentListPage = async ({
 
   const p = page ? parseInt(page) : 1;
 
-  const { sessionClaims } = await auth();
+  const { userId, sessionClaims } = await auth();
   const role = (sessionClaims?.metadata as { role?: string })?.role;
 
   const columns = [
@@ -39,9 +41,14 @@ const StudentListPage = async ({
       accessor: "grade",
       className: "hidden md:table-cell",
     },
+    {
+      header: "Classe",
+      accessor: "grade",
+      className: "hidden md:table-cell",
+    },
     { header: "Téléphone", accessor: "phone", className: "hidden md:table-cell" },
     { header: "Adresse", accessor: "address", className: "hidden md:table-cell" },
-    ...(role === "admin" ? [{ header: "Actions", accessor: "actions" }] : []),
+    ...(role === "admin" || "teacher" ? [{ header: "Actions", accessor: "actions" }] : []),
   ];
 
   const renderRow = (item: StudentList) => (
@@ -59,10 +66,12 @@ const StudentListPage = async ({
         />
         <div className="flex flex-col">
           <h3 className="font-semibold">{item.name}</h3>
+          <h3 className="font-semibold">{item.surname}</h3>
         </div>
       </td>
       <td className="hidden md:table-cell">{item.username}</td>
-      <td className="hidden md:table-cell">{item.name}</td>
+      <td className="hidden md:table-cell">{item.grade.level}</td>
+      <td className="hidden md:table-cell">{item.class.name}</td>
       <td className="hidden lg:table-cell">{item.phone}</td>
       <td className="hidden lg:table-cell">{item.address}</td>
       <td>
@@ -85,21 +94,19 @@ const StudentListPage = async ({
 
   // URL PARAMS CONDITION
 
-  const query: Prisma.StudentWhereInput = {};
+  const query: Prisma.StudentWhereInput = {
+    ...studentRoleFilter(role, userId),
+  };
+
+  // URL filters
+  if (queryParams?.search) {
+    query.name = { contains: queryParams.search, mode: "insensitive" };
+  }
 
   if (queryParams) {
     for (const [key, value] of Object.entries(queryParams)) {
       if (value !== undefined) {
         switch (key) {
-          case "teacherId":
-            query.class = {
-              lessons: {
-                some: {
-                  teacherId: value,
-                },
-              },
-            };
-            break;
           case "search":
             query.name = { contains: value, mode: "insensitive" };
             break;
@@ -115,6 +122,7 @@ const StudentListPage = async ({
       where: query,
       include: {
         class: true,
+        grade: true,
       },
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),

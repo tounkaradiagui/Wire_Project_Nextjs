@@ -30,7 +30,7 @@ const LessonListPage = async ({
 
   const p = page ? parseInt(page) : 1;
 
-  const { sessionClaims } = await auth();
+  const { userId, sessionClaims } = await auth();
   const role = (sessionClaims?.metadata as { role?: string })?.role;
 
   const columns = [
@@ -97,6 +97,11 @@ const LessonListPage = async ({
 
   const query: Prisma.LessonWhereInput = {};
 
+  // L'enseignant ne peut voir que ses propres leçons
+  if (role === "teacher") {
+    query.teacherId = userId!;
+  }
+
   if (queryParams) {
     for (const [key, value] of Object.entries(queryParams)) {
       if (value !== undefined) {
@@ -124,10 +129,16 @@ const LessonListPage = async ({
     prisma.lesson.findMany({
       where: query,
       include: {
-        subject: { select: { name: true } },
         class: { select: { name: true } },
+        subject: { select: { name: true } },
         teacher: { select: { name: true, surname: true } },
       },
+      // where: query,
+      // include: {
+      //   subject: { select: { name: true } },
+      //   class: { select: { name: true } },
+      //   teacher: { select: { name: true, surname: true } },
+      // },
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
     }),
