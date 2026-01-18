@@ -7,7 +7,7 @@ import { ToastContainer, toast } from 'react-toastify';
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Présencia Dashboard",
+  title: "Wagadu Dashboard",
   description: "Next.js School Management System",
   //  className="dark:bg-gray-900 dark:text-white"
 };

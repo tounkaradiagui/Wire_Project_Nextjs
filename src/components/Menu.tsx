@@ -42,7 +42,7 @@ const menuItems = [
         icon: GraduationCap,
         label: "Élèves",
         href: "/list/students",
-        visible: ["admin", "teacher"],
+        visible: ["admin", "teacher", "parent"],
       },
       {
         icon: Users,
@@ -88,21 +88,15 @@ const menuItems = [
       },
       {
         icon: CheckSquare,
-        label: "Présences",
-        href: "/list/attendance",
-        visible: ["admin", "teacher", "student", "parent"],
-      },
-      {
-        icon: NotebookPen,
         label: "Absences",
-        href: "/list/attendance",
+        href: "/list/attendances",
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
         icon: Calendar,
         label: "Événements",
         href: "/list/events",
-        visible: ["admin", "teacher", "student", "parent"],
+        visible: ["admin"],
       },
       {
         icon: MessageSquare,
@@ -114,7 +108,7 @@ const menuItems = [
         icon: Megaphone,
         label: "Annonces",
         href: "/list/announcements",
-        visible: ["admin", "teacher", "student", "parent"],
+        visible: ["admin"],
       },
     ],
   },

@@ -3,12 +3,12 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import InputField from "../InputField";
-import Image from "next/image";
 import { studentSchema, StudentSchemaInput } from "@/lib/formValidationSchemas";
 import { Dispatch, SetStateAction, useActionState, useEffect, useState, startTransition } from "react";
 import { createStudent, updateStudent } from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
+import Image from "next/image";
 import { CldUploadWidget } from "next-cloudinary";
 import ParentSelect from "@/components/ParentSelect";
 

@@ -20,10 +20,12 @@ export type FormContainerProps = {
   type: "create" | "update" | "delete";
   data?: any;
   id?: number | string;
+  role?: "admin" | "teacher" | "parent" | "student";
 };
 
-const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
+const FormContainer = async ({ table, type, data, id, role }: FormContainerProps) => {
   let relatedData = {};
+
 
   // Fetch related data based on the table type
   if (type !== "delete") {
@@ -231,6 +233,95 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
         break;
       }
 
+      case "attendance": {
+        const { userId, sessionClaims } = await auth();
+        const role = (sessionClaims?.metadata as { role?: string })?.role;
+
+        /**
+         * LESSONS
+         * - admin → toutes
+         * - teacher → ses propres leçons
+         * - parent / student → leçons de leurs classes
+         */
+        const lessons = await prisma.lesson.findMany({
+          where: {
+            ...(role === "teacher"
+              ? { teacherId: userId! }
+              : role === "student"
+                ? {
+                  class: {
+                    students: {
+                      some: { id: userId! },
+                    },
+                  },
+                }
+                : role === "parent"
+                  ? {
+                    class: {
+                      students: {
+                        some: { parentId: userId! },
+                      },
+                    },
+                  }
+                  : {}),
+          },
+          select: {
+            id: true,
+            name: true,
+          },
+        });
+
+        /**
+         * STUDENTS
+         * - teacher → élèves de ses classes
+         * - parent → ses enfants
+         * - admin → tous
+         */
+        const students = await prisma.student.findMany({
+          where: {
+            ...(role === "teacher"
+              ? {
+                class: {
+                  lessons: {
+                    some: { teacherId: userId! },
+                  },
+                },
+              }
+              : role === "parent"
+                ? { parentId: userId! }
+                : {}),
+          },
+          select: {
+            id: true,
+            name: true,
+            surname: true,
+          },
+        });
+
+        /**
+         * ENUMS POUR LE FORM
+         */
+        const statuses = [
+          { label: "Présent", value: "PRESENT" },
+          { label: "Absent", value: "ABSENT" },
+          { label: "Retard", value: "LATE" },
+        ];
+
+        const actors = [
+          { label: "Enseignant", value: "TEACHER" },
+          { label: "Parent", value: "PARENT" },
+        ];
+
+        relatedData = {
+          students,
+          lessons,
+          statuses,
+          actors,
+        };
+        break;
+      }
+
+
       default:
         break;
     }
@@ -244,6 +335,7 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
         data={data}
         id={id}
         relatedData={relatedData}
+        role={role}
       />
     </div>
   );

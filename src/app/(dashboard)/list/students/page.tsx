@@ -13,9 +13,7 @@ import { auth } from "@clerk/nextjs/server";
 import { studentRoleFilter } from "@/lib/roleFilters";
 
 
-
 type StudentList = Student & { class: Class[] } & { grade: Grade[] };
-
 
 const StudentListPage = async ({
   searchParams,

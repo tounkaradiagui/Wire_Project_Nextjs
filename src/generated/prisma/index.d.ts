@@ -108,6 +108,25 @@ export const UserSex: {
 
 export type UserSex = (typeof UserSex)[keyof typeof UserSex]
 
+
+export const AttendanceStatus: {
+  PRESENT: 'PRESENT',
+  ABSENT: 'ABSENT',
+  LATE: 'LATE',
+  EXCUSED: 'EXCUSED'
+};
+
+export type AttendanceStatus = (typeof AttendanceStatus)[keyof typeof AttendanceStatus]
+
+
+export const AttendanceActor: {
+  TEACHER: 'TEACHER',
+  PARENT: 'PARENT',
+  ADMIN: 'ADMIN'
+};
+
+export type AttendanceActor = (typeof AttendanceActor)[keyof typeof AttendanceActor]
+
 }
 
 export type Day = $Enums.Day
@@ -117,6 +136,14 @@ export const Day: typeof $Enums.Day
 export type UserSex = $Enums.UserSex
 
 export const UserSex: typeof $Enums.UserSex
+
+export type AttendanceStatus = $Enums.AttendanceStatus
+
+export const AttendanceStatus: typeof $Enums.AttendanceStatus
+
+export type AttendanceActor = $Enums.AttendanceActor
+
+export const AttendanceActor: typeof $Enums.AttendanceActor
 
 /**
  * ##  Prisma Client ʲˢ
@@ -15174,25 +15201,40 @@ export namespace Prisma {
   export type AttendanceMinAggregateOutputType = {
     id: number | null
     date: Date | null
-    present: boolean | null
+    status: $Enums.AttendanceStatus | null
     studentId: string | null
     lessonId: number | null
+    comment: string | null
+    proofUrl: string | null
+    createdBy: $Enums.AttendanceActor | null
+    createdAt: Date | null
+    updatedAt: Date | null
   }
 
   export type AttendanceMaxAggregateOutputType = {
     id: number | null
     date: Date | null
-    present: boolean | null
+    status: $Enums.AttendanceStatus | null
     studentId: string | null
     lessonId: number | null
+    comment: string | null
+    proofUrl: string | null
+    createdBy: $Enums.AttendanceActor | null
+    createdAt: Date | null
+    updatedAt: Date | null
   }
 
   export type AttendanceCountAggregateOutputType = {
     id: number
     date: number
-    present: number
+    status: number
     studentId: number
     lessonId: number
+    comment: number
+    proofUrl: number
+    createdBy: number
+    createdAt: number
+    updatedAt: number
     _all: number
   }
 
@@ -15210,25 +15252,40 @@ export namespace Prisma {
   export type AttendanceMinAggregateInputType = {
     id?: true
     date?: true
-    present?: true
+    status?: true
     studentId?: true
     lessonId?: true
+    comment?: true
+    proofUrl?: true
+    createdBy?: true
+    createdAt?: true
+    updatedAt?: true
   }
 
   export type AttendanceMaxAggregateInputType = {
     id?: true
     date?: true
-    present?: true
+    status?: true
     studentId?: true
     lessonId?: true
+    comment?: true
+    proofUrl?: true
+    createdBy?: true
+    createdAt?: true
+    updatedAt?: true
   }
 
   export type AttendanceCountAggregateInputType = {
     id?: true
     date?: true
-    present?: true
+    status?: true
     studentId?: true
     lessonId?: true
+    comment?: true
+    proofUrl?: true
+    createdBy?: true
+    createdAt?: true
+    updatedAt?: true
     _all?: true
   }
 
@@ -15321,9 +15378,14 @@ export namespace Prisma {
   export type AttendanceGroupByOutputType = {
     id: number
     date: Date
-    present: boolean
+    status: $Enums.AttendanceStatus
     studentId: string
     lessonId: number
+    comment: string | null
+    proofUrl: string | null
+    createdBy: $Enums.AttendanceActor
+    createdAt: Date
+    updatedAt: Date
     _count: AttendanceCountAggregateOutputType | null
     _avg: AttendanceAvgAggregateOutputType | null
     _sum: AttendanceSumAggregateOutputType | null
@@ -15348,9 +15410,14 @@ export namespace Prisma {
   export type AttendanceSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     date?: boolean
-    present?: boolean
+    status?: boolean
     studentId?: boolean
     lessonId?: boolean
+    comment?: boolean
+    proofUrl?: boolean
+    createdBy?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
     student?: boolean | StudentDefaultArgs<ExtArgs>
     lesson?: boolean | LessonDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["attendance"]>
@@ -15358,9 +15425,14 @@ export namespace Prisma {
   export type AttendanceSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     date?: boolean
-    present?: boolean
+    status?: boolean
     studentId?: boolean
     lessonId?: boolean
+    comment?: boolean
+    proofUrl?: boolean
+    createdBy?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
     student?: boolean | StudentDefaultArgs<ExtArgs>
     lesson?: boolean | LessonDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["attendance"]>
@@ -15368,9 +15440,14 @@ export namespace Prisma {
   export type AttendanceSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     date?: boolean
-    present?: boolean
+    status?: boolean
     studentId?: boolean
     lessonId?: boolean
+    comment?: boolean
+    proofUrl?: boolean
+    createdBy?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
     student?: boolean | StudentDefaultArgs<ExtArgs>
     lesson?: boolean | LessonDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["attendance"]>
@@ -15378,12 +15455,17 @@ export namespace Prisma {
   export type AttendanceSelectScalar = {
     id?: boolean
     date?: boolean
-    present?: boolean
+    status?: boolean
     studentId?: boolean
     lessonId?: boolean
+    comment?: boolean
+    proofUrl?: boolean
+    createdBy?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
   }
 
-  export type AttendanceOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "date" | "present" | "studentId" | "lessonId", ExtArgs["result"]["attendance"]>
+  export type AttendanceOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "date" | "status" | "studentId" | "lessonId" | "comment" | "proofUrl" | "createdBy" | "createdAt" | "updatedAt", ExtArgs["result"]["attendance"]>
   export type AttendanceInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     student?: boolean | StudentDefaultArgs<ExtArgs>
     lesson?: boolean | LessonDefaultArgs<ExtArgs>
@@ -15406,9 +15488,14 @@ export namespace Prisma {
     scalars: $Extensions.GetPayloadResult<{
       id: number
       date: Date
-      present: boolean
+      status: $Enums.AttendanceStatus
       studentId: string
       lessonId: number
+      comment: string | null
+      proofUrl: string | null
+      createdBy: $Enums.AttendanceActor
+      createdAt: Date
+      updatedAt: Date
     }, ExtArgs["result"]["attendance"]>
     composites: {}
   }
@@ -15836,9 +15923,14 @@ export namespace Prisma {
   interface AttendanceFieldRefs {
     readonly id: FieldRef<"Attendance", 'Int'>
     readonly date: FieldRef<"Attendance", 'DateTime'>
-    readonly present: FieldRef<"Attendance", 'Boolean'>
+    readonly status: FieldRef<"Attendance", 'AttendanceStatus'>
     readonly studentId: FieldRef<"Attendance", 'String'>
     readonly lessonId: FieldRef<"Attendance", 'Int'>
+    readonly comment: FieldRef<"Attendance", 'String'>
+    readonly proofUrl: FieldRef<"Attendance", 'String'>
+    readonly createdBy: FieldRef<"Attendance", 'AttendanceActor'>
+    readonly createdAt: FieldRef<"Attendance", 'DateTime'>
+    readonly updatedAt: FieldRef<"Attendance", 'DateTime'>
   }
     
 
@@ -18651,9 +18743,14 @@ export namespace Prisma {
   export const AttendanceScalarFieldEnum: {
     id: 'id',
     date: 'date',
-    present: 'present',
+    status: 'status',
     studentId: 'studentId',
-    lessonId: 'lessonId'
+    lessonId: 'lessonId',
+    comment: 'comment',
+    proofUrl: 'proofUrl',
+    createdBy: 'createdBy',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
   };
 
   export type AttendanceScalarFieldEnum = (typeof AttendanceScalarFieldEnum)[keyof typeof AttendanceScalarFieldEnum]
@@ -18782,9 +18879,30 @@ export namespace Prisma {
 
 
   /**
-   * Reference to a field of type 'Boolean'
+   * Reference to a field of type 'AttendanceStatus'
    */
-  export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
+  export type EnumAttendanceStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AttendanceStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'AttendanceStatus[]'
+   */
+  export type ListEnumAttendanceStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AttendanceStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'AttendanceActor'
+   */
+  export type EnumAttendanceActorFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AttendanceActor'>
+    
+
+
+  /**
+   * Reference to a field of type 'AttendanceActor[]'
+   */
+  export type ListEnumAttendanceActorFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AttendanceActor[]'>
     
 
 
@@ -19580,9 +19698,14 @@ export namespace Prisma {
     NOT?: AttendanceWhereInput | AttendanceWhereInput[]
     id?: IntFilter<"Attendance"> | number
     date?: DateTimeFilter<"Attendance"> | Date | string
-    present?: BoolFilter<"Attendance"> | boolean
+    status?: EnumAttendanceStatusFilter<"Attendance"> | $Enums.AttendanceStatus
     studentId?: StringFilter<"Attendance"> | string
     lessonId?: IntFilter<"Attendance"> | number
+    comment?: StringNullableFilter<"Attendance"> | string | null
+    proofUrl?: StringNullableFilter<"Attendance"> | string | null
+    createdBy?: EnumAttendanceActorFilter<"Attendance"> | $Enums.AttendanceActor
+    createdAt?: DateTimeFilter<"Attendance"> | Date | string
+    updatedAt?: DateTimeFilter<"Attendance"> | Date | string
     student?: XOR<StudentScalarRelationFilter, StudentWhereInput>
     lesson?: XOR<LessonScalarRelationFilter, LessonWhereInput>
   }
@@ -19590,32 +19713,48 @@ export namespace Prisma {
   export type AttendanceOrderByWithRelationInput = {
     id?: SortOrder
     date?: SortOrder
-    present?: SortOrder
+    status?: SortOrder
     studentId?: SortOrder
     lessonId?: SortOrder
+    comment?: SortOrderInput | SortOrder
+    proofUrl?: SortOrderInput | SortOrder
+    createdBy?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
     student?: StudentOrderByWithRelationInput
     lesson?: LessonOrderByWithRelationInput
   }
 
   export type AttendanceWhereUniqueInput = Prisma.AtLeast<{
     id?: number
+    studentId_lessonId_date?: AttendanceStudentIdLessonIdDateCompoundUniqueInput
     AND?: AttendanceWhereInput | AttendanceWhereInput[]
     OR?: AttendanceWhereInput[]
     NOT?: AttendanceWhereInput | AttendanceWhereInput[]
     date?: DateTimeFilter<"Attendance"> | Date | string
-    present?: BoolFilter<"Attendance"> | boolean
+    status?: EnumAttendanceStatusFilter<"Attendance"> | $Enums.AttendanceStatus
     studentId?: StringFilter<"Attendance"> | string
     lessonId?: IntFilter<"Attendance"> | number
+    comment?: StringNullableFilter<"Attendance"> | string | null
+    proofUrl?: StringNullableFilter<"Attendance"> | string | null
+    createdBy?: EnumAttendanceActorFilter<"Attendance"> | $Enums.AttendanceActor
+    createdAt?: DateTimeFilter<"Attendance"> | Date | string
+    updatedAt?: DateTimeFilter<"Attendance"> | Date | string
     student?: XOR<StudentScalarRelationFilter, StudentWhereInput>
     lesson?: XOR<LessonScalarRelationFilter, LessonWhereInput>
-  }, "id">
+  }, "id" | "studentId_lessonId_date">
 
   export type AttendanceOrderByWithAggregationInput = {
     id?: SortOrder
     date?: SortOrder
-    present?: SortOrder
+    status?: SortOrder
     studentId?: SortOrder
     lessonId?: SortOrder
+    comment?: SortOrderInput | SortOrder
+    proofUrl?: SortOrderInput | SortOrder
+    createdBy?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
     _count?: AttendanceCountOrderByAggregateInput
     _avg?: AttendanceAvgOrderByAggregateInput
     _max?: AttendanceMaxOrderByAggregateInput
@@ -19629,9 +19768,14 @@ export namespace Prisma {
     NOT?: AttendanceScalarWhereWithAggregatesInput | AttendanceScalarWhereWithAggregatesInput[]
     id?: IntWithAggregatesFilter<"Attendance"> | number
     date?: DateTimeWithAggregatesFilter<"Attendance"> | Date | string
-    present?: BoolWithAggregatesFilter<"Attendance"> | boolean
+    status?: EnumAttendanceStatusWithAggregatesFilter<"Attendance"> | $Enums.AttendanceStatus
     studentId?: StringWithAggregatesFilter<"Attendance"> | string
     lessonId?: IntWithAggregatesFilter<"Attendance"> | number
+    comment?: StringNullableWithAggregatesFilter<"Attendance"> | string | null
+    proofUrl?: StringNullableWithAggregatesFilter<"Attendance"> | string | null
+    createdBy?: EnumAttendanceActorWithAggregatesFilter<"Attendance"> | $Enums.AttendanceActor
+    createdAt?: DateTimeWithAggregatesFilter<"Attendance"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"Attendance"> | Date | string
   }
 
   export type EventWhereInput = {
@@ -20532,7 +20676,12 @@ export namespace Prisma {
 
   export type AttendanceCreateInput = {
     date: Date | string
-    present: boolean
+    status?: $Enums.AttendanceStatus
+    comment?: string | null
+    proofUrl?: string | null
+    createdBy?: $Enums.AttendanceActor
+    createdAt?: Date | string
+    updatedAt?: Date | string
     student: StudentCreateNestedOneWithoutAttendancesInput
     lesson: LessonCreateNestedOneWithoutAttendancesInput
   }
@@ -20540,14 +20689,24 @@ export namespace Prisma {
   export type AttendanceUncheckedCreateInput = {
     id?: number
     date: Date | string
-    present: boolean
+    status?: $Enums.AttendanceStatus
     studentId: string
     lessonId: number
+    comment?: string | null
+    proofUrl?: string | null
+    createdBy?: $Enums.AttendanceActor
+    createdAt?: Date | string
+    updatedAt?: Date | string
   }
 
   export type AttendanceUpdateInput = {
     date?: DateTimeFieldUpdateOperationsInput | Date | string
-    present?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumAttendanceStatusFieldUpdateOperationsInput | $Enums.AttendanceStatus
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    proofUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    createdBy?: EnumAttendanceActorFieldUpdateOperationsInput | $Enums.AttendanceActor
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     student?: StudentUpdateOneRequiredWithoutAttendancesNestedInput
     lesson?: LessonUpdateOneRequiredWithoutAttendancesNestedInput
   }
@@ -20555,30 +20714,50 @@ export namespace Prisma {
   export type AttendanceUncheckedUpdateInput = {
     id?: IntFieldUpdateOperationsInput | number
     date?: DateTimeFieldUpdateOperationsInput | Date | string
-    present?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumAttendanceStatusFieldUpdateOperationsInput | $Enums.AttendanceStatus
     studentId?: StringFieldUpdateOperationsInput | string
     lessonId?: IntFieldUpdateOperationsInput | number
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    proofUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    createdBy?: EnumAttendanceActorFieldUpdateOperationsInput | $Enums.AttendanceActor
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type AttendanceCreateManyInput = {
     id?: number
     date: Date | string
-    present: boolean
+    status?: $Enums.AttendanceStatus
     studentId: string
     lessonId: number
+    comment?: string | null
+    proofUrl?: string | null
+    createdBy?: $Enums.AttendanceActor
+    createdAt?: Date | string
+    updatedAt?: Date | string
   }
 
   export type AttendanceUpdateManyMutationInput = {
     date?: DateTimeFieldUpdateOperationsInput | Date | string
-    present?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumAttendanceStatusFieldUpdateOperationsInput | $Enums.AttendanceStatus
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    proofUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    createdBy?: EnumAttendanceActorFieldUpdateOperationsInput | $Enums.AttendanceActor
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type AttendanceUncheckedUpdateManyInput = {
     id?: IntFieldUpdateOperationsInput | number
     date?: DateTimeFieldUpdateOperationsInput | Date | string
-    present?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumAttendanceStatusFieldUpdateOperationsInput | $Enums.AttendanceStatus
     studentId?: StringFieldUpdateOperationsInput | string
     lessonId?: IntFieldUpdateOperationsInput | number
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    proofUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    createdBy?: EnumAttendanceActorFieldUpdateOperationsInput | $Enums.AttendanceActor
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type EventCreateInput = {
@@ -21462,17 +21641,37 @@ export namespace Prisma {
     _max?: NestedIntNullableFilter<$PrismaModel>
   }
 
-  export type BoolFilter<$PrismaModel = never> = {
-    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
-    not?: NestedBoolFilter<$PrismaModel> | boolean
+  export type EnumAttendanceStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.AttendanceStatus | EnumAttendanceStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.AttendanceStatus[] | ListEnumAttendanceStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AttendanceStatus[] | ListEnumAttendanceStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumAttendanceStatusFilter<$PrismaModel> | $Enums.AttendanceStatus
+  }
+
+  export type EnumAttendanceActorFilter<$PrismaModel = never> = {
+    equals?: $Enums.AttendanceActor | EnumAttendanceActorFieldRefInput<$PrismaModel>
+    in?: $Enums.AttendanceActor[] | ListEnumAttendanceActorFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AttendanceActor[] | ListEnumAttendanceActorFieldRefInput<$PrismaModel>
+    not?: NestedEnumAttendanceActorFilter<$PrismaModel> | $Enums.AttendanceActor
+  }
+
+  export type AttendanceStudentIdLessonIdDateCompoundUniqueInput = {
+    studentId: string
+    lessonId: number
+    date: Date | string
   }
 
   export type AttendanceCountOrderByAggregateInput = {
     id?: SortOrder
     date?: SortOrder
-    present?: SortOrder
+    status?: SortOrder
     studentId?: SortOrder
     lessonId?: SortOrder
+    comment?: SortOrder
+    proofUrl?: SortOrder
+    createdBy?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
   }
 
   export type AttendanceAvgOrderByAggregateInput = {
@@ -21483,17 +21682,27 @@ export namespace Prisma {
   export type AttendanceMaxOrderByAggregateInput = {
     id?: SortOrder
     date?: SortOrder
-    present?: SortOrder
+    status?: SortOrder
     studentId?: SortOrder
     lessonId?: SortOrder
+    comment?: SortOrder
+    proofUrl?: SortOrder
+    createdBy?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
   }
 
   export type AttendanceMinOrderByAggregateInput = {
     id?: SortOrder
     date?: SortOrder
-    present?: SortOrder
+    status?: SortOrder
     studentId?: SortOrder
     lessonId?: SortOrder
+    comment?: SortOrder
+    proofUrl?: SortOrder
+    createdBy?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
   }
 
   export type AttendanceSumOrderByAggregateInput = {
@@ -21501,12 +21710,24 @@ export namespace Prisma {
     lessonId?: SortOrder
   }
 
-  export type BoolWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
-    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
+  export type EnumAttendanceStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.AttendanceStatus | EnumAttendanceStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.AttendanceStatus[] | ListEnumAttendanceStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AttendanceStatus[] | ListEnumAttendanceStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumAttendanceStatusWithAggregatesFilter<$PrismaModel> | $Enums.AttendanceStatus
     _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedBoolFilter<$PrismaModel>
-    _max?: NestedBoolFilter<$PrismaModel>
+    _min?: NestedEnumAttendanceStatusFilter<$PrismaModel>
+    _max?: NestedEnumAttendanceStatusFilter<$PrismaModel>
+  }
+
+  export type EnumAttendanceActorWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.AttendanceActor | EnumAttendanceActorFieldRefInput<$PrismaModel>
+    in?: $Enums.AttendanceActor[] | ListEnumAttendanceActorFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AttendanceActor[] | ListEnumAttendanceActorFieldRefInput<$PrismaModel>
+    not?: NestedEnumAttendanceActorWithAggregatesFilter<$PrismaModel> | $Enums.AttendanceActor
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumAttendanceActorFilter<$PrismaModel>
+    _max?: NestedEnumAttendanceActorFilter<$PrismaModel>
   }
 
   export type ClassNullableScalarRelationFilter = {
@@ -22615,8 +22836,12 @@ export namespace Prisma {
     connect?: LessonWhereUniqueInput
   }
 
-  export type BoolFieldUpdateOperationsInput = {
-    set?: boolean
+  export type EnumAttendanceStatusFieldUpdateOperationsInput = {
+    set?: $Enums.AttendanceStatus
+  }
+
+  export type EnumAttendanceActorFieldUpdateOperationsInput = {
+    set?: $Enums.AttendanceActor
   }
 
   export type StudentUpdateOneRequiredWithoutAttendancesNestedInput = {
@@ -22889,17 +23114,38 @@ export namespace Prisma {
     not?: NestedFloatNullableFilter<$PrismaModel> | number | null
   }
 
-  export type NestedBoolFilter<$PrismaModel = never> = {
-    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
-    not?: NestedBoolFilter<$PrismaModel> | boolean
+  export type NestedEnumAttendanceStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.AttendanceStatus | EnumAttendanceStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.AttendanceStatus[] | ListEnumAttendanceStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AttendanceStatus[] | ListEnumAttendanceStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumAttendanceStatusFilter<$PrismaModel> | $Enums.AttendanceStatus
   }
 
-  export type NestedBoolWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
-    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
+  export type NestedEnumAttendanceActorFilter<$PrismaModel = never> = {
+    equals?: $Enums.AttendanceActor | EnumAttendanceActorFieldRefInput<$PrismaModel>
+    in?: $Enums.AttendanceActor[] | ListEnumAttendanceActorFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AttendanceActor[] | ListEnumAttendanceActorFieldRefInput<$PrismaModel>
+    not?: NestedEnumAttendanceActorFilter<$PrismaModel> | $Enums.AttendanceActor
+  }
+
+  export type NestedEnumAttendanceStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.AttendanceStatus | EnumAttendanceStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.AttendanceStatus[] | ListEnumAttendanceStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AttendanceStatus[] | ListEnumAttendanceStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumAttendanceStatusWithAggregatesFilter<$PrismaModel> | $Enums.AttendanceStatus
     _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedBoolFilter<$PrismaModel>
-    _max?: NestedBoolFilter<$PrismaModel>
+    _min?: NestedEnumAttendanceStatusFilter<$PrismaModel>
+    _max?: NestedEnumAttendanceStatusFilter<$PrismaModel>
+  }
+
+  export type NestedEnumAttendanceActorWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.AttendanceActor | EnumAttendanceActorFieldRefInput<$PrismaModel>
+    in?: $Enums.AttendanceActor[] | ListEnumAttendanceActorFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AttendanceActor[] | ListEnumAttendanceActorFieldRefInput<$PrismaModel>
+    not?: NestedEnumAttendanceActorWithAggregatesFilter<$PrismaModel> | $Enums.AttendanceActor
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumAttendanceActorFilter<$PrismaModel>
+    _max?: NestedEnumAttendanceActorFilter<$PrismaModel>
   }
 
   export type ParentCreateWithoutStudentsInput = {
@@ -22979,15 +23225,25 @@ export namespace Prisma {
 
   export type AttendanceCreateWithoutStudentInput = {
     date: Date | string
-    present: boolean
+    status?: $Enums.AttendanceStatus
+    comment?: string | null
+    proofUrl?: string | null
+    createdBy?: $Enums.AttendanceActor
+    createdAt?: Date | string
+    updatedAt?: Date | string
     lesson: LessonCreateNestedOneWithoutAttendancesInput
   }
 
   export type AttendanceUncheckedCreateWithoutStudentInput = {
     id?: number
     date: Date | string
-    present: boolean
+    status?: $Enums.AttendanceStatus
     lessonId: number
+    comment?: string | null
+    proofUrl?: string | null
+    createdBy?: $Enums.AttendanceActor
+    createdAt?: Date | string
+    updatedAt?: Date | string
   }
 
   export type AttendanceCreateOrConnectWithoutStudentInput = {
@@ -23138,9 +23394,14 @@ export namespace Prisma {
     NOT?: AttendanceScalarWhereInput | AttendanceScalarWhereInput[]
     id?: IntFilter<"Attendance"> | number
     date?: DateTimeFilter<"Attendance"> | Date | string
-    present?: BoolFilter<"Attendance"> | boolean
+    status?: EnumAttendanceStatusFilter<"Attendance"> | $Enums.AttendanceStatus
     studentId?: StringFilter<"Attendance"> | string
     lessonId?: IntFilter<"Attendance"> | number
+    comment?: StringNullableFilter<"Attendance"> | string | null
+    proofUrl?: StringNullableFilter<"Attendance"> | string | null
+    createdBy?: EnumAttendanceActorFilter<"Attendance"> | $Enums.AttendanceActor
+    createdAt?: DateTimeFilter<"Attendance"> | Date | string
+    updatedAt?: DateTimeFilter<"Attendance"> | Date | string
   }
 
   export type ResultUpsertWithWhereUniqueWithoutStudentInput = {
@@ -24126,15 +24387,25 @@ export namespace Prisma {
 
   export type AttendanceCreateWithoutLessonInput = {
     date: Date | string
-    present: boolean
+    status?: $Enums.AttendanceStatus
+    comment?: string | null
+    proofUrl?: string | null
+    createdBy?: $Enums.AttendanceActor
+    createdAt?: Date | string
+    updatedAt?: Date | string
     student: StudentCreateNestedOneWithoutAttendancesInput
   }
 
   export type AttendanceUncheckedCreateWithoutLessonInput = {
     id?: number
     date: Date | string
-    present: boolean
+    status?: $Enums.AttendanceStatus
     studentId: string
+    comment?: string | null
+    proofUrl?: string | null
+    createdBy?: $Enums.AttendanceActor
+    createdAt?: Date | string
+    updatedAt?: Date | string
   }
 
   export type AttendanceCreateOrConnectWithoutLessonInput = {
@@ -24987,8 +25258,13 @@ export namespace Prisma {
   export type AttendanceCreateManyStudentInput = {
     id?: number
     date: Date | string
-    present: boolean
+    status?: $Enums.AttendanceStatus
     lessonId: number
+    comment?: string | null
+    proofUrl?: string | null
+    createdBy?: $Enums.AttendanceActor
+    createdAt?: Date | string
+    updatedAt?: Date | string
   }
 
   export type ResultCreateManyStudentInput = {
@@ -25000,22 +25276,37 @@ export namespace Prisma {
 
   export type AttendanceUpdateWithoutStudentInput = {
     date?: DateTimeFieldUpdateOperationsInput | Date | string
-    present?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumAttendanceStatusFieldUpdateOperationsInput | $Enums.AttendanceStatus
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    proofUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    createdBy?: EnumAttendanceActorFieldUpdateOperationsInput | $Enums.AttendanceActor
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     lesson?: LessonUpdateOneRequiredWithoutAttendancesNestedInput
   }
 
   export type AttendanceUncheckedUpdateWithoutStudentInput = {
     id?: IntFieldUpdateOperationsInput | number
     date?: DateTimeFieldUpdateOperationsInput | Date | string
-    present?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumAttendanceStatusFieldUpdateOperationsInput | $Enums.AttendanceStatus
     lessonId?: IntFieldUpdateOperationsInput | number
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    proofUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    createdBy?: EnumAttendanceActorFieldUpdateOperationsInput | $Enums.AttendanceActor
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type AttendanceUncheckedUpdateManyWithoutStudentInput = {
     id?: IntFieldUpdateOperationsInput | number
     date?: DateTimeFieldUpdateOperationsInput | Date | string
-    present?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumAttendanceStatusFieldUpdateOperationsInput | $Enums.AttendanceStatus
     lessonId?: IntFieldUpdateOperationsInput | number
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    proofUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    createdBy?: EnumAttendanceActorFieldUpdateOperationsInput | $Enums.AttendanceActor
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type ResultUpdateWithoutStudentInput = {
@@ -25599,8 +25890,13 @@ export namespace Prisma {
   export type AttendanceCreateManyLessonInput = {
     id?: number
     date: Date | string
-    present: boolean
+    status?: $Enums.AttendanceStatus
     studentId: string
+    comment?: string | null
+    proofUrl?: string | null
+    createdBy?: $Enums.AttendanceActor
+    createdAt?: Date | string
+    updatedAt?: Date | string
   }
 
   export type ExamUpdateWithoutLessonInput = {
@@ -25649,22 +25945,37 @@ export namespace Prisma {
 
   export type AttendanceUpdateWithoutLessonInput = {
     date?: DateTimeFieldUpdateOperationsInput | Date | string
-    present?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumAttendanceStatusFieldUpdateOperationsInput | $Enums.AttendanceStatus
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    proofUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    createdBy?: EnumAttendanceActorFieldUpdateOperationsInput | $Enums.AttendanceActor
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     student?: StudentUpdateOneRequiredWithoutAttendancesNestedInput
   }
 
   export type AttendanceUncheckedUpdateWithoutLessonInput = {
     id?: IntFieldUpdateOperationsInput | number
     date?: DateTimeFieldUpdateOperationsInput | Date | string
-    present?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumAttendanceStatusFieldUpdateOperationsInput | $Enums.AttendanceStatus
     studentId?: StringFieldUpdateOperationsInput | string
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    proofUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    createdBy?: EnumAttendanceActorFieldUpdateOperationsInput | $Enums.AttendanceActor
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type AttendanceUncheckedUpdateManyWithoutLessonInput = {
     id?: IntFieldUpdateOperationsInput | number
     date?: DateTimeFieldUpdateOperationsInput | Date | string
-    present?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumAttendanceStatusFieldUpdateOperationsInput | $Enums.AttendanceStatus
     studentId?: StringFieldUpdateOperationsInput | string
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    proofUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    createdBy?: EnumAttendanceActorFieldUpdateOperationsInput | $Enums.AttendanceActor
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type ResultCreateManyExamInput = {

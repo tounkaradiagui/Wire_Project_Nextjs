@@ -31,7 +31,7 @@ const AdminPage = async ({
 
           {/* Attendance Chart */}
           <div className="w-full lg:w-2/3 h-[450px]">
-            <AttendanceChartContainer />
+            {/* <AttendanceChartContainer /> */}
           </div>
         </div>
 

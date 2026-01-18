@@ -228,4 +228,64 @@ export const resultSchema = z
 
 export type ResultSchemaInput = z.infer<typeof resultSchema>;
 
+// Attendance schema
+export const AttendanceStatusEnum = z.enum([
+  "PRESENT",
+  "ABSENT",
+  "LATE",
+]);
 
+export const AttendanceActorEnum = z.enum([
+  "TEACHER",
+  "PARENT",
+]);
+
+export const attendanceSchema = z
+  .object({
+    id: z.coerce.number().optional(),
+
+    studentId: z.string().min(1, {
+      message: "L'élève est requis.",
+    }),
+
+    lessonId: z.coerce.number({
+      required_error: "La leçon est requise.",
+      invalid_type_error: "Leçon invalide.",
+    }),
+
+    date: z.coerce.date({
+      required_error: "La date est requise.",
+    }),
+
+    status: AttendanceStatusEnum,
+
+    comment: z
+      .string()
+      .max(500, "Le commentaire est trop long.")
+      .optional()
+      .nullable(),
+
+    proofUrl: z
+      .string()
+      .url("Le lien du justificatif est invalide.")
+      .optional()
+      .nullable(),
+
+    createdBy: AttendanceActorEnum.optional(),
+  })
+  .superRefine((data, ctx) => {
+    // 🔴 ABSENCE → justification obligatoire
+    if (data.status === "ABSENT") {
+      if (!data.comment && !data.proofUrl) {
+        ctx.addIssue({
+          path: ["comment"],
+          message:
+            "Une justification (commentaire ou justificatif) est obligatoire pour une absence.",
+        });
+      }
+    }
+  });
+
+export type AttendanceSchemaInput = z.infer<typeof attendanceSchema>;
+
+  // End Attendance schma

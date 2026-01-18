@@ -20,7 +20,6 @@ const ParentListPage = async ({
 }: {
   searchParams: { [key: string]: string | undefined };
 }) => {
-  const params = await searchParams;
   const { page, ...queryParams } = await searchParams;
 
   const p = page ? parseInt(page) : 1;
@@ -150,7 +149,7 @@ const ParentListPage = async ({
       <Table columns={columns} renderRow={renderRow} data={data} />
 
       {/* Pagination */}
-      <Pagination page={page} count={count} />
+      <Pagination page={p} count={count} />
     </div>
   );
 };

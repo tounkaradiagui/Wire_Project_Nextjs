@@ -228,9 +228,14 @@ exports.Prisma.ResultScalarFieldEnum = {
 exports.Prisma.AttendanceScalarFieldEnum = {
   id: 'id',
   date: 'date',
-  present: 'present',
+  status: 'status',
   studentId: 'studentId',
-  lessonId: 'lessonId'
+  lessonId: 'lessonId',
+  comment: 'comment',
+  proofUrl: 'proofUrl',
+  createdBy: 'createdBy',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.EventScalarFieldEnum = {
@@ -277,6 +282,19 @@ exports.Day = exports.$Enums.Day = {
   FRIDAY: 'FRIDAY',
   SATURDAY: 'SATURDAY',
   SUNDAY: 'SUNDAY'
+};
+
+exports.AttendanceStatus = exports.$Enums.AttendanceStatus = {
+  PRESENT: 'PRESENT',
+  ABSENT: 'ABSENT',
+  LATE: 'LATE',
+  EXCUSED: 'EXCUSED'
+};
+
+exports.AttendanceActor = exports.$Enums.AttendanceActor = {
+  TEACHER: 'TEACHER',
+  PARENT: 'PARENT',
+  ADMIN: 'ADMIN'
 };
 
 exports.Prisma.ModelName = {

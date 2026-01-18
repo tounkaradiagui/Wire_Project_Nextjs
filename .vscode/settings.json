@@ -17,5 +17,8 @@
     },
     "[json]": {
         "editor.defaultFormatter": "vscode.json-language-features"
+    },
+    "[sql]": {
+        "editor.defaultFormatter": "cweijan.vscode-mysql-client2"
     }
 }

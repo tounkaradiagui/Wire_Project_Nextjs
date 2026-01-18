@@ -11,7 +11,7 @@ import {
 } from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
-import { deleteResult, deleteAssignment, deleteLesson, deleteTeacher, deleteClass, deleteSubject, deleteStudent, deleteExam, deleteParent } from "@/lib/actions";
+import { deleteAttendance, deleteResult, deleteAssignment, deleteLesson, deleteTeacher, deleteClass, deleteSubject, deleteStudent, deleteExam, deleteParent } from "@/lib/actions";
 import { FormContainerProps } from "./FormContainer";
 
 const deleteActionMap = {
@@ -24,10 +24,9 @@ const deleteActionMap = {
   lesson: deleteLesson,
   assignment: deleteAssignment,
   result: deleteResult,
+  attendance: deleteAttendance,
   // announcement: deleteAnnouncement,
-  // attendance: deleteAttendance,
   // event: deleteEvent,
-  // student: deleteStudent,
 };
 
 const TeacherForm = dynamic(() => import("./forms/TeacherForm"), {
@@ -66,12 +65,17 @@ const ResultForm = dynamic(() => import("./forms/ResultForm"), {
   loading: () => <h1>Chargement...</h1>,
 });
 
+const AttendanceForm = dynamic(() => import("./forms/AttendanceForm"), {
+  loading: () => <h1>Chargement...</h1>,
+});
+
 const forms: {
   [key: string]: (
     setOpen: Dispatch<SetStateAction<boolean>>,
     type: "create" | "update",
     data?: any,
     relatedData?: any
+
   ) => React.JSX.Element;
 } = {
   subject: (setOpen, type, data, relatedData) => (
@@ -144,6 +148,15 @@ const forms: {
 
   result: (setOpen, type, data, relatedData) => (
     <ResultForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
+
+  attendance: (setOpen, type, data, relatedData) => (
+    <AttendanceForm
       type={type}
       data={data}
       setOpen={setOpen}
