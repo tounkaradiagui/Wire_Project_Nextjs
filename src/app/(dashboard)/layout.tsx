@@ -16,8 +16,8 @@ export default async function DashboardLayout({
           href="/"
           className="flex items-center gap-2 p-2 justify-center lg:justify-start"
         >
-          <Image src="/logo.png" alt="Logo" width={50} height={50} />
-          <span className="hidden lg:block font-bold">Présencia</span>
+          {/* <Image src="/logo.png" alt="Logo" width={50} heighWagadut={50} /> */}
+          <span className="hidden lg:block font-bold">Wagadu</span>
         </Link>
 
         {/* Sidebar Menu */}

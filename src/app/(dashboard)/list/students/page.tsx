@@ -13,7 +13,12 @@ import { auth } from "@clerk/nextjs/server";
 import { studentRoleFilter } from "@/lib/roleFilters";
 
 
-type StudentList = Student & { class: Class[] } & { grade: Grade[] };
+// type StudentList = Student & { class: Class[] } & { grade: Grade[] };
+type StudentList = Student & {
+  class: Class;
+  grade: Grade;
+};
+
 
 const StudentListPage = async ({
   searchParams,
@@ -41,12 +46,14 @@ const StudentListPage = async ({
     },
     {
       header: "Classe",
-      accessor: "grade",
+      accessor: "class",
       className: "hidden md:table-cell",
     },
     { header: "Téléphone", accessor: "phone", className: "hidden md:table-cell" },
     { header: "Adresse", accessor: "address", className: "hidden md:table-cell" },
-    ...(role === "admin" || "teacher" ? [{ header: "Actions", accessor: "actions" }] : []),
+    ...(role === "admin" || role === "teacher" || role === "parent"
+      ? [{ header: "Actions", accessor: "actions" }]
+      : []),
   ];
 
   const renderRow = (item: StudentList) => (

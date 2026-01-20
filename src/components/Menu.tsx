@@ -44,6 +44,12 @@ const menuItems = [
         href: "/list/students",
         visible: ["admin", "teacher", "parent"],
       },
+      // {
+      //   icon: "👨‍👩‍👧",
+      //   label: "Mes enfants",
+      //   href: "/parent/children",
+      //   visible: ["parent"],
+      // },
       {
         icon: Users,
         label: "Parents",

@@ -201,7 +201,7 @@ const AttendanceListPage = async ({
               Export PDF
             </button>
 
-            {(role === "admin" || role === "teacher") && (
+            {(role === "admin" || role === "teacher" || role === "parent") && (
               <FormContainer table="attendance" type="create" />
             )}
           </div>

@@ -201,22 +201,6 @@ const AttendanceForm = ({
                         </div>
 
                         {/* PROOF */}
-                        <div className="flex flex-col gap-1 md:col-span-2">
-                            <label>Justificatif (image ou PDF)</label>
-                            <input
-                                type="file"
-                                accept="image/*,application/pdf"
-                                className="text-sm"
-                                onChange={(e) => {
-                                    const file = e.target.files?.[0];
-                                    if (!file) return;
-                                    // upload handler
-                                }}
-                            />
-                            {errors.proofUrl && (
-                                <p className="text-xs text-red-500">{errors.proofUrl.message}</p>
-                            )}
-                        </div>
                         <div className="flex flex-col gap-2 rounded-full md:w-1/4">
                             <input type="hidden" name="image" value={image?.secure_url || ""} />
                             <CldUploadWidget

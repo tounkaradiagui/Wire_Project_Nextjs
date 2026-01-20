@@ -11,7 +11,7 @@ export const routeAccessMap: RouteAccessMap = {
   "/parent(.*)": ["parent"],
 
   "/list/teachers(.*)": ["admin", "teacher"],
-  "/list/students(.*)": ["admin", "teacher"],
+  "/list/students(.*)": ["admin", "teacher", "parent"],
   "/list/parents(.*)": ["admin", "teacher"],
   "/list/subjects(.*)": ["admin"],
   "/list/classes(.*)": ["admin", "teacher"],

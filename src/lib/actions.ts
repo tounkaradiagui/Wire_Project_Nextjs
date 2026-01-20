@@ -1270,3 +1270,120 @@ export const deleteAttendance = async (
         };
     }
 };
+
+// Fetch parent students
+export const getParentStudents = async () => {
+    const { userId, sessionClaims } = await auth();
+    const role = (sessionClaims?.metadata as { role?: string })?.role;
+
+    if (!userId || role !== "parent") {
+        return { success: false, error: "Accès refusé" };
+    }
+
+    return prisma.student.findMany({
+        where: {
+            parentId: userId,
+        },
+        include: {
+            class: true,
+            grade: true,
+        },
+    });
+};
+
+// Fetch Student Attendances For Parent
+export const getStudentAttendancesForParent = async (studentId: string) => {
+    const { userId, sessionClaims } = await auth();
+    const role = (sessionClaims?.metadata as { role?: string })?.role;
+
+    if (!userId || role !== "parent") {
+        return { success: false, error: "Accès refusé" };
+    }
+
+    return prisma.attendance.findMany({
+        where: {
+            studentId,
+            student: {
+                parentId: userId,
+            },
+        },
+        orderBy: {
+            date: "desc",
+        },
+        include: {
+            lesson: {
+                select: { name: true },
+            },
+        },
+    });
+};
+
+
+// Fetch Student Assignments For Parent
+export const getStudentAssignmentsForParent = async (studentId: string) => {
+    const { userId, sessionClaims } = await auth();
+    const role = (sessionClaims?.metadata as { role?: string })?.role;
+
+    if (!userId || role !== "parent") {
+        return { success: false, error: "Accès refusé" };
+    }
+
+    return prisma.assignment.findMany({
+        where: {
+            lesson: {
+                class: {
+                    students: {
+                        some: {
+                            id: studentId,
+                            parentId: userId,
+                        },
+                    },
+                },
+            },
+        },
+        orderBy: {
+            dueDate: "asc",
+        },
+        include: {
+            lesson: {
+                select: { name: true },
+            },
+        },
+    });
+
+};
+
+// Fetch Student Exams For Parent
+export const getExams = async (studentId?: string) => {
+    const { userId, sessionClaims } = await auth();
+    const role = (sessionClaims?.metadata as { role?: string })?.role;
+
+    if (role !== "parent") {
+        throw new Error("Accès non autorisé");
+    }
+
+    return prisma.exam.findMany({
+        where: {
+            lesson: {
+                class: {
+                    students: {
+                        some: {
+                            ...(studentId ? { id: studentId } : {}),
+                            parentId: userId!,
+                        },
+                    },
+                },
+            },
+        },
+        // orderBy: {
+        //     startTime: "asc",
+        // },
+        include: {
+            lesson: {
+                select: {
+                    name: true,
+                },
+            },
+        },
+    });
+};

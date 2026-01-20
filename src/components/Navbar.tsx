@@ -1,9 +1,35 @@
 import { UserButton } from "@clerk/nextjs";
 import { currentUser } from "@clerk/nextjs/server";
 import Image from "next/image";
+import { ROLE_LABELS } from "@/lib/roleFilters";
+import { auth } from "@clerk/nextjs/server";
 
 const NavbarPage = async () => {
   const user = await currentUser();
+  const { sessionClaims } = await auth();
+  const role = (sessionClaims?.metadata as { role?: string })?.role;
+
+  const roleLabel = ROLE_LABELS[role ?? ""] ?? "Utilisateur";
+
+  const ROLE_BADGES: Record<
+    string,
+    { label: string; className: string }
+  > = {
+    admin: {
+      label: "Administrateur",
+      className: "bg-red-100 text-red-700",
+    },
+    teacher: {
+      label: "Enseignant",
+      className: "bg-blue-100 text-blue-700",
+    },
+    parent: {
+      label: "Parent",
+      className: "bg-green-100 text-green-700",
+    },
+  };
+
+
   return (
     <div className="flex items-center justify-between p-4">
       {/* Search bar */}
@@ -29,9 +55,10 @@ const NavbarPage = async () => {
         </div>
 
         <div className="flex flex-col">
-          <span className="text-sm font-medium">Diagui Tounkara</span>
+          <span className="text-sm font-medium">{user?.username}</span>
+          {/* <span className="text-sm font-medium">{user?.firstName} {user?.lastName}</span> */}
           <span className="text-xs text-gray-500">
-            {user?.publicMetadata?.role as string}
+            {roleLabel}
           </span>
         </div>
         <UserButton />

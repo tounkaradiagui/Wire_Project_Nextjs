@@ -5,24 +5,58 @@ import { Prisma } from "generated/prisma/client";
  * L'enseignant ne peut voir la liste des élèves de ses classes 
  * Filtrage automatique pour enseignant
  */
-export const studentRoleFilter = (
-    role: string | undefined,
-    userId: string | null
-): Prisma.StudentWhereInput => {
-    if (role === "teacher" && userId) {
-        return {
-            class: {
-                lessons: {
-                    some: {
-                        teacherId: userId,
+// export const studentRoleFilter = (
+//     role: string | undefined,
+//     userId: string | null
+// ): Prisma.StudentWhereInput => {
+//     if (role === "teacher" && userId) {
+//         return {
+//             class: {
+//                 lessons: {
+//                     some: {
+//                         teacherId: userId,
+//                     },
+//                 },
+//             },
+//         };
+//     }
+
+//     return {}; // admin = tout voir
+// };
+
+export const studentRoleFilter = (role?: string, userId?: string) => {
+    switch (role) {
+        case "admin":
+            return {};
+
+        case "teacher":
+            return {
+                class: {
+                    lessons: {
+                        some: {
+                            teacherId: userId!,
+                        },
                     },
                 },
-            },
-        };
-    }
+            };
 
-    return {}; // admin = tout voir
+        case "parent":
+            return {
+                parentId: userId!,
+            };
+
+        case "student":
+            return {
+                id: userId!,
+            };
+
+        default:
+            return {
+                id: "__no_access__",
+            };
+    }
 };
+
 
 /**
  * Filtre des résultats selon l'enseignant
@@ -114,3 +148,9 @@ export const parentRoleFilter = (
     return {}; // admin => tous les parents
 };
 
+export const ROLE_LABELS: Record<string, string> = {
+    admin: "Administrateur",
+    teacher: "Enseignant",
+    student: "Élève",
+    parent: "Parent",
+};

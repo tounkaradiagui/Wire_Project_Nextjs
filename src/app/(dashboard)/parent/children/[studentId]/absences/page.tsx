@@ -1,0 +1,82 @@
+import { getStudentAttendancesForParent } from "@/lib/actions";
+
+const AttendanceBadge = ({ status }: { status: string }) => {
+    const styles = {
+        PRESENT: "bg-green-100 text-green-700",
+        ABSENT: "bg-red-100 text-red-700",
+        LATE: "bg-yellow-100 text-yellow-700",
+    };
+
+    return (
+        <span
+            className={`px-2 py-1 text-xs rounded ${styles[status as keyof typeof styles]}`}
+        >
+            {status}
+        </span>
+    );
+};
+
+const AbsencesPage = async ({
+    params,
+}: {
+    params: { studentId: string };
+}) => {
+    const attendances = await getStudentAttendancesForParent(params.studentId);
+
+    return (
+        <div className="p-4 flex flex-col gap-6">
+            <h1 className="text-xl font-semibold">Absences</h1>
+
+            <div className="bg-white rounded-md overflow-x-auto">
+                <table className="w-full text-sm">
+                    <thead className="bg-gray-50">
+                        <tr>
+                            <th className="p-3 text-left">Date</th>
+                            <th className="p-3 text-left">Cours</th>
+                            <th className="p-3 text-left">Statut</th>
+                            <th className="p-3 text-left">Commentaire</th>
+                            <th className="p-3 text-left">Justificatif</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {attendances.map((attendance) => (
+                            <tr key={attendance.id} className="border-b">
+                                <td className="p-3">
+                                    {new Date(attendance.date).toLocaleDateString()}
+                                </td>
+                                <td className="p-3">{attendance.lesson.name}</td>
+                                <td className="p-3">
+                                    <AttendanceBadge status={attendance.status} />
+                                </td>
+                                <td className="p-3 text-gray-600">
+                                    {attendance.comment || "-"}
+                                </td>
+                                <td className="p-3">
+                                    {attendance.proofUrl ? (
+                                        <a
+                                            href={attendance.proofUrl}
+                                            target="_blank"
+                                            className="text-blue-600 underline"
+                                        >
+                                            Voir
+                                        </a>
+                                    ) : (
+                                        "-"
+                                    )}
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+
+                {attendances.length === 0 && (
+                    <p className="p-4 text-center text-gray-500">
+                        Aucune absence enregistrée
+                    </p>
+                )}
+            </div>
+        </div>
+    );
+};
+
+export default AbsencesPage;
