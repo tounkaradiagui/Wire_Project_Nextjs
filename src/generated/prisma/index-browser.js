@@ -122,7 +122,23 @@ exports.Prisma.TransactionIsolationLevel = makeStrictEnum({
 
 exports.Prisma.AdminScalarFieldEnum = {
   id: 'id',
-  username: 'username'
+  username: 'username',
+  email: 'email',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.ParentScalarFieldEnum = {
+  id: 'id',
+  username: 'username',
+  name: 'name',
+  surname: 'surname',
+  sex: 'sex',
+  email: 'email',
+  phone: 'phone',
+  address: 'address',
+  image: 'image',
+  birthday: 'birthday',
+  createdAt: 'createdAt'
 };
 
 exports.Prisma.StudentScalarFieldEnum = {
@@ -139,8 +155,8 @@ exports.Prisma.StudentScalarFieldEnum = {
   birthday: 'birthday',
   createdAt: 'createdAt',
   parentId: 'parentId',
-  classId: 'classId',
-  gradeId: 'gradeId'
+  gradeId: 'gradeId',
+  classId: 'classId'
 };
 
 exports.Prisma.TeacherScalarFieldEnum = {
@@ -158,20 +174,6 @@ exports.Prisma.TeacherScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
-exports.Prisma.ParentScalarFieldEnum = {
-  id: 'id',
-  username: 'username',
-  name: 'name',
-  surname: 'surname',
-  sex: 'sex',
-  email: 'email',
-  phone: 'phone',
-  address: 'address',
-  image: 'image',
-  createdAt: 'createdAt',
-  birthday: 'birthday'
-};
-
 exports.Prisma.GradeScalarFieldEnum = {
   id: 'id',
   level: 'level'
@@ -181,13 +183,18 @@ exports.Prisma.ClassScalarFieldEnum = {
   id: 'id',
   name: 'name',
   capacity: 'capacity',
-  supervisorId: 'supervisorId',
-  gradeId: 'gradeId'
+  gradeId: 'gradeId',
+  supervisorId: 'supervisorId'
 };
 
 exports.Prisma.SubjectScalarFieldEnum = {
   id: 'id',
   name: 'name'
+};
+
+exports.Prisma.TeacherSubjectScalarFieldEnum = {
+  teacherId: 'teacherId',
+  subjectId: 'subjectId'
 };
 
 exports.Prisma.LessonScalarFieldEnum = {
@@ -299,12 +306,13 @@ exports.AttendanceActor = exports.$Enums.AttendanceActor = {
 
 exports.Prisma.ModelName = {
   Admin: 'Admin',
+  Parent: 'Parent',
   Student: 'Student',
   Teacher: 'Teacher',
-  Parent: 'Parent',
   Grade: 'Grade',
   Class: 'Class',
   Subject: 'Subject',
+  TeacherSubject: 'TeacherSubject',
   Lesson: 'Lesson',
   Exam: 'Exam',
   Assignment: 'Assignment',
