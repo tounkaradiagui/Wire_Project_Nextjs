@@ -5,7 +5,7 @@ import { createClerkClient } from "@clerk/nextjs/server";
 import { auth } from "@clerk/nextjs/server";
 
 
-type currentState = { success: boolean; error: boolean, message?: string; };
+type currentState = { success: boolean; error: string | null; };
 
 function timeToDate(time: string) {
     const [hours, minutes] = time.split(":").map(Number);
@@ -1050,34 +1050,58 @@ export const deleteResult = async (currentState: currentState, data: FormData) =
 };
 
 // Create Attendance Action
-
 export const createAttendance = async (
     currentState: currentState,
     data: AttendanceSchemaInput
 ): Promise<currentState> => {
-    const { userId, sessionClaims } = await auth();
-    const role = (sessionClaims?.metadata as { role?: string })?.role;
-
-    if (!userId || !role) {
-        return { success: false, error: true, message: "Non autorisé." };
-    }
 
     try {
-        /** 🔐 PARENT */
+        const { userId, sessionClaims } = await auth();
+        const role = (sessionClaims?.metadata as { role?: string })?.role;
+
+        if (!userId || !role) {
+            return { success: false, error: "Non autorisé." };
+        }
+
+        if (!["admin", "teacher", "parent"].includes(role)) {
+            return { success: false, error: "Rôle interdit." };
+        }
+
+        // 🔒 INTERDIT AUX STUDENTS
+        if (role === "student") {
+            return { success: false, error: "Accès refusé" };
+        }
+
+        // 🔍 Vérifier l'élève
+        const student = await prisma.student.findUnique({
+            where: { id: data.studentId },
+            select: { parentId: true },
+        });
+
+        if (!student) {
+            return { success: false, error: "Élève introuvable" };
+        }
+
+        if (role === "admin") {
+            // admin peut tout faire → pas de restriction
+        }
+
+        // 🔒 Parent → seulement ses enfants
+        if (role === "parent" && student.parentId !== userId) {
+            return { success: false, error: "Accès interdit" };
+        }
         if (role === "parent") {
             if (data.status !== "ABSENT") {
                 return {
                     success: false,
-                    error: true,
-                    message: "Un parent peut uniquement signaler une absence.",
+                    error: "Un parent peut uniquement signaler une absence.",
                 };
             }
 
             if (!data.comment && !data.proofUrl) {
                 return {
                     success: false,
-                    error: true,
-                    message: "Une justification est obligatoire.",
+                    error: "Une justification est obligatoire.",
                 };
             }
         }
@@ -1094,40 +1118,54 @@ export const createAttendance = async (
             if (!lesson) {
                 return {
                     success: false,
-                    error: true,
-                    message: "Vous ne pouvez pas gérer cette leçon.",
+                    error: "Vous ne pouvez pas gérer cette leçon.",
                 };
             }
         }
+
+        if (data.proofUrl && !data.proofUrl.includes("res.cloudinary.com")) {
+            return {
+                success: false,
+                error: "Fichier invalide",
+            };
+        }
+
+
+        const attendanceDate =
+            data.date instanceof Date ? data.date : new Date(data.date);
 
         await prisma.attendance.create({
             data: {
                 studentId: data.studentId,
                 lessonId: data.lessonId,
-                date: data.date,
+                date: attendanceDate,
                 status: data.status,
                 comment: data.comment,
                 proofUrl: data.proofUrl,
-                createdBy: role === "parent" ? "PARENT" : "TEACHER",
+                createdBy:
+                    role === "parent"
+                        ? "PARENT"
+                        : role === "teacher"
+                            ? "TEACHER"
+                            : "ADMIN",
             },
         });
+        console.log("proofUrl reçu:", data.proofUrl);
 
-        return { success: true, error: false };
+        return { success: true, error: null };
     } catch (error: any) {
         console.error("createAttendance error:", error);
 
         if (error.code === "P2002") {
             return {
                 success: false,
-                error: true,
-                message: "La présence existe déjà pour ce jour.",
+                error: "La présence existe déjà pour ce jour.",
             };
         }
 
         return {
             success: false,
-            error: true,
-            message: "Erreur serveur.",
+            error: "Erreur serveur.",
         };
     }
 };
@@ -1155,17 +1193,17 @@ export const updateAttendance = async (
         if (!attendance) {
             return {
                 success: false,
-                error: true,
-                message: "Présence introuvable.",
+                error: "Présence introuvable.",
             };
         }
+
+        const newStatus = data.status ?? attendance.status;
 
         /** 🚫 Parent ne peut pas modifier */
         if (role === "parent") {
             return {
                 success: false,
-                error: true,
-                message: "Un parent ne peut pas modifier une présence.",
+                error: "Un parent ne peut pas modifier une présence.",
             };
         }
 
@@ -1173,30 +1211,27 @@ export const updateAttendance = async (
         if (role === "teacher" && attendance.lesson.teacherId !== userId) {
             return {
                 success: false,
-                error: true,
-                message: "Accès refusé.",
+                error: "Accès refusé.",
             };
         }
 
         if (
-            data.status === "ABSENT" &&
+            newStatus === "ABSENT" &&
             !data.comment &&
             !data.proofUrl
         ) {
             return {
                 success: false,
-                error: true,
-                message: "Justification obligatoire pour une absence.",
+                error: "Justification obligatoire pour une absence.",
             };
         }
 
         await prisma.attendance.update({
             where: { id: data.id },
             data: {
-                status: data.status,
+                status: newStatus,
                 comment: data.comment,
                 proofUrl: data.proofUrl,
-                updatedAt: new Date(),
             },
         });
 
@@ -1205,8 +1240,7 @@ export const updateAttendance = async (
         console.error("updateAttendance error:", error);
         return {
             success: false,
-            error: true,
-            message: "Erreur serveur.",
+            error: "Erreur serveur.",
         };
     }
 };

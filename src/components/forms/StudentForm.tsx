@@ -53,39 +53,38 @@ const StudentForm = ({
 
   const router = useRouter();
 
-    useEffect(() => {
-      if (state.success) {
-        toast.success(
-          `L'élève a été ${
-            type === "create" ? "ajoutée avec succès" : "mise à jour avec succès"
-          }`,
-          {
-            style: {
-              background: "dark",
-              color: "#ffffff",
-              fontWeight: "bold",
-              fontSize: "14px",
-            },
-          }
-        );
-        setOpen(false);
-        router.refresh();
-      }
-
-      if (state.error) {
-        toast.error("Erreur serveur, veuillez réessayer", {
+  useEffect(() => {
+    if (state.success) {
+      toast.success(
+        `L'élève a été ${type === "create" ? "ajoutée avec succès" : "mise à jour avec succès"
+        }`,
+        {
           style: {
-            background: "#f87171",
+            background: "dark",
             color: "#ffffff",
             fontWeight: "bold",
             fontSize: "14px",
           },
-        });
-        router.refresh();
-      }
-    }, [state, router, type, setOpen]);
+        }
+      );
+      setOpen(false);
+      router.refresh();
+    }
 
-    const {grades, classes} = relatedData;
+    if (state.error) {
+      toast.error("Erreur serveur, veuillez réessayer", {
+        style: {
+          background: "#f87171",
+          color: "#ffffff",
+          fontWeight: "bold",
+          fontSize: "14px",
+        },
+      });
+      router.refresh();
+    }
+  }, [state, router, type, setOpen]);
+
+  const { grades, classes } = relatedData;
 
   return (
     <div className="max-h-[80vh] overflow-y-auto p-6">
@@ -128,8 +127,8 @@ const StudentForm = ({
         <div className="flex flex-col gap-2 rounded-full md:w-1/4">
           <input type="hidden" name="image" value={image?.secure_url || ""} />
           <CldUploadWidget
-              uploadPreset="school"
-              onSuccess={(result: any, { widget }) => {
+            uploadPreset="school"
+            onSuccess={(result: any, { widget }) => {
               setImage(result.info);
               widget.close();
             }}
@@ -204,7 +203,7 @@ const StudentForm = ({
             defaultValue="parentId1"
             register={register}
             error={errors.parentId}
-            
+
           />
 
           {data && (
@@ -221,7 +220,6 @@ const StudentForm = ({
           <div className="flex flex-col gap-2 rounded-full md:w-1/4">
             <label htmlFor="">Genre</label>
             <select
-              key={data.id}
               className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
               {...register("sex")}
               defaultValue={data?.sex}
@@ -268,9 +266,9 @@ const StudentForm = ({
               defaultValue={data?.classId}
             >
               <option value="">Sélectionner</option>
-              {classes.map((classItem: { id: number; name: string; capacity:number; _count: {students:number} }) => (
+              {classes.map((classItem: { id: number; name: string; capacity: number; _count: { students: number } }) => (
                 <option
-                 value={classItem.id} key={classItem.id}
+                  value={classItem.id} key={classItem.id}
                 >
                   {classItem.name} - {" "} {classItem._count.students + "/" + classItem.capacity} {" "} Capacité
                 </option>
@@ -282,7 +280,7 @@ const StudentForm = ({
               </p>
             )}
           </div>
-          
+
           {/* Server error */}
           {state.error && (
             <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">

@@ -1,7 +1,6 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import Image from "next/image";
 import {
   useState,
   Dispatch,
@@ -13,6 +12,12 @@ import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { deleteAttendance, deleteResult, deleteAssignment, deleteLesson, deleteTeacher, deleteClass, deleteSubject, deleteStudent, deleteExam, deleteParent } from "@/lib/actions";
 import { FormContainerProps } from "./FormContainer";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  X,
+} from "lucide-react";
 
 const deleteActionMap = {
   subject: deleteSubject,
@@ -219,27 +224,25 @@ const FormModal = ({
           Voulez-vous vraiment supprimer cet élément de la liste ?
         </p>
         <div className="flex justify-center gap-4">
+
           <button
             type="button"
             onClick={() => setOpen(false)}
-            className="bg-gray-300 hover:bg-gray-400 text-black py-2 px-4 rounded-md cursor-pointer"
+            className="bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 cursor-pointer px-4 rounded-md transition"
           >
             Annuler
           </button>
           <button
             type="submit"
             disabled={isPending}
-            className={`"bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-md cursor-pointer
-                    ${isPending
+            className={`
+              py-2 px-4 rounded-md text-white font-medium transition-all
+              ${isPending
                 ? "bg-gray-400 cursor-not-allowed"
-                : "bg-red-600 hover:bg-red-700 cursor-pointer"}
-                    `}
+                : "bg-red-600 hover:bg-red-700 active:scale-95"}
+            `}
           >
-            {isPending
-              ? "Chargement..."
-              : type === "delete"
-                ? "Supprimer"
-                : "Suppression"}
+            {isPending ? "Chargement..." : "Supprimer"}
           </button>
 
         </div>
@@ -254,11 +257,21 @@ const FormModal = ({
   return (
     <>
       <button
-        className={`${size} flex items-center justify-center rounded-full cursor-pointer ${bgColor}`}
         onClick={() => setOpen(true)}
+        className={`
+          ${size}
+          flex items-center justify-center rounded
+          text-white transition-all cursor-pointer
+          ${type === "create" && "bg-green-500 hover:bg-green-600"}
+          ${type === "update" && "bg-blue-500 hover:bg-blue-600"}
+          ${type === "delete" && "bg-red-500 hover:bg-red-600"}
+        `}
       >
-        <Image src={`/${type}.png`} alt="" width={16} height={16} />
+        {type === "create" && <Plus size={18} />}
+        {type === "update" && <Pencil size={16} />}
+        {type === "delete" && <Trash2 size={16} />}
       </button>
+
       {open && (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center">
           <div className="bg-white p-4 rounded-md relative w-[90%] md:w-[70%] lg:w-[60%] xl:w-[50%] 2xl:w-[40%]">
@@ -267,7 +280,10 @@ const FormModal = ({
               className="absolute top-4 right-4 cursor-pointer"
               onClick={() => setOpen(false)}
             >
-              <Image src="/close.png" alt="" width={14} height={14} />
+              <X
+                size={18}
+                className="text-gray-500 hover:text-gray-800 transition"
+              />
             </div>
           </div>
         </div>

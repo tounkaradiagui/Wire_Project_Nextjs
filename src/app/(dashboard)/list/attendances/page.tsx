@@ -36,6 +36,12 @@ const AttendanceListPage = async ({
   const { userId, sessionClaims } = await auth();
   const role = (sessionClaims?.metadata as { role?: string })?.role;
 
+  const isPdf = (url: string) =>
+    url.toLowerCase().includes(".pdf");
+
+  const isImage = (url: string) =>
+    /\.(jpg|jpeg|png|webp|gif)$/i.test(url);
+
   /* ================= COLUMNS ================= */
   const columns = [
     { header: "Élève", accessor: "student" },
@@ -43,9 +49,10 @@ const AttendanceListPage = async ({
     { header: "Cours", accessor: "lesson", className: "hidden md:table-cell" },
     { header: "Date", accessor: "date" },
     { header: "Statut", accessor: "status" },
-    { header: "Justificatif", accessor: "proof" },
+    { header: "Justificatif", accessor: "proofUrl" },
     ...(role === "admin" || role === "teacher"
-      ? [{ header: "Actions", accessor: "actions" }]
+      ? [{ header: "Signaler par", accessor: "createdBy" }, { header: "Actions", accessor: "actions" }]
+
       : []),
   ];
 
@@ -89,17 +96,40 @@ const AttendanceListPage = async ({
       {/* PROOF */}
       <td>
         {item.proofUrl ? (
-          <a
-            href={item.proofUrl}
-            target="_blank"
-            className="text-blue-600 underline text-sm"
-          >
-            Voir
-          </a>
+          isPdf(item.proofUrl) ? (
+            <a
+              href={item.proofUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 underline text-sm"
+            >
+              📄 Télécharger le PDF
+            </a>
+          ) : isImage(item.proofUrl) ? (
+            <a href={item.proofUrl} target="_blank" rel="noopener noreferrer">
+              <Image
+                src={item.proofUrl}
+                alt="Justificatif"
+                width={40}
+                height={40}
+                className="rounded border"
+              />
+            </a>
+          ) : (
+            <span className="text-xs text-gray-400">Fichier non supporté</span>
+          )
         ) : (
-          <span className="text-gray-400 text-sm">—</span>
+          <span className="text-xs text-gray-400">—</span>
         )}
+
       </td>
+
+
+      {(role === "admin" || role === "teacher") && (
+        <td className="hidden md:table-cell">
+          {item.createdBy === "PARENT" ? "Parent" : item.createdBy === "TEACHER" ? "Enseignant" : "Administration"}
+        </td>
+      )}
 
       {/* ACTIONS */}
       <td>

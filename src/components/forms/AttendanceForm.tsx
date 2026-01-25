@@ -54,9 +54,10 @@ const AttendanceForm = ({
     );
 
     const onSubmit = handleSubmit((data) => {
+        console.log(data)
         startTransition(() => {
             setServerError(null)
-            formAction({ ...data, image: image?.secure_url });
+            formAction({ ...data, proofUrl: image?.secure_url });
         });
     });
 
@@ -115,6 +116,7 @@ const AttendanceForm = ({
                         <select
                             {...register("studentId")}
                             disabled={role === "parent"}
+                            defaultValue={data?.studentId}
                             className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm"
                         >
                             {relatedData?.students?.map((student) => (
@@ -133,6 +135,7 @@ const AttendanceForm = ({
                         <select
                             {...register("lessonId", { valueAsNumber: true })}
                             disabled={role === "parent"}
+                            defaultValue={data?.lessonId}
                             className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm"
                         >
                             {relatedData?.lessons?.map((lesson) => (
@@ -141,9 +144,8 @@ const AttendanceForm = ({
                                 </option>
                             ))}
                         </select>
-
-                        {serverError && (
-                            <span className="text-xs text-red-500">{serverError}</span>
+                        {errors.lessonId && (
+                            <p className="text-xs text-red-500">{errors.lessonId.message}</p>
                         )}
                     </div>
                 </div>
@@ -174,14 +176,22 @@ const AttendanceForm = ({
                         <select
                             {...register("status")}
                             disabled={role === "parent"}
+                            defaultValue={data?.status}
                             className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm"
                         >
                             <option value="PRESENT">Présent</option>
                             <option value="ABSENT">Absent</option>
                             <option value="LATE">En retard</option>
                         </select>
+                        {errors.status && (
+                            <p className="text-xs text-red-500">{errors.status.message}</p>
+                        )}
+
                     </div>
                 </div>
+                {serverError && (
+                    <span className="text-xs text-red-500">{serverError}</span>
+                )}
 
                 {/* CONDITIONAL : ABSENCE */}
                 {status === "ABSENT" && (
@@ -201,26 +211,47 @@ const AttendanceForm = ({
                         </div>
 
                         {/* PROOF */}
-                        <div className="flex flex-col gap-2 rounded-full md:w-1/4">
-                            <input type="hidden" name="image" value={image?.secure_url || ""} />
+                        <div className="flex flex-col gap-2">
+                            <input
+                                type="hidden"
+                                name="proofUrl"
+                                value={image?.secure_url || ""}
+                            />
+
                             <CldUploadWidget
                                 uploadPreset="school"
+                                options={{
+                                    resourceType: "auto",
+                                    access_mode: "public", // ✅ OBLIGATOIRE POUR PDF
+                                    maxFiles: 1,
+                                    maxFileSize: 5_000_000,
+                                    clientAllowedFormats: ["jpg", "jpeg", "png", "pdf"],
+                                }}
                                 onSuccess={(result: any, { widget }) => {
-                                    setImage(result.info);
+                                    const file = result.info;
+
+                                    setImage({
+                                        secure_url: file.secure_url,
+                                        public_id: file.public_id,
+                                        resource_type: file.resource_type,
+                                    });
+
                                     widget.close();
                                 }}
                             >
                                 {({ open }) => (
-                                    <div
+                                    <button
+                                        type="button"
                                         onClick={() => open()}
-                                        className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 transition p-2 rounded-md cursor-pointer text-sm border border-gray-300"
+                                        className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 p-2 rounded-full text-sm"
                                     >
-                                        <Image src="/upload.png" alt="upload" width={28} height={28} />
-                                        <span>Télécharger une photo</span>
-                                    </div>
+                                        <Image src="/upload.png" alt="upload" width={20} height={20} />
+                                        <span>Télécharger une preuve</span>
+                                    </button>
                                 )}
                             </CldUploadWidget>
                         </div>
+
 
                     </div>
                 )}
@@ -228,7 +259,7 @@ const AttendanceForm = ({
                 {/* ACTION */}
                 <button
                     disabled={isPending}
-                    className="bg-blue-600 text-white py-2 rounded-md disabled:opacity-50"
+                    className="bg-blue-600 text-white py-2 cursor-pointer rounded-md disabled:opacity-50"
                 >
                     {isPending ? "Enregistrement..." : "Valider"}
                 </button>

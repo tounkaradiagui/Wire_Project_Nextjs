@@ -5,11 +5,11 @@ type RouteAccessMap = {
 };
 
 export const routeAccessMap: RouteAccessMap = {
-  "/admin(.*)": ["admin"],
-  "/student(.*)": ["student"],
-  "/teacher(.*)": ["teacher"],
-  "/parent(.*)": ["parent"],
+  // ✅ routes accessibles à tous les rôles connectés
+  "/profile(.*)": ["admin", "teacher", "student", "parent"],
+  "/settings(.*)": ["admin", "teacher", "student", "parent"],
 
+  // 📋 listes
   "/list/teachers(.*)": ["admin", "teacher"],
   "/list/students(.*)": ["admin", "teacher", "parent"],
   "/list/parents(.*)": ["admin", "teacher"],
@@ -22,4 +22,11 @@ export const routeAccessMap: RouteAccessMap = {
   "/list/attendance(.*)": ["admin", "teacher", "student", "parent"],
   "/list/events(.*)": ["admin", "teacher", "student", "parent"],
   "/list/announcements(.*)": ["admin", "teacher", "student", "parent"],
+  "/list/messages(.*)": ["admin", "teacher", "parent"],
+
+  // 🔐 zones role-based (TOUJOURS EN DERNIER)
+  "/admin(.*)": ["admin"],
+  "/teacher(.*)": ["teacher"],
+  "/student(.*)": ["student"],
+  "/parent(.*)": ["parent"],
 };

@@ -24,7 +24,7 @@ const ParentListPage = async ({
 
   const p = page ? parseInt(page) : 1;
 
-  const search = (params?.search || "").trim();
+  const search = (searchParams?.search || "").trim();
 
   const { userId, sessionClaims } = await auth();
   const role = (sessionClaims?.metadata as { role?: string })?.role;

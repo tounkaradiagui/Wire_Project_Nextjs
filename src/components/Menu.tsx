@@ -133,12 +133,12 @@ const menuItems = [
         href: "/settings",
         visible: ["admin", "teacher", "student", "parent"],
       },
-      {
-        icon: LogOut,
-        label: "Déconnexion",
-        href: "/logout",
-        visible: ["admin", "teacher", "student", "parent"],
-      },
+      // {
+      //   icon: LogOut,
+      //   label: "Déconnexion",
+      //   href: "/logout",
+      //   visible: ["admin", "teacher", "student", "parent"],
+      // },
     ],
   },
 ];
