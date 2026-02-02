@@ -5,12 +5,18 @@ import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import Image from "next/image";
-import { Class, Grade, Prisma, Teacher } from "generated/prisma/client";
+import { Prisma } from "@/generated/prisma";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { auth } from "@clerk/nextjs/server";
 
-type ClassList = Class & { supervisor: Teacher } & { grade: Grade };
+// type ClassList = Class & { supervisor: Teacher } & { grade: Grade };
+type ClassList = Prisma.ClassGetPayload<{
+  include: {
+    supervisor: true;
+    grade: true;
+  };
+}>;
 
 const ClassListPage = async ({
   searchParams,
@@ -52,7 +58,11 @@ const ClassListPage = async ({
       <td>{item.capacity}</td>
       <td className="hidden md:table-cell">{item.grade?.level ?? "-"}</td>
       <td className="hidden md:table-cell">
-        {item.supervisor.name} {item.supervisor.surname}
+        {item.supervisor
+          ? `${item.supervisor.name} ${item.supervisor.surname}`
+          : <span className="text-gray-400 italic">Non assigné</span>
+        }
+        {/* {item.supervisor.name} {item.supervisor.surname} */}
       </td>
       <td>
         <div className="flex items-center gap-2">
@@ -135,7 +145,7 @@ const ClassListPage = async ({
       </div>
 
       {/* List of Classes */}
-      <Table columns={columns} renderRow={renderRow} data={data} />
+      <Table<ClassList> columns={columns} renderRow={renderRow} data={data} />
 
       {/* Pagination */}
       <Pagination page={p} count={count} />

@@ -1172,14 +1172,14 @@ export const createAttendance = async (
 
 
 export const updateAttendance = async (
-    currentState: CurrentState,
+    currentState: currentState,
     data: AttendanceSchemaInput
-): Promise<CurrentState> => {
+): Promise<currentState> => {
     const { userId, sessionClaims } = await auth();
     const role = (sessionClaims?.metadata as { role?: string })?.role;
 
     if (!userId || !role || !data.id) {
-        return { success: false, error: true, message: "Non autorisé." };
+        return { success: false, error: "Non autorisé." };
     }
 
     try {
@@ -1331,10 +1331,14 @@ export const getStudentAttendancesForParent = async (studentId: string) => {
     const role = (sessionClaims?.metadata as { role?: string })?.role;
 
     if (!userId || role !== "parent") {
-        return { success: false, error: "Accès refusé" };
+        return {
+            success: false,
+            error: "Accès refusé",
+            data: [],
+        };
     }
 
-    return prisma.attendance.findMany({
+    const attendances = await prisma.attendance.findMany({
         where: {
             studentId,
             student: {
@@ -1350,7 +1354,13 @@ export const getStudentAttendancesForParent = async (studentId: string) => {
             },
         },
     });
+
+    return {
+        success: true,
+        data: attendances,
+    };
 };
+
 
 
 // Fetch Student Assignments For Parent
@@ -1359,10 +1369,14 @@ export const getStudentAssignmentsForParent = async (studentId: string) => {
     const role = (sessionClaims?.metadata as { role?: string })?.role;
 
     if (!userId || role !== "parent") {
-        return { success: false, error: "Accès refusé" };
+        return {
+            success: false,
+            error: "Accès refusé",
+            data: [],
+        };
     }
 
-    return prisma.assignment.findMany({
+    const assignments = await prisma.assignment.findMany({
         where: {
             lesson: {
                 class: {
@@ -1385,7 +1399,12 @@ export const getStudentAssignmentsForParent = async (studentId: string) => {
         },
     });
 
+    return {
+        success: true,
+        data: assignments,
+    };
 };
+
 
 // Fetch Student Exams For Parent
 export const getExams = async (studentId?: string) => {

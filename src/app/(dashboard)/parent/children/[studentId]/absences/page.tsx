@@ -21,7 +21,17 @@ const AbsencesPage = async ({
 }: {
     params: { studentId: string };
 }) => {
-    const attendances = await getStudentAttendancesForParent(params.studentId);
+    const result = await getStudentAttendancesForParent(params.studentId);
+
+    if (!result.success) {
+        return (
+            <p className="p-4 text-center text-red-500">
+                {result.error}
+            </p>
+        );
+    }
+
+    const attendances = result.data;
 
     return (
         <div className="p-4 flex flex-col gap-6">

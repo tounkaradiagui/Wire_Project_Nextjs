@@ -5,7 +5,7 @@ import { auth } from "@clerk/nextjs/server";
 
 
 const Announcements = async () => {
-const { userId, sessionClaims } = auth();
+  const { userId, sessionClaims } = await auth();
   const role = (sessionClaims?.metadata as { role?: string })?.role;
 
   const roleConditions = {
@@ -36,7 +36,7 @@ const { userId, sessionClaims } = auth();
         <p className="text-gray-600 text-sm">Aucune annonce pour le moment.</p>
       </div>
     );
-    
+
   }
 
   return (

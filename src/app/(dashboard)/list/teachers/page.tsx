@@ -4,14 +4,24 @@ import FormContainer from "@/components/FormContainer";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
-import { Class, Prisma, Subject, Teacher } from "generated/prisma/client";
+import { Prisma } from "@/generated/prisma";
 import Image from "next/image";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 
-type TeacherList = Teacher & { subjects: Subject[] } & { classes: Class[] };
+// type TeacherList = Teacher & { subjects: Subject[] } & { classes: Class[] };
+type TeacherList = Prisma.TeacherGetPayload<{
+  include: {
+    subjects: {
+      include: {
+        subject: true;
+      };
+    };
+    Class: true;
+  };
+}>;
 
 const TeacherListPage = async ({
   searchParams,
@@ -76,13 +86,13 @@ const TeacherListPage = async ({
       <td className="hidden md:table-cell">{item.username}</td>
       <td className="hidden md:table-cell">
         {Array.isArray(item.subjects)
-          ? item.subjects.map((s) => s.name).join(", ")
+          ? item.subjects.map((s) => s.subject.name).join(", ")
           : item.subjects || "—"}
       </td>
       <td className="hidden md:table-cell">
-        {Array.isArray(item.classes)
-          ? item.classes.map((c) => c.name).join(", ")
-          : item.classes || "—"}
+        {Array.isArray(item.Class)
+          ? item.Class.map((c) => c.name).join(", ")
+          : item.Class || "—"}
       </td>
       <td className="hidden lg:table-cell">{item.phone}</td>
       <td className="hidden lg:table-cell">{item.address}</td>
@@ -133,8 +143,12 @@ const TeacherListPage = async ({
     prisma.teacher.findMany({
       where: query,
       include: {
-        subjects: true,
-        classes: true,
+        subjects: {
+          include: {
+            subject: true, // ✅ LE VRAI SUBJECT
+          },
+        },
+        Class: true,
       },
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),

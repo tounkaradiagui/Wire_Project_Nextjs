@@ -7,7 +7,6 @@ import TableSearch from "@/components/TableSearch";
 import Image from "next/image";
 import { Result, Prisma } from "generated/prisma/client";
 import { ITEM_PER_PAGE } from "@/lib/settings";
-import { role } from "@/lib/utils";
 import prisma from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import { resultRoleFilter } from "@/lib/roleFilters";
@@ -24,70 +23,13 @@ type ResultList = {
   startTime: Date;
 };
 
-const columns = [
-  { header: "Titre", accessor: "title" },
-
-  { header: "Elève", accessor: "student" },
-  { header: "Note", accessor: "score", className: "hidden md:table-cell " },
-  {
-    header: "Enseignant",
-    accessor: "teacher",
-    className: "hidden md:table-cell ",
-  },
-  {
-    header: "Classe",
-    accessor: "class",
-    className: "hidden md:table-cell ",
-  },
-  // { header: "Type", accessor: "type", className: "hidden md:table-cell " },
-
-  {
-    header: "Date",
-    accessor: "date",
-    className: "hidden md:table-cell ",
-  },
-  ...(role === "admin" || role === "teacher"
-    ? [{ header: "Actions", accessor: "actions" }]
-    : []),
-];
-
-const renderRow = (item: ResultList) => (
-  <tr
-    key={item.id}
-    className="border-b hover:bg-blue-200 even:bg-slate-50 border-t border-gray-200 border-l border-r"
-  >
-    <td className="flex items-center gap-4 p-4">
-      <div className="flex flex-col">
-        <h3 className="font-semibold">{item.title}</h3>
-      </div>
-    </td>
-    <td>{item.studentName + " " + item.studentSurname}</td>
-    <td className="hidden md:table-cell">{item.score}</td>
-    <td className="hidden md:table-cell">
-      {item.teacherName + " " + item.teacherSurname}
-    </td>
-    <td className="hidden md:table-cell">{item.className}</td>
-    {/* <td className="hidden md:table-cell">{item.type}</td> */}
-    <td className="hidden md:table-cell">
-      {new Intl.DateTimeFormat("fr-FR").format(item.startTime)}
-    </td>
-    <td>
-      <div className="flex items-center gap-2">
-        {(role === "admin" || role === "teacher") && (
-          <>
-            <FormModal table="result" type="update" data={item} />
-            <FormModal table="result" type="delete" id={item.id} />
-          </>
-        )}
-      </div>
-    </td>
-  </tr>
-);
 
 const ResultListPage = async ({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | undefined };
+  searchParams: {
+    [key: string]: string | undefined
+  };
 }) => {
   const { page, ...queryParams } = await searchParams;
 
@@ -95,6 +37,67 @@ const ResultListPage = async ({
 
   const { userId, sessionClaims } = await auth();
   const role = (sessionClaims?.metadata as { role?: string })?.role;
+
+  const columns = [
+    { header: "Titre", accessor: "title" },
+
+    { header: "Elève", accessor: "student" },
+    { header: "Note", accessor: "score", className: "hidden md:table-cell " },
+    {
+      header: "Enseignant",
+      accessor: "teacher",
+      className: "hidden md:table-cell ",
+    },
+    {
+      header: "Classe",
+      accessor: "class",
+      className: "hidden md:table-cell ",
+    },
+    // { header: "Type", accessor: "type", className: "hidden md:table-cell " },
+
+    {
+      header: "Date",
+      accessor: "date",
+      className: "hidden md:table-cell ",
+    },
+    ...(role === "admin" || role === "teacher"
+      ? [{ header: "Actions", accessor: "actions" }]
+      : []),
+  ];
+
+  const renderRow = (item: ResultList) => (
+    <tr
+      key={item.id}
+      className="border-b hover:bg-blue-200 even:bg-slate-50 border-t border-gray-200 border-l border-r"
+    >
+      <td className="flex items-center gap-4 p-4">
+        <div className="flex flex-col">
+          <h3 className="font-semibold">{item.title}</h3>
+        </div>
+      </td>
+      <td>{item.studentName + " " + item.studentSurname}</td>
+      <td className="hidden md:table-cell">{item.score}</td>
+      <td className="hidden md:table-cell">
+        {item.teacherName + " " + item.teacherSurname}
+      </td>
+      <td className="hidden md:table-cell">{item.className}</td>
+      {/* <td className="hidden md:table-cell">{item.type}</td> */}
+      <td className="hidden md:table-cell">
+        {new Intl.DateTimeFormat("fr-FR").format(item.startTime)}
+      </td>
+      <td>
+        <div className="flex items-center gap-2">
+          {(role === "admin" || role === "teacher") && (
+            <>
+              <FormModal table="result" type="update" data={item} />
+              <FormModal table="result" type="delete" id={item.id} />
+            </>
+          )}
+        </div>
+      </td>
+    </tr>
+  );
+
   const currentUserId = userId;
 
   // URL PARAMS CONDITION
@@ -179,25 +182,47 @@ const ResultListPage = async ({
     prisma.result.count({ where: query }),
   ]);
 
-  const data = dataRes.map((item) => {
-    const assessment = item.exam || item.assignment;
+  const data: ResultList[] = dataRes
+    .map((item) => {
+      const assessment = item.exam || item.assignment;
+      if (!assessment) return null;
 
-    if (!assessment) return null;
+      const isExam = "startTime" in assessment;
 
-    const isExam = "startTime" in assessment;
+      return {
+        id: item.id,
+        title: assessment.title,
+        studentName: item.student.name,
+        studentSurname: item.student.surname,
+        teacherName: assessment.lesson.teacher.name,
+        teacherSurname: assessment.lesson.teacher.surname,
+        score: item.score,
+        className: assessment.lesson.class.name,
+        startTime: isExam ? assessment.startTime : assessment.startDate,
+      };
+    })
+    .filter((item): item is ResultList => item !== null);
 
-    return {
-      id: item.id,
-      title: assessment.title,
-      studentName: item.student.name,
-      studentSurname: item.student.surname,
-      teacherName: assessment.lesson.teacher.name,
-      teacherSurname: assessment.lesson.teacher.surname,
-      score: item.score,
-      className: assessment.lesson.class.name,
-      startTime: isExam ? assessment.startTime : assessment.startDate,
-    };
-  });
+
+  // const data = dataRes.map((item) => {
+  //   const assessment = item.exam || item.assignment;
+
+  //   if (!assessment) return null;
+
+  //   const isExam = "startTime" in assessment;
+
+  //   return {
+  //     id: item.id,
+  //     title: assessment.title,
+  //     studentName: item.student.name,
+  //     studentSurname: item.student.surname,
+  //     teacherName: assessment.lesson.teacher.name,
+  //     teacherSurname: assessment.lesson.teacher.surname,
+  //     score: item.score,
+  //     className: assessment.lesson.class.name,
+  //     startTime: isExam ? assessment.startTime : assessment.startDate,
+  //   };
+  // });
 
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">

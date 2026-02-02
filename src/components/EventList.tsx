@@ -11,7 +11,7 @@ function safeDate(value: any) {
 
 // Filtrer les events avec le role
 export async function getEventsByDay(dateParam?: string) {
-  const { userId, sessionClaims } = auth();
+  const { userId, sessionClaims } = await auth();
   const role = (sessionClaims?.metadata as { role?: string })?.role;
 
   const baseDate = safeDate(dateParam) ?? new Date();

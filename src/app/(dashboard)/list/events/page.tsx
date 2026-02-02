@@ -5,13 +5,17 @@ import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import Image from "next/image";
-import { Class, Event, Prisma } from "generated/prisma/client";
+import { Prisma } from "@/generated/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { role } from "@/lib/utils";
 import prisma from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 
-type EventList = Event & { class: Class };
+type EventList = Prisma.EventGetPayload<{
+  include: {
+    class: true;
+  };
+}>;
 
 const columns = [
   { header: "Titre", accessor: "info" },

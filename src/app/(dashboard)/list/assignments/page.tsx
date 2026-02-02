@@ -16,13 +16,26 @@ import { ITEM_PER_PAGE } from "@/lib/settings";
 import prisma from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 
-type AssignmentList = Assignment & {
+type AssignmentList = {
+  id: number;
+  title: string;
+  lessonId: number;
+  startDate: Date;
+  dueDate: Date;
   lesson: {
-    subject: Subject;
-    class: Class;
-    teacher: Teacher;
+    teacher: {
+      name: string;
+      surname: string;
+    };
+    class: {
+      name: string;
+    };
+    subject: {
+      name: string;
+    };
   };
 };
+
 
 
 const AssignmentListPage = async ({
@@ -221,7 +234,12 @@ const AssignmentListPage = async ({
       </div>
 
       {/* List of Assignments */}
-      <Table columns={columns} renderRow={renderRow} data={data} />
+      {/* <Table columns={columns} renderRow={renderRow} data={data} /> */}
+      <Table<AssignmentList>
+        columns={columns}
+        renderRow={renderRow}
+        data={data}
+      />
 
       {/* Pagination */}
       <Pagination page={p} count={count} />

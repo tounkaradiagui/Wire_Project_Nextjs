@@ -149,13 +149,11 @@ export const lessonSchema = z.object({
   ], { message: "Le jour est requis." }),
 
   startTime: z.coerce.date({
-    required_error: "La date et l'heure de début sont requise.",
-    invalid_type_error: "Date invalide.",
+    message: "La date et l'heure de début sont requise.",
   }),
 
   endTime: z.coerce.date({
-    required_error: "La date et l'heure de fin sont requise.",
-    invalid_type_error: "Date invalide.",
+    message: "La date et l'heure de fin sont requise.",
   }),
 
   subjectId: z.coerce
@@ -249,12 +247,11 @@ export const attendanceSchema = z
     }),
 
     lessonId: z.coerce.number({
-      required_error: "La leçon est requise.",
-      invalid_type_error: "Leçon invalide.",
+      message: "La leçon est requise.",
     }),
 
     date: z.coerce.date({
-      required_error: "La date est requise.",
+      message: "La date est requise.",
     }),
 
     status: AttendanceStatusEnum,
@@ -278,6 +275,7 @@ export const attendanceSchema = z
     if (data.status === "ABSENT") {
       if (!data.comment && !data.proofUrl) {
         ctx.addIssue({
+          code: "custom",
           path: ["comment"],
           message:
             "Une justification (commentaire ou justificatif) est obligatoire pour une absence.",
@@ -288,4 +286,4 @@ export const attendanceSchema = z
 
 export type AttendanceSchemaInput = z.infer<typeof attendanceSchema>;
 
-  // End Attendance schma
+// End Attendance schma

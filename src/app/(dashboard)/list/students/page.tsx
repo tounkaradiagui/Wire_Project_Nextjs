@@ -14,12 +14,7 @@ import { studentRoleFilter } from "@/lib/roleFilters";
 import {
   Eye,
   Filter,
-  ArrowUpDown,
-  Pencil,
-  Mail,
-  Ban,
-  Check,
-  Trash2,
+  ArrowUpDown
 } from "lucide-react";
 
 

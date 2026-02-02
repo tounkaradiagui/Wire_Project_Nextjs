@@ -9,7 +9,7 @@ type Parent = {
   surname: string;
 };
 
-const ParentSelect = ( {
+const ParentSelect = ({
   onSelect,
 }: {
   onSelect: (parentId: string) => void;
@@ -49,14 +49,14 @@ const ParentSelect = ( {
             <li
               key={parent.id}
               className="p-2 hover:bg-gray-100 cursor-pointer"
-              onClick={() => onSelect({ id: "parentId1" })}
-              // onClick={() => {
-              //   onSelect(parent.id);
-              //   setResults([]);
-              // }}
+              // onClick={() => onSelect({ id: "parentId1" })}
+              onClick={() => {
+                onSelect(parent.id);
+                setResults([]);
+              }}
             >
-              Sélectionner parentId1
-              {/* {parent.username} – {parent.name} {parent.surname} */}
+              Sélectionner parent
+              {parent.username} – {parent.name} {parent.surname}
             </li>
           ))}
         </ul>

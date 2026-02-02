@@ -27,7 +27,7 @@ const AttendanceChartContainer = async () => {
     },
     select: {
       date: true, // Récupère la date
-      present: true, // Récupère s’il était présent (true/false)
+      status: true, // Récupère s’il était présent (true/false)
     },
   });
 
@@ -37,14 +37,16 @@ const AttendanceChartContainer = async () => {
   const daysOfWeek = ["Lun", "Mar", "Mer", "Jeu", "Ven"];
 
   // Structure pour stocker le nombre de présents / absents par jour
-  const attendanceMap: { [key: string]: { present: number; absent: number } } =
-    {
-      Lun: { present: 0, absent: 0 },
-      Mar: { present: 0, absent: 0 },
-      Mer: { present: 0, absent: 0 },
-      Jeu: { present: 0, absent: 0 },
-      Ven: { present: 0, absent: 0 },
-    };
+  const attendanceMap: Record<
+    string,
+    { present: number; absent: number; late: number }
+  > = {
+    Lun: { present: 0, absent: 0, late: 0 },
+    Mar: { present: 0, absent: 0, late: 0 },
+    Mer: { present: 0, absent: 0, late: 0 },
+    Jeu: { present: 0, absent: 0, late: 0 },
+    Ven: { present: 0, absent: 0, late: 0 },
+  };
 
   //   console.log(attendanceMap);
 
@@ -59,20 +61,38 @@ const AttendanceChartContainer = async () => {
       const dayName = daysOfWeek[day - 1]; // Convertit 1–5 en Lun–Ven
 
       // Ajout dans le compteur selon présence ou absence
-      if (item.present) {
-        attendanceMap[dayName].present += 1;
-      } else {
-        attendanceMap[dayName].absent += 1;
+      switch (item.status) {
+        case "PRESENT":
+          attendanceMap[dayName].present += 1;
+          break;
+        case "ABSENT":
+          attendanceMap[dayName].absent += 1;
+          break;
+        case "LATE":
+          attendanceMap[dayName].late += 1;
+          break;
       }
+      // if (item.present) {
+      //   attendanceMap[dayName].present += 1;
+      // } else {
+      //   attendanceMap[dayName].absent += 1;
+      // }
     }
   });
 
   // --- 5. Préparer les données finales pour le graphique ---
 
+  // const data = daysOfWeek.map((day) => ({
+  //   name: day, // Nom du jour
+  //   present: attendanceMap[day].present, // Nombre de présents
+  //   absent: attendanceMap[day].absent, // Nombre d’absents
+  // }));
+
   const data = daysOfWeek.map((day) => ({
-    name: day, // Nom du jour
-    present: attendanceMap[day].present, // Nombre de présents
-    absent: attendanceMap[day].absent, // Nombre d’absents
+    name: day,
+    present: attendanceMap[day].present,
+    absent: attendanceMap[day].absent,
+    late: attendanceMap[day].late,
   }));
 
   //   console.log(data);

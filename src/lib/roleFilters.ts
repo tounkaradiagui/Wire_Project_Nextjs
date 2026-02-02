@@ -24,7 +24,47 @@ import { Prisma } from "generated/prisma/client";
 //     return {}; // admin = tout voir
 // };
 
-export const studentRoleFilter = (role?: string, userId?: string) => {
+// export const studentRoleFilter = (role?: string, userId?: string) => {
+//     switch (role) {
+//         case "admin":
+//             return {};
+
+//         case "teacher":
+//             return {
+//                 class: {
+//                     lessons: {
+//                         some: {
+//                             teacherId: userId!,
+//                         },
+//                     },
+//                 },
+//             };
+
+//         case "parent":
+//             return {
+//                 parentId: userId!,
+//             };
+
+//         case "student":
+//             return {
+//                 id: userId!,
+//             };
+
+//         default:
+//             return {
+//                 id: "__no_access__",
+//             };
+//     }
+// };
+
+export const studentRoleFilter = (
+    role?: string,
+    userId?: string | null
+): Prisma.StudentWhereInput => {
+    if (!role || !userId) {
+        return { id: "__no_access__" };
+    }
+
     switch (role) {
         case "admin":
             return {};
@@ -34,7 +74,7 @@ export const studentRoleFilter = (role?: string, userId?: string) => {
                 class: {
                     lessons: {
                         some: {
-                            teacherId: userId!,
+                            teacherId: userId,
                         },
                     },
                 },
@@ -42,20 +82,19 @@ export const studentRoleFilter = (role?: string, userId?: string) => {
 
         case "parent":
             return {
-                parentId: userId!,
+                parentId: userId,
             };
 
         case "student":
             return {
-                id: userId!,
+                id: userId,
             };
 
         default:
-            return {
-                id: "__no_access__",
-            };
+            return { id: "__no_access__" };
     }
 };
+
 
 
 /**

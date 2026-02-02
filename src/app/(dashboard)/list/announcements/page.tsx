@@ -5,14 +5,28 @@ import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import Image from "next/image";
-import { Class, Announcement } from "generated/prisma/client";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Prisma } from "@/generated/prisma/client";
 import prisma from "@/lib/prisma";
 import { role } from "@/lib/utils";
 import { auth } from "@clerk/nextjs/server";
 
-type AnnouncementList = Announcement & { class: Class };
+// type AnnouncementList = Announcement & { class: Class };
+type AnnouncementList = {
+  id: number;
+  title: string;
+  date: Date;
+  description: string | null;
+  classId: number | null;
+  class: {
+    id: number;
+    name: string;
+    gradeId: number;
+    capacity: number;
+    supervisorId: string | null;
+  } | null;
+};
+
 
 const columns = [
   { header: "Titre de l'annonce", accessor: "info" },
@@ -93,7 +107,8 @@ const AnnouncementListPage = async ({
           <h3 className="font-semibold">{item.title}</h3>
         </div>
       </td>
-      <td>{item.class?.name || "-"}</td>
+      {/* <td>{item.class?.name || "-"}</td> */}
+      <td>{item.class ? item.class.name : "Toutes les classes"}</td>
       <td className="hidden md:table-cell">
         {new Intl.DateTimeFormat("fr-FR").format(item.date)}
       </td>
@@ -146,7 +161,12 @@ const AnnouncementListPage = async ({
       </div>
 
       {/* List of Annoncement */}
-      <Table columns={columns} renderRow={renderRow} data={data} />
+      {/* <Table columns={columns} renderRow={renderRow} data={data} /> */}
+      <Table<AnnouncementList>
+        columns={columns}
+        renderRow={renderRow}
+        data={data}
+      />
 
       {/* Pagination */}
       <Pagination page={p} count={count} />

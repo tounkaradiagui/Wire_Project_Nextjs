@@ -4,21 +4,19 @@ import FormContainer from "@/components/FormContainer";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
-import {
-  Class,
-  Lesson,
-  Prisma,
-  Teacher,
-  Subject,
-} from "generated/prisma/client";
+import { Prisma } from "@/generated/prisma";
 import Image from "next/image";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { auth } from "@clerk/nextjs/server";
 
-type LessonList = Lesson & { subject: Subject } & { class: Class } & {
-  teacher: Teacher;
-};
+type LessonList = Prisma.LessonGetPayload<{
+  include: {
+    class: { select: { name: true } },
+    subject: { select: { name: true } },
+    teacher: { select: { name: true, surname: true } },
+  },
+}>;
 
 
 const LessonListPage = async ({

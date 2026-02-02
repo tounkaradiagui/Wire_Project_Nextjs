@@ -5,25 +5,29 @@ import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import Image from "next/image";
-import {
-  Attendance,
-  Prisma,
-  Student,
-  Lesson,
-  Class,
-  Teacher,
-} from "generated/prisma/client";
+import { AttendanceStatus } from "@/generated/prisma";
+import { Prisma } from "@/generated/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import prisma from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 
-type AttendanceList = Attendance & {
-  student: Student;
-  lesson: Lesson & {
-    class: Class;
-    teacher: Teacher;
+
+type AttendanceList = Prisma.AttendanceGetPayload<{
+  select: {
+    id: true;
+    date: true;
+    status: true;
+    proofUrl: true;
+    createdBy: true;
+    student: true;
+    lesson: {
+      include: {
+        class: true;
+        teacher: true;
+      };
+    };
   };
-};
+}>;
 
 const AttendanceListPage = async ({
   searchParams,
@@ -145,7 +149,10 @@ const AttendanceListPage = async ({
 
   /* ================= QUERY ================= */
   const query: Prisma.AttendanceWhereInput = {
-    status: "ABSENT", // 🔴 ABSENCES UNIQUEMENT
+    // status: "ABSENT", // 🔴 ABSENCES UNIQUEMENT
+    status: {
+      equals: AttendanceStatus.ABSENT,
+    },
   };
 
   /* ---- Role rules ---- */
@@ -176,16 +183,27 @@ const AttendanceListPage = async ({
       switch (key) {
         case "classId":
           query.lesson = {
-            ...query.lesson,
+            ...(query.lesson as Prisma.LessonWhereInput),
             classId: parseInt(value),
           };
+          // query.lesson = {
+          //   ...query.lesson,
+          //   classId: parseInt(value),
+          // };
           break;
 
         case "search":
           query.student = {
-            ...query.student,
-            name: { contains: value, mode: "insensitive" },
+            ...(query.student as Prisma.StudentWhereInput),
+            name: {
+              contains: value,
+              mode: "insensitive",
+            },
           };
+          // query.student = {
+          //   ...query.student,
+          //   name: { contains: value, mode: "insensitive" },
+          // };
           break;
       }
     }
@@ -195,7 +213,13 @@ const AttendanceListPage = async ({
   const [data, count] = await prisma.$transaction([
     prisma.attendance.findMany({
       where: query,
-      include: {
+      select: {
+        id: true,
+        date: true,
+        status: true,
+        proofUrl: true,
+        createdBy: true,
+
         student: true,
         lesson: {
           include: {
@@ -239,10 +263,16 @@ const AttendanceListPage = async ({
       </div>
 
       {/* TABLE */}
-      <Table columns={columns} renderRow={renderRow} data={data} />
+      <Table<AttendanceList>
+        columns={columns}
+        data={data}
+        renderRow={renderRow}
+      />
 
       {/* PAGINATION */}
-      <Pagination page={p} count={count} />
+      <div className="w-full flex justify-center">
+        <Pagination page={p} count={count} />
+      </div>
     </div>
   );
 };

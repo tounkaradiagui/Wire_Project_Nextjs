@@ -183,10 +183,11 @@ const FormModal = ({
   const [open, setOpen] = useState(false);
 
   const Form = () => {
-    const [state, formAction, isPending] = useActionState(deleteActionMap[table], {
+    const action = deleteActionMap[table as keyof typeof deleteActionMap];
+    const [state, formAction, isPending] = useActionState(action as any, {
       success: false,
       error: false,
-    });
+    } as any);
 
     const router = useRouter();
 

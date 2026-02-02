@@ -5,18 +5,24 @@ import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import Image from "next/image";
-import { Exam, Class, Prisma, Teacher, Subject } from "generated/prisma/client";
+import { Prisma } from "@/generated/prisma";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { auth } from "@clerk/nextjs/server";
 
-type ExamList = Exam & {
-  lesson: {
-    subject: Subject;
-    class: Class;
-    teacher: Teacher;
+
+type ExamList = Prisma.ExamGetPayload<{
+  include: {
+    lesson: {
+      include: {
+        class: { select: { name: true } };
+        subject: { select: { name: true } };
+        teacher: { select: { name: true; surname: true } };
+      };
+    };
   };
-};
+}>;
+
 
 const ExamListPage = async ({
   searchParams,
@@ -90,13 +96,18 @@ const ExamListPage = async ({
 
   const query: Prisma.ExamWhereInput = {};
 
-  if (role === "teacher") {
-    query.lesson = {
-      teacherId: userId!,
-    };
-  }
+  // if (role === "teacher") {
+  //   query.lesson = {
+  //     teacherId: userId!,
+  //   };
+  // }
 
-  query.lesson = {};
+  // query.lesson = {};
+  query.lesson = query.lesson ?? {};
+
+  if (role === "teacher") {
+    query.lesson.teacherId = userId!;
+  }
 
   if (queryParams) {
     for (const [key, value] of Object.entries(queryParams)) {
@@ -204,7 +215,7 @@ const ExamListPage = async ({
       </div>
 
       {/* List of Exams */}
-      <Table columns={columns} renderRow={renderRow} data={data} />
+      <Table<ExamList> columns={columns} renderRow={renderRow} data={data} />
 
       {/* Pagination */}
       <Pagination page={p} count={count} />

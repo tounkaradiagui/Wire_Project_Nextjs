@@ -25,6 +25,7 @@ const AssignmentForm = ({
         handleSubmit,
         formState: { errors },
     } = useForm<AssignmentSchemaInput>({
+
         resolver: zodResolver(assignmentSchema),
     });
 

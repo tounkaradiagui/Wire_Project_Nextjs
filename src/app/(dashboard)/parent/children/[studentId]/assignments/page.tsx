@@ -5,7 +5,17 @@ const AssignmentsPage = async ({
 }: {
     params: { studentId: string };
 }) => {
-    const assignments = await getStudentAssignmentsForParent(params.studentId);
+    const result = await getStudentAssignmentsForParent(params.studentId);
+
+    if (!result.success) {
+        return (
+            <p className="p-4 text-center text-red-500">
+                {result.error}
+            </p>
+        );
+    }
+
+    const assignments = result.data;
 
     return (
         <div className="p-4 flex flex-col gap-6">
@@ -35,12 +45,12 @@ const AssignmentsPage = async ({
                                     {new Date(assignment.dueDate).toLocaleDateString()}
                                 </td>
                                 <td className="p-3 text-gray-600">
-                                    {assignment.description || "-"}
+                                    {"description" in assignment && (assignment as any).description ? (assignment as any).description : "-"}
                                 </td>
                                 <td className="p-3">
-                                    {assignment.fileUrl ? (
+                                    {'fileUrl' in assignment && (assignment as any).fileUrl ? (
                                         <a
-                                            href={assignment.fileUrl}
+                                            href={(assignment as any).fileUrl}
                                             target="_blank"
                                             className="text-blue-600 underline"
                                         >

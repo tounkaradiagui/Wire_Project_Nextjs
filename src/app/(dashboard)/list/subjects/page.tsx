@@ -3,49 +3,23 @@
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
-import { Prisma, Subject, Teacher } from "generated/prisma/client";
+import { Prisma } from "@/generated/prisma";
 import Image from "next/image";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import FormContainer from "@/components/FormContainer";
 
-type SubjectList = Subject & { teachers: Teacher[] };
 
-const columns = [
-  { header: "Nom de la matière", accessor: "info" },
-  {
-    header: "Enseignants",
-    accessor: "subjects",
-    className: "hidden md:table-cell ",
-  },
-  { header: "Actions", accessor: "actions" },
-];
+type SubjectList = Prisma.SubjectGetPayload<{
+  include: {
+    teachers: {
+      include: {
+        teacher: true;
+      };
+    };
+  };
+}>;
 
-const renderRow = (item: SubjectList) => (
-  <tr
-    key={item.id}
-    className="border-b hover:bg-blue-200 even:bg-slate-50 border-t border-gray-200 border-l border-r"
-  >
-    <td className="flex items-center gap-4 p-4">
-      <div className="flex flex-col">
-        <h3 className="font-semibold">{item.name}</h3>
-      </div>
-    </td>
-    <td className="hidden lg:table-cell">
-      {Array.isArray(item.teachers)
-        ? item.teachers.map((t) => t.name).join(", ")
-        : item.teachers || "—"}
-    </td>
-    <td>
-      <div className="flex items-center gap-2">
-        <>
-          <FormContainer table="subject" type="update" data={item} />
-          <FormContainer table="subject" type="delete" id={item.id} />
-        </>
-      </div>
-    </td>
-  </tr>
-);
 
 const SubjectListPage = async ({
   searchParams,
@@ -56,6 +30,42 @@ const SubjectListPage = async ({
 
   const page = params.page ? Math.max(1, parseInt(params.page, 10) || 1) : 1;
   const search = (params.search || "").trim();
+
+  const columns = [
+    { header: "Nom de la matière", accessor: "info" },
+    {
+      header: "Enseignants",
+      accessor: "subjects",
+      className: "hidden md:table-cell ",
+    },
+    { header: "Actions", accessor: "actions" },
+  ];
+
+  const renderRow = (item: SubjectList) => (
+    <tr
+      key={item.id}
+      className="border-b hover:bg-blue-200 even:bg-slate-50 border-t border-gray-200 border-l border-r"
+    >
+      <td className="flex items-center gap-4 p-4">
+        <div className="flex flex-col">
+          <h3 className="font-semibold">{item.name}</h3>
+        </div>
+      </td>
+      <td className="hidden lg:table-cell">
+        {item.teachers.length > 0
+          ? item.teachers.map((t) => t.teacher.name).join(", ")
+          : "—"}
+      </td>
+      <td>
+        <div className="flex items-center gap-2">
+          <>
+            <FormContainer table="subject" type="update" data={item} />
+            <FormContainer table="subject" type="delete" id={item.id} />
+          </>
+        </div>
+      </td>
+    </tr>
+  );
 
   let query: Prisma.SubjectWhereInput = {};
 
@@ -69,7 +79,11 @@ const SubjectListPage = async ({
     prisma.subject.findMany({
       where: query,
       include: {
-        teachers: true,
+        teachers: {
+          include: {
+            teacher: true,
+          },
+        },
       },
       skip: (page - 1) * ITEM_PER_PAGE,
       take: ITEM_PER_PAGE,
@@ -111,7 +125,7 @@ const SubjectListPage = async ({
         </div>
       </div>
 
-      <Table columns={columns} renderRow={renderRow} data={data} />
+      <Table<SubjectList> columns={columns} renderRow={renderRow} data={data} />
 
       <Pagination page={page} count={count} />
     </div>

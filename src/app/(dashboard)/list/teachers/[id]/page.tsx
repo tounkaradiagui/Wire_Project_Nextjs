@@ -4,25 +4,38 @@ import FormContainer from "@/components/FormContainer";
 import Performance from "@/components/Performance";
 import Image from "next/image";
 import Link from "next/link";
-import { Teacher } from "generated/prisma/client";
+import { Prisma } from "@/generated/prisma";
 import prisma from "@/lib/prisma";
 import { notFound } from "next/navigation"
 import { auth } from "@clerk/nextjs/server";
 
+type TeacherWithCount = Prisma.TeacherGetPayload<{
+  include: {
+    _count: {
+      select: {
+        subjects: true;
+        lessons: true;
+        Class: true;
+      };
+    };
+  };
+}>;
+
 const TeacherDetailPage = async ({ params: { id }, }: { params: { id: string }; }) => {
 
-  const teacher: (Teacher & { _count: { subjects: number, lessons: number, classes: number } }) | null = await prisma.teacher.findUnique({
-    where: { id },
-    include: {
-      _count: {
-        select: {
-          subjects: true,
-          lessons: true,
-          classes: true
-        }
-      }
-    }
-  });
+  const teacher: TeacherWithCount | null =
+    await prisma.teacher.findUnique({
+      where: { id },
+      include: {
+        _count: {
+          select: {
+            subjects: true,
+            lessons: true,
+            Class: true,
+          },
+        },
+      },
+    });
 
   if (!teacher) {
     return notFound();
@@ -70,7 +83,12 @@ const TeacherDetailPage = async ({ params: { id }, }: { params: { id: string }; 
                 </div>
                 <div className="w-full md:w-1/3 lg:w-full 2xl:w-1/3 flex items-center gap-2">
                   <Image src="/date.png" alt="" width={14} height={14} />
-                  <span>{new Intl.DateTimeFormat("fr-FR").format(teacher.birthday)}</span>
+                  <span>{teacher?.birthday && (
+                    <span>
+                      {new Intl.DateTimeFormat("fr-FR").format(teacher.birthday)}
+                    </span>
+                  )}
+                  </span>
                 </div>
                 <div className="w-full md:w-1/3 lg:w-full 2xl:w-1/3 flex items-center gap-2">
                   <Image src="/mail.png" alt="" width={14} height={14} />
@@ -148,7 +166,7 @@ const TeacherDetailPage = async ({ params: { id }, }: { params: { id: string }; 
                 />
               </div>
               <div>
-                <h1 className="text-2xl font-semibold">{teacher._count.classes}</h1>
+                <h1 className="text-2xl font-semibold">{teacher._count.Class}</h1>
                 <span className="text-sm opacity-90">Classes assignées</span>
               </div>
             </div>
