@@ -34,7 +34,7 @@ const ClassForm = ({
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<ClassSchemaInput>({
+  } = useForm({
     resolver: zodResolver(classSchema),
   });
 
@@ -42,7 +42,7 @@ const ClassForm = ({
     type === "create" ? createClass : updateClass,
     {
       success: false,
-      error: false,
+      error: null as string | null,
     }
   );
 
@@ -188,8 +188,21 @@ const ClassForm = ({
         )}
 
         {/* Actions */}
-        <button className="bg-blue-500 text-white p-2 rounded-md cursor-pointer">
-          {type === "create" ? "Enregistrer" : "Valider"}
+        <button
+          type="submit"
+          disabled={isPending}
+          className="bg-blue-600 text-white py-2 rounded-md cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
+        >
+          {isPending && (
+            <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          )}
+          <span>
+            {isPending
+              ? "Enregistrement..."
+              : type === "create"
+                ? "Enregistrer"
+                : "Valider"}
+          </span>
         </button>
       </form>
     </div>

@@ -15,6 +15,10 @@ const BigCalendar = ({ data }: { data: { title: string; start: Date; end: Date }
     setView(selectedView);
   };
 
+  const formats = {
+    dayFormat: (date: Date, culture?: string, localizer?: any) =>
+      localizer.format(date, "dddd", culture),
+  };
 
   // 🔹 Traduction complète des libellés
   const messages = {
@@ -36,7 +40,7 @@ const BigCalendar = ({ data }: { data: { title: string; start: Date; end: Date }
 
   return (
     <Calendar
-      culture="fr" // Interface en français
+      culture="fr"
       localizer={localizer}
       events={data}
       startAccessor="start"
@@ -45,12 +49,19 @@ const BigCalendar = ({ data }: { data: { title: string; start: Date; end: Date }
       view={view}
       onView={handleViewChange}
       defaultView={Views.WORK_WEEK}
-      defaultDate={new Date()} // semaine actuelle
+      defaultDate={new Date()}
       style={{ height: "98%" }}
-      min={new Date(0, 0, 0, 8, 0)} // 08:00
-      max={new Date(0, 0, 0, 17, 0)} // 17:00
+      min={new Date(0, 0, 0, 8, 0)}
+      max={new Date(0, 0, 0, 17, 0)}
       messages={messages}
+      formats={{
+        dayFormat: (date, culture, localizer) => {
+          const day = moment(date).format("dddd");
+          return day.charAt(0).toUpperCase() + day.slice(1);
+        },
+      }}
     />
+
   );
 };
 

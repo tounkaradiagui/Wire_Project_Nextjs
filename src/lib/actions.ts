@@ -1,5 +1,5 @@
 "use server";
-import { AttendanceSchemaInput, ResultSchemaInput, ExamSchemaInput, AssignmentSchemaInput, LessonSchemaInput, ClassSchemaInput, SubjectSchemaInput, TeacherSchemaInput, StudentSchemaInput, ParentSchemaInput } from "./formValidationSchemas";
+import { EventSchemaInput, AnnouncementSchemaInput, AttendanceSchemaInput, ResultSchemaInput, ExamSchemaInput, AssignmentSchemaInput, LessonSchemaInput, ClassSchemaInput, SubjectSchemaInput, TeacherSchemaInput, StudentSchemaInput, ParentSchemaInput } from "./formValidationSchemas";
 import prisma from '@/lib/prisma';
 import { createClerkClient } from "@clerk/nextjs/server";
 import { auth } from "@clerk/nextjs/server";
@@ -21,38 +21,65 @@ export const createSubject = async (currentState: currentState, data: SubjectSch
         await prisma.subject.create({
             data: {
                 name: data.name,
-                teachers: {
-                    connect: data.teachers.map((teacherId) => ({ id: teacherId }))
-                }
-            }
+                ...(data.teachers?.length && {
+                    teachers: {
+                        create: data.teachers.map((teacherId: string) => ({
+                            teacher: {
+                                connect: { id: teacherId },
+                            },
+                        })),
+                    },
+                }),
+            },
         });
-        return { success: true, error: false }
+
+        return { success: true, error: null };
 
     } catch (error) {
         console.log(error)
-        return { success: false, error: true };
+        return { success: false, error: "Une erreur est survenue lors de la création de la matière" };
     }
 };
 
-export const updateSubject = async (currentState: currentState, data: SubjectSchemaInput) => {
+export const updateSubject = async (
+    currentState: currentState,
+    data: SubjectSchemaInput
+) => {
     try {
-        await prisma.subject.update({
-            where: {
-                id: data.id
-            },
+        if (!data.id) {
+            return { success: false, error: "ID de la matière manquant" };
+        }
 
-            data: {
-                name: data.name,
-                teachers: {
-                    set: data.teachers.map((teacherId) => ({ id: teacherId }))
-                }
+        await prisma.$transaction(async (tx) => {
+            // 1️⃣ Update subject name
+            await tx.subject.update({
+                where: { id: data.id },
+                data: { name: data.name },
+            });
+
+            // 2️⃣ Remove old teacher relations
+            await tx.teacherSubject.deleteMany({
+                where: { subjectId: data.id },
+            });
+
+            // 3️⃣ Recreate relations
+            if (data.teachers?.length) {
+                await tx.teacherSubject.createMany({
+                    data: data.teachers.map((teacherId: string) => ({
+                        teacherId,
+                        subjectId: data.id!,
+                    })),
+                });
             }
         });
-        return { success: true, error: false }
 
+        return { success: true, error: null };
     } catch (error) {
-        console.log(error)
-        return { success: false, error: true };
+        console.error(error);
+        return {
+            success: false,
+            error: "Une erreur est survenue lors de la mise à jour de la matière",
+        };
     }
 };
 
@@ -64,11 +91,11 @@ export const deleteSubject = async (currentState: currentState, data: FormData) 
                 id: parseInt(id)
             }
         });
-        return { success: true, error: false }
+        return { success: true, error: null }
 
     } catch (error) {
         console.log(error)
-        return { success: false, error: true };
+        return { success: false, error: "Erreur de suppression de la matière" };
     }
 }
 
@@ -83,7 +110,7 @@ export const createClass = async (
             where: { id: data.gradeId },
         })
         if (!grade) {
-            return { success: false, error: true }
+            return { success: false, error: "Niveau introuvable" }
         }
 
         // 2️⃣ Vérifier le supervisor si fourni
@@ -93,7 +120,7 @@ export const createClass = async (
             })
             if (!teacher) {
                 // throw new Error("Supervisor (Teacher) does not exist")
-                return { success: false, error: true }
+                return { success: false, error: "Enseignant superviseur introuvable" }
             }
         }
 
@@ -107,10 +134,10 @@ export const createClass = async (
             },
         })
 
-        return { success: true, error: false }
+        return { success: true, error: null }
     } catch (error) {
         console.log("createClass error:", error)
-        return { success: false, error: true }
+        return { success: false, error: "Erreur de création de la classe" }
     }
 }
 
@@ -123,11 +150,11 @@ export const updateClass = async (currentState: currentState, data: ClassSchemaI
 
             data
         });
-        return { success: true, error: false }
+        return { success: true, error: null }
 
     } catch (error) {
         console.log(error)
-        return { success: false, error: true };
+        return { success: false, error: "Erreur de mise à jour de la classe" };
     }
 };
 
@@ -139,23 +166,25 @@ export const deleteClass = async (currentState: currentState, data: FormData) =>
                 id: parseInt(id)
             }
         });
-        return { success: true, error: false }
+        return { success: true, error: null }
 
     } catch (error) {
-        return { success: false, error: true };
+        return { success: false, error: "Erreur de suppression de la classe" };
     }
 }
 
-// Create Teacher Action 
-export const createTeacher = async (currentState: { success: boolean; error: boolean }, data: TeacherSchemaInput) => {
+// Create Teacher Action
+export const createTeacher = async (
+    currentState: { success: boolean; error: string | null },
+    data: TeacherSchemaInput
+) => {
     let userId: string | null = null;
+
+    const clerk = createClerkClient({
+        secretKey: process.env.CLERK_SECRET_KEY!,
+    });
+
     try {
-
-        // CLERK CLIENT
-        const clerk = createClerkClient({
-            secretKey: process.env.CLERK_SECRET_KEY!,
-        });
-
         const user = await clerk.users.createUser({
             username: data.username,
             password: data.password,
@@ -164,11 +193,10 @@ export const createTeacher = async (currentState: { success: boolean; error: boo
             publicMetadata: { role: "teacher" },
         });
 
-        // Clerk user Id
         userId = user.id;
 
-        const subjectIds = await prisma.subject.findMany({
-            where: { name: { in: data.subjects } },
+        const subjects = await prisma.subject.findMany({
+            where: { name: { in: data.subjects ?? [] } },
             select: { id: true },
         });
 
@@ -185,52 +213,60 @@ export const createTeacher = async (currentState: { success: boolean; error: boo
                 bloodType: data.bloodType,
                 sex: data.sex,
                 birthday: data.birthday ?? null,
-                subjects: {
-                    connect: subjectIds.map(s => ({ id: s.id })),
-                },
 
+                subjects: {
+                    create: subjects.map((s) => ({
+                        subject: { connect: { id: s.id } },
+                    })),
+                },
             },
         });
 
-        return { success: true, error: false };
-
+        return { success: true, error: null };
     } catch (error) {
-
         if (userId) {
             await clerk.users.deleteUser(userId);
-        };
+        }
 
-        return { success: false, error: true };
+        console.error("CREATE TEACHER ERROR 👉", error);
+        return {
+            success: false,
+            error: "Une erreur est survenue lors de la création du professeur.",
+        };
     }
 };
+// End Create Teacher Action
 
-export const updateTeacher = async (currentState: currentState, data: TeacherSchemaInput) => {
+// Update Teacher Action
+export const updateTeacher = async (
+    currentState: currentState,
+    data: TeacherSchemaInput
+) => {
+    const clerk = createClerkClient({
+        secretKey: process.env.CLERK_SECRET_KEY!,
+    });
+
     try {
-        // CLERK CLIENT
-        const clerk = createClerkClient({
-            secretKey: process.env.CLERK_SECRET_KEY!,
-        });
-
         if (!data.id) {
-            return { success: false, error: true };
+            return { success: false, error: "ID manquant" };
         }
-        const user = await clerk.users.updateUser(data.id, {
+
+        await clerk.users.updateUser(data.id, {
             username: data.username,
-            ...(data.password !== "" && { password: data.password }),
+            ...(data.password && { password: data.password }),
             firstName: data.name,
             lastName: data.surname,
             publicMetadata: { role: "teacher" },
         });
 
-        const subjectIds = await prisma.subject.findMany({
-            where: { name: { in: data.subjects } },
+        const subjects = await prisma.subject.findMany({
+            where: { name: { in: data.subjects ?? [] } },
             select: { id: true },
         });
 
         await prisma.teacher.update({
             where: { id: data.id },
             data: {
-                ...(data.password !== "" && { password: data.password }),
                 username: data.username,
                 name: data.name,
                 surname: data.surname,
@@ -241,50 +277,80 @@ export const updateTeacher = async (currentState: currentState, data: TeacherSch
                 bloodType: data.bloodType,
                 sex: data.sex,
                 birthday: data.birthday ?? null,
-                subjects: {
-                    set: subjectIds.map(s => ({ id: s.id })),
-                },
 
+                subjects: {
+                    deleteMany: {}, // 🔥 supprime toutes les relations existantes
+                    create: subjects.map((s) => ({
+                        subject: { connect: { id: s.id } },
+                    })),
+                },
             },
         });
 
-        console.log("Teacher data: ", data);
-
-        return { success: true, error: false }
-
+        return { success: true, error: null };
     } catch (error) {
-        console.log(error)
-        return { success: false, error: true };
+        console.error(error);
+        return {
+            success: false,
+            error: "Une erreur est survenue lors de la mise à jour du professeur.",
+        };
     }
 };
+// End Update Teacher Action
 
-export const deleteTeacher = async (currentState: currentState, data: FormData) => {
-    const id = data.get("id") as string;
+// Delete Teacher Action
+export const deleteTeacher = async (id: string) => {
+    const clerk = createClerkClient({
+        secretKey: process.env.CLERK_SECRET_KEY!,
+    });
+
     try {
-        const clerk = createClerkClient({
-            secretKey: process.env.CLERK_SECRET_KEY!,
-        });
+        await prisma.$transaction(async (tx) => {
+            const teacher = await tx.teacher.findUnique({
+                where: { id },
+            });
 
-        await clerk.users.deleteUser(id);
-
-        await prisma.teacher.delete({
-            where: {
-                id: id
+            if (!teacher) {
+                throw new Error("Enseignat introuvable");
             }
-        });
-        return { success: true, error: false }
 
+            // 1️⃣ Supprimer les relations
+            await tx.teacherSubject.deleteMany({
+                where: { teacherId: id },
+            });
+
+            // 2️⃣ Supprimer le teacher Prisma
+            await tx.teacher.delete({
+                where: { id },
+            });
+
+            // 3️⃣ Supprimer le user Clerk
+            await clerk.users.deleteUser(teacher.id);
+        });
+
+        return { success: true };
     } catch (error) {
-        return { success: false, error: true };
+        console.error(error);
+        return {
+            success: false,
+            error: "Erreur lors de la suppression du professeur",
+        };
     }
-}
+};
+// End Delete Teacher Action
 
 // Create Student Action
 export const createStudent = async (
-    currentState: { success: boolean; error: boolean },
+    currentState: { success: boolean; error: string | null },
     data: StudentSchemaInput
 ) => {
     let userId: string | null = null;
+
+    // Create Clerk user
+    const clerk = createClerkClient({
+        secretKey: process.env.CLERK_SECRET_KEY!,
+    });
+
     try {
 
         const { parentId, classId, gradeId } = data;
@@ -305,13 +371,8 @@ export const createStudent = async (
         });
 
         if (classsItem && classsItem.capacity === classsItem._count.students) {
-            return { success: false, error: true }
+            return { success: false, error: "La classe est pleine" }
         }
-
-        // Create Clerk user
-        const clerk = createClerkClient({
-            secretKey: process.env.CLERK_SECRET_KEY!,
-        });
 
         const user = await clerk.users.createUser({
             username: data.username,
@@ -344,21 +405,27 @@ export const createStudent = async (
             },
         });
 
-        return { success: true, error: false };
+        return { success: true, error: null };
     } catch (error) {
         // delete user from clerk
         if (userId) {
-            await createClerkClient.users.deleteUser(userId);
+            await clerk.users.deleteUser(userId);
         };
         // console.error("Create Student errror ❌", error);
-        return { success: false, error: true };
+        return { success: false, error: "Une erreur est survenue lors de la création de l'élève." };
     }
 };
 
 export const updateStudent = async (
-    currentState: { success: boolean; error: boolean },
+    currentState: { success: boolean; error: string | null },
     data: StudentSchemaInput
 ) => {
+
+    // Clerk update
+    const clerk = createClerkClient({
+        secretKey: process.env.CLERK_SECRET_KEY!,
+    });
+
     try {
         const { parentId, classId, gradeId } = data;
 
@@ -384,13 +451,9 @@ export const updateStudent = async (
             classItem &&
             classItem.capacity === classItem._count.students
         ) {
-            throw new Error("Class is full");
+            return { success: false, error: "La classe est pleine" };
         }
 
-        // Clerk update
-        const clerk = createClerkClient({
-            secretKey: process.env.CLERK_SECRET_KEY!,
-        });
 
         await clerk.users.updateUser(data.id, {
             username: data.username,
@@ -419,10 +482,11 @@ export const updateStudent = async (
             },
         });
 
-        return { success: true, error: false };
+        return { success: true, error: null };
+
     } catch (error) {
         console.error("Update Student error ❌", error);
-        return { success: false, error: true };
+        return { success: false, error: "Une erreur est survenue lors de la mise à jour de l'élève." };
     }
 };
 
@@ -440,10 +504,10 @@ export const deleteStudent = async (currentState: currentState, data: FormData) 
                 id: id
             }
         });
-        return { success: true, error: false }
+        return { success: true, error: null }
 
     } catch (error) {
-        return { success: false, error: true };
+        return { success: false, error: "Une erreur est survenue lors de la suppression de l'élève." };
     }
 }
 
@@ -462,7 +526,7 @@ export const createExam = async (currentState: currentState, data: ExamSchemaInp
             })
 
             if (!teacherLesson) {
-                return { success: false, error: true };
+                return { success: false, error: null };
             }
         }
 
@@ -477,11 +541,11 @@ export const createExam = async (currentState: currentState, data: ExamSchemaInp
                 // }
             }
         });
-        return { success: true, error: false }
+        return { success: true, error: null }
 
     } catch (error) {
         console.log(error)
-        return { success: false, error: true };
+        return { success: false, error: "Une erreur est survenue lors de la création de l'examen." };
     }
 };
 
@@ -499,7 +563,7 @@ export const updateExam = async (currentState: currentState, data: ExamSchemaInp
             })
 
             if (!teacherLesson) {
-                return { success: false, error: true };
+                return { success: false, error: "Vous n'êtes pas autorisé à modifier cet examen." };
             }
         }
 
@@ -514,51 +578,50 @@ export const updateExam = async (currentState: currentState, data: ExamSchemaInp
                 lessonId: data.lessonId
             }
         });
-        return { success: true, error: false }
+        return { success: true, error: null }
 
     } catch (error) {
         console.log(error)
-        return { success: false, error: true };
+        return { success: false, error: "Une erreur est survenue lors de la mise à jour de l'examen." };
     }
 };
 
 export const deleteExam = async (currentState: currentState, data: FormData) => {
     const id = data.get("id") as string;
 
-    // const { userId, sessionClaims } = await auth();
-    // const role = (sessionClaims?.metadata as { role?: string })?.role;
-
     try {
         await prisma.exam.delete({
             where: {
                 id: parseInt(id),
-                // ...(role === "teacher" ? {teacherId: userId!} : {}),
             },
             select: {
                 id: true,
                 title: true,
             }
         });
-        return { success: true, error: false }
+        return { success: true, error: null }
 
     } catch (error) {
         console.log(error)
-        return { success: false, error: true };
+        return { success: false, error: "Une erreur est survenue lors de la suppression de l'examen." };
     }
 };
 
 // Create Parent Action
 export const createParent = async (
-    _currentState: { success: boolean; error: boolean },
+    _currentState: { success: boolean; error: string | null },
     data: ParentSchemaInput
 ) => {
+
     let userId: string | null = null;
+
+    // Create Clerk user
+    const clerk = createClerkClient({
+        secretKey: process.env.CLERK_SECRET_KEY!,
+    });
+
     try {
 
-        // Create Clerk user
-        const clerk = createClerkClient({
-            secretKey: process.env.CLERK_SECRET_KEY!,
-        });
 
         const user = await clerk.users.createUser({
             username: data.username,
@@ -579,7 +642,7 @@ export const createParent = async (
                 name: data.name,
                 surname: data.surname,
                 email: data.email || null,
-                phone: data.phone || null,
+                phone: data.phone,
                 address: data.address,
                 image: data.image || null,
                 sex: data.sex,
@@ -587,26 +650,31 @@ export const createParent = async (
             },
         });
 
-        return { success: true, error: false };
+        return { success: true, error: null };
     } catch (error) {
         // delete user from clerk
         if (userId) {
-            await createClerkClient.users.deleteUser(userId);
+            await clerk.users.deleteUser(userId);
         };
         // console.error("Create Parent errror ❌", error);
-        return { success: false, error: true };
+        return { success: false, error: "Une erreur est survenue lors de la création du parent." };
     }
 };
 
 export const updateParent = async (
-    currentState: { success: boolean; error: boolean },
+    currentState: { success: boolean; error: string | null },
     data: ParentSchemaInput
 ) => {
+
+    // Clerk update
+    const clerk = createClerkClient({
+        secretKey: process.env.CLERK_SECRET_KEY!,
+    });
+
     try {
-        // Clerk update
-        const clerk = createClerkClient({
-            secretKey: process.env.CLERK_SECRET_KEY!,
-        });
+        if (!data.id) {
+            return { success: false, error: "ID manquant" };
+        }
 
         await clerk.users.updateUser(data.id, {
             username: data.username,
@@ -623,7 +691,7 @@ export const updateParent = async (
                 name: data.name,
                 surname: data.surname,
                 email: data.email || null,
-                phone: data.phone || null,
+                phone: data.phone,
                 address: data.address,
                 image: data.image || null,
                 sex: data.sex,
@@ -631,10 +699,10 @@ export const updateParent = async (
             },
         });
 
-        return { success: true, error: false };
+        return { success: true, error: null };
     } catch (error) {
         console.error("Update Parent error ❌", error);
-        return { success: false, error: true };
+        return { success: false, error: "Une erreur est survenue lors de la mise à jour du parent." };
     }
 };
 
@@ -652,16 +720,16 @@ export const deleteParent = async (currentState: currentState, data: FormData) =
                 id: id
             }
         });
-        return { success: true, error: false }
+        return { success: true, error: null }
 
     } catch (error) {
-        return { success: false, error: true };
+        return { success: false, error: "Une erreur est survenue lors de la suppression du parent." };
     }
 }
 
 // Create Lesson Action
 export const createLesson = async (
-    _currentState: { success: boolean; error: boolean; message?: string },
+    _currentState: { success: boolean; error: string | null; },
     data: LessonSchemaInput
 ) => {
     const { userId, sessionClaims } = await auth();
@@ -669,7 +737,7 @@ export const createLesson = async (
 
     try {
         if (!userId) {
-            return { success: false, error: true };
+            return { success: false, error: "Utilisateur non authentifié" };
         }
 
         const teacherId = role === "teacher" ? userId : data.teacherId;
@@ -692,9 +760,7 @@ export const createLesson = async (
         if (conflict) {
             return {
                 success: false,
-                error: true,
-                message:
-                    "Conflit d’horaire : l’enseignant ou la classe est déjà occupé(e).",
+                error: "Conflit d’horaire : l’enseignant ou la classe est déjà occupé(e)."
             };
         }
 
@@ -710,10 +776,10 @@ export const createLesson = async (
             },
         });
 
-        return { success: true, error: false };
+        return { success: true, error: null };
     } catch (error) {
         console.error("Create lesson error:", error);
-        return { success: false, error: true };
+        return { success: false, error: "Une erreur est survenue lors de la création du cours." };
     }
 };
 
@@ -726,7 +792,7 @@ export const updateLesson = async (currentState: currentState, data: LessonSchem
             const teacherLesson = await prisma.lesson.findFirst({
                 where: {
                     teacherId: userId!,
-                    id: data.lessonId
+                    id: data.subjectId
                 }
             })
 
@@ -743,14 +809,14 @@ export const updateLesson = async (currentState: currentState, data: LessonSchem
                 name: data.name,
                 startTime: data.startTime,
                 endTime: data.endTime,
-                lessonId: data.lessonId
+                subjectId: data.subjectId
             }
         });
-        return { success: true, error: false }
+        return { success: true, error: null }
 
     } catch (error) {
         console.log(error)
-        return { success: false, error: true };
+        return { success: false, error: "Une erreur est survenue lors de la mise à jour du cours." };
     }
 };
 
@@ -771,11 +837,11 @@ export const deleteLesson = async (currentState: currentState, data: FormData) =
                 name: true,
             }
         });
-        return { success: true, error: false }
+        return { success: true, error: null }
 
     } catch (error) {
         console.log(error)
-        return { success: false, error: true };
+        return { success: false, error: "Une erreur est survenue lors de la suppression du cours." };
     }
 };
 
@@ -798,7 +864,7 @@ export const createAssignment = async (
         const dueDate = new Date(data.dueDate);
 
         if (isNaN(startDate.getTime()) || isNaN(dueDate.getTime())) {
-            return { success: false, error: true };
+            return { success: false, error: null };
         }
 
         if (dueDate <= startDate) {
@@ -829,10 +895,10 @@ export const createAssignment = async (
             },
         });
 
-        return { success: true, error: false };
+        return { success: true, error: null };
     } catch (error) {
         console.error("Create Assignment Error ❌", error);
-        return { success: false, error: true };
+        return { success: false, error: "Erreur lors de la création" };
     }
 };
 
@@ -846,12 +912,12 @@ export const updateAssignment = async (
     try {
         // 🔐 Autorisation
         if (!["teacher", "admin"].includes(role ?? "")) {
-            return { success: false, error: true };
+            return { success: false, error: "Vous n’êtes pas autorisé à effectuer cette action." };
         }
 
         // 🆔 ID obligatoire
         if (!data.id) {
-            return { success: false, error: true };
+            return { success: false, error: "ID requis" };
         }
 
         // 🕒 Validation des dates
@@ -859,11 +925,11 @@ export const updateAssignment = async (
         const dueDate = new Date(data.dueDate);
 
         if (isNaN(startDate.getTime()) || isNaN(dueDate.getTime())) {
-            return { success: false, error: true };
+            return { success: false, error: null };
         }
 
         if (dueDate <= startDate) {
-            return { success: false, error: true };
+            return { success: false, error: "La date de remise doit être postérieure à la date de début." };
         }
 
         // 👨‍🏫 Vérifier que le prof possède la leçon
@@ -893,10 +959,10 @@ export const updateAssignment = async (
             },
         });
 
-        return { success: true, error: false };
+        return { success: true, error: null };
     } catch (error) {
         console.error("Update Assignment Error ❌", error);
-        return { success: false, error: true };
+        return { success: false, error: "Erreur lors de la mise à jour" };
     }
 };
 
@@ -917,11 +983,11 @@ export const deleteAssignment = async (currentState: currentState, data: FormDat
                 title: true,
             }
         });
-        return { success: true, error: false }
+        return { success: true, error: null }
 
     } catch (error) {
         console.log(error)
-        return { success: false, error: true };
+        return { success: false, error: "Une erreur est survenue lors de la suppression du devoir." };
     }
 };
 
@@ -969,7 +1035,7 @@ export const createResult = async (
             },
         });
 
-        return { success: true, error: false };
+        return { success: true, error: null };
     } catch (error) {
         console.error(error);
         return {
@@ -1005,7 +1071,7 @@ export const updateResult = async (
             },
         });
 
-        return { success: true, error: false };
+        return { success: true, error: null };
     } catch (error) {
         console.error(error);
         return {
@@ -1038,14 +1104,14 @@ export const deleteResult = async (currentState: currentState, data: FormData) =
             },
             select: {
                 id: true,
-                title: true,
+                score: true,
             }
         });
-        return { success: true, error: false }
+        return { success: true, error: null }
 
     } catch (error) {
         console.log(error)
-        return { success: false, error: true };
+        return { success: false, error: "Une erreur est survenue lors de la suppression de la note." };
     }
 };
 
@@ -1235,7 +1301,7 @@ export const updateAttendance = async (
             },
         });
 
-        return { success: true, error: false };
+        return { success: true, error: null };
     } catch (error) {
         console.error("updateAttendance error:", error);
         return {
@@ -1358,6 +1424,7 @@ export const getStudentAttendancesForParent = async (studentId: string) => {
     return {
         success: true,
         data: attendances,
+        error: null,
     };
 };
 
@@ -1402,6 +1469,7 @@ export const getStudentAssignmentsForParent = async (studentId: string) => {
     return {
         success: true,
         data: assignments,
+        error: null,
     };
 };
 
@@ -1439,4 +1507,240 @@ export const getExams = async (studentId?: string) => {
             },
         },
     });
+};
+
+// Create Announcement Action
+export const createAnnouncement = async (
+    currentState: currentState,
+    data: AnnouncementSchemaInput
+) => {
+    const { userId, sessionClaims } = await auth();
+    const role = (sessionClaims?.metadata as { role?: string })?.role;
+
+    try {
+        if (!userId || role !== "admin") {
+            return {
+                success: false,
+                error: "Vous n'êtes pas autorisé à créer une annonce.",
+            };
+        }
+
+        await prisma.announcement.create({
+            data: {
+                title: data.title,
+                date: data.date,
+                description: data.description ?? null,
+                ...(data.classId !== undefined && { classId: data.classId }),
+            },
+        });
+
+        return { success: true, error: null };
+    } catch (error) {
+        console.error("Create Announcement Error ❌", error);
+        return {
+            success: false,
+            error: "Une erreur est survenue lors de la création de l'annonce.",
+        };
+    }
+};
+
+// Update Announcement Action
+export const updateAnnouncement = async (
+    currentState: currentState,
+    data: AnnouncementSchemaInput
+) => {
+    const { userId, sessionClaims } = await auth();
+    const role = (sessionClaims?.metadata as { role?: string })?.role;
+
+    try {
+        if (!userId || role !== "admin") {
+            return {
+                success: false,
+                error: "Vous n'êtes pas autorisé à modifier une annonce.",
+            };
+        }
+
+        if (!data.id) {
+            return {
+                success: false,
+                error: "ID de l'annonce manquant.",
+            };
+        }
+
+        await prisma.announcement.update({
+            where: { id: data.id },
+            data: {
+                title: data.title,
+                date: data.date,
+                description: data.description ?? null,
+                ...(data.classId !== undefined && { classId: data.classId }),
+            },
+        });
+
+        return { success: true, error: null };
+    } catch (error) {
+        console.error("Update Announcement Error ❌", error);
+        return {
+            success: false,
+            error: "Une erreur est survenue lors de la mise à jour de l'annonce.",
+        };
+    }
+};
+
+// Delete Announcement Action
+export const deleteAnnouncement = async (
+    currentState: currentState,
+    data: FormData
+) => {
+    const id = Number(data.get("id"));
+
+    const { userId, sessionClaims } = await auth();
+    const role = (sessionClaims?.metadata as { role?: string })?.role;
+
+    try {
+        if (!userId || role !== "admin") {
+            return {
+                success: false,
+                error: "Vous n'êtes pas autorisé à supprimer une annonce.",
+            };
+        }
+
+        if (!id || isNaN(id)) {
+            return {
+                success: false,
+                error: "ID invalide.",
+            };
+        }
+
+        await prisma.announcement.delete({
+            where: { id },
+        });
+
+        return { success: true, error: null };
+    } catch (error) {
+        console.error("Delete Announcement Error ❌", error);
+        return {
+            success: false,
+            error: "Une erreur est survenue lors de la suppression de l'annonce.",
+        };
+    }
+};
+
+// Create Event Action
+export const createEvent = async (
+    currentState: currentState,
+    data: EventSchemaInput
+) => {
+    const { userId, sessionClaims } = await auth();
+    const role = (sessionClaims?.metadata as { role?: string })?.role;
+
+    try {
+        if (!userId || role !== "admin") {
+            return {
+                success: false,
+                error: "Vous n'êtes pas autorisé à créer un événement.",
+            };
+        }
+
+        await prisma.event.create({
+            data: {
+                title: data.title,
+                startTime: data.startTime,
+                endTime: data.endTime,
+                description: data.description,
+                ...(data.classId !== undefined && { classId: data.classId }),
+            },
+        });
+
+        return { success: true, error: null };
+    } catch (error) {
+        console.error("Create Event Error ❌", error);
+        return {
+            success: false,
+            error: "Une erreur est survenue lors de la création de l'annonce.",
+        };
+    }
+};
+
+// Update Event Action
+export const updateEvent = async (
+    currentState: currentState,
+    data: EventSchemaInput
+) => {
+    const { userId, sessionClaims } = await auth();
+    const role = (sessionClaims?.metadata as { role?: string })?.role;
+
+    try {
+        if (!userId || role !== "admin") {
+            return {
+                success: false,
+                error: "Vous n'êtes pas autorisé à modifier une annonce.",
+            };
+        }
+
+        if (!data.id) {
+            return {
+                success: false,
+                error: "ID de l'événement manquant.",
+            };
+        }
+
+        await prisma.event.update({
+            where: { id: data.id },
+            data: {
+                title: data.title,
+                startTime: data.startTime,
+                endTime: data.endTime,
+                description: data.description,
+                ...(data.classId !== undefined && { classId: data.classId }),
+            },
+        });
+
+        return { success: true, error: null };
+    } catch (error) {
+        console.error("Update Event Error ❌", error);
+        return {
+            success: false,
+            error: "Une erreur est survenue lors de la mise à jour de l'annonce.",
+        };
+    }
+};
+
+// Delete Event Action
+export const deleteEvent = async (
+    currentState: currentState,
+    data: FormData
+) => {
+    const id = Number(data.get("id"));
+
+    const { userId, sessionClaims } = await auth();
+    const role = (sessionClaims?.metadata as { role?: string })?.role;
+
+    try {
+        if (!userId || role !== "admin") {
+            return {
+                success: false,
+                error: "Vous n'êtes pas autorisé à supprimer une annonce.",
+            };
+        }
+
+        if (!id || isNaN(id)) {
+            return {
+                success: false,
+                error: "ID invalide.",
+            };
+        }
+
+        await prisma.event.delete({
+            where: { id },
+        });
+
+        return { success: true, error: null };
+    } catch (error) {
+        console.error("Delete Event Error ❌", error);
+        return {
+            success: false,
+            error: "Une erreur est survenue lors de la suppression de l'annonce.",
+        };
+    }
 };

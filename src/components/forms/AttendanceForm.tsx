@@ -36,7 +36,7 @@ const AttendanceForm = ({
         handleSubmit,
         watch,
         formState: { errors },
-    } = useForm<AttendanceSchemaInput>({
+    } = useForm({
         resolver: zodResolver(attendanceSchema),
         defaultValues: {
             status: role === "parent" ? "ABSENT" : data?.status ?? "PRESENT",
@@ -119,11 +119,18 @@ const AttendanceForm = ({
                             defaultValue={data?.studentId}
                             className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm"
                         >
-                            {relatedData?.students?.map((student) => (
+                            {relatedData?.students?.map(
+                                (student: { id: string; name: string; surname: string }) => (
+                                    <option key={student.id} value={student.id}>
+                                        {student.name} {student.surname}
+                                    </option>
+                                )
+                            )}
+                            {/* {relatedData?.students?.map((student) => (
                                 <option key={student.id} value={student.id}>
                                     {student.name} {student.surname}
                                 </option>
-                            ))}
+                            ))} */}
                         </select>
                         {errors.studentId && (
                             <p className="text-xs text-red-500">{errors.studentId.message}</p>
@@ -138,11 +145,18 @@ const AttendanceForm = ({
                             defaultValue={data?.lessonId}
                             className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm"
                         >
-                            {relatedData?.lessons?.map((lesson) => (
+                            {relatedData?.lessons?.map(
+                                (lesson: { id: number; name: string }) => (
+                                    <option key={lesson.id} value={lesson.id}>
+                                        {lesson.name}
+                                    </option>
+                                )
+                            )}
+                            {/* {relatedData?.lessons?.map((lesson) => (
                                 <option key={lesson.id} value={lesson.id}>
                                     {lesson.name}
                                 </option>
-                            ))}
+                            ))} */}
                         </select>
                         {errors.lessonId && (
                             <p className="text-xs text-red-500">{errors.lessonId.message}</p>
@@ -202,7 +216,7 @@ const AttendanceForm = ({
                             <label>Commentaire / justification</label>
                             <textarea
                                 {...register("comment")}
-                                className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm min-h-[90px]"
+                                className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm min-h-22.5"
                                 placeholder="Ex : Maladie, rendez-vous médical..."
                             />
                             {errors.comment && (
@@ -222,7 +236,9 @@ const AttendanceForm = ({
                                 uploadPreset="school"
                                 options={{
                                     resourceType: "auto",
-                                    access_mode: "public", // ✅ OBLIGATOIRE POUR PDF
+                                    multiple: false,
+                                    folder: "attendance",
+                                    //access_mode: "public", / / ✅ OBLIGATOIRE POUR PDF
                                     maxFiles: 1,
                                     maxFileSize: 5_000_000,
                                     clientAllowedFormats: ["jpg", "jpeg", "png", "pdf"],
@@ -254,18 +270,28 @@ const AttendanceForm = ({
 
 
                     </div>
-                )}
+                )
+                }
 
                 {/* ACTION */}
                 <button
+                    type="submit"
                     disabled={isPending}
-                    className="bg-blue-600 text-white py-2 cursor-pointer rounded-md disabled:opacity-50"
+                    className="bg-blue-600 text-white py-2 rounded-md cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                    {isPending ? "Enregistrement..." : "Valider"}
+                    {isPending && (
+                        <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    )}
+                    <span>
+                        {isPending
+                            ? "Enregistrement..."
+                            : type === "create"
+                                ? "Enregistrer"
+                                : "Valider"}
+                    </span>
                 </button>
-
-            </form>
-        </div>
+            </form >
+        </div >
 
     );
 };

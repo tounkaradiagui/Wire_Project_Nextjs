@@ -5,10 +5,15 @@ import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import Image from "next/image";
-import { AttendanceStatus } from "@/generated/prisma";
-import { Prisma } from "@/generated/prisma";
+import { AttendanceStatus } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import prisma from "@/lib/prisma";
+import {
+  Eye,
+  Filter,
+  ArrowUpDown
+} from "lucide-react";
 import { auth } from "@clerk/nextjs/server";
 
 
@@ -253,6 +258,22 @@ const AttendanceListPage = async ({
             </button>
             <button className="bg-red-500 text-white px-3 py-1 rounded text-sm">
               Export PDF
+            </button>
+            <button
+              className="flex items-center gap-1 px-3 py-1.5 rounded-md
+                          bg-gray-100 hover:bg-gray-200 text-gray-700
+                          transition"
+            >
+              <Filter size={16} />
+              <span className="text-sm">Filtrer</span>
+            </button>
+            <button
+              className="flex items-center gap-1 px-3 py-1.5 rounded-md
+                          bg-gray-100 hover:bg-gray-200 text-gray-700
+                          transition"
+            >
+              <ArrowUpDown size={16} />
+              <span className="text-sm">Trier</span>
             </button>
 
             {(role === "admin" || role === "teacher" || role === "parent") && (

@@ -5,10 +5,14 @@ import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import { ITEM_PER_PAGE } from "@/lib/settings";
-import Image from "next/image";
 import prisma from "@/lib/prisma";
-import { Parent, Prisma, Student } from "generated/prisma/client";
+import { Parent, Prisma, Student } from "@prisma/client";
 import { auth } from "@clerk/nextjs/server";
+import {
+  Eye,
+  Filter,
+  ArrowUpDown
+} from "lucide-react";
 import { parentRoleFilter } from "@/lib/roleFilters";
 
 
@@ -122,23 +126,21 @@ const ParentListPage = async ({
         <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto items-center">
           <TableSearch />
           <div className="flex items-center gap-4 self-end">
-            <button className="bg-blue-300 text-white w-8 h-8 items-center justify-center rounded-full flex">
-              <Image
-                src="/filter.png"
-                alt="filter"
-                width={14}
-                height={14}
-                className="cursor-pointer"
-              />
+            <button
+              className="flex items-center gap-1 px-3 py-1.5 rounded-md
+                          bg-gray-100 hover:bg-gray-200 text-gray-700
+                          transition"
+            >
+              <Filter size={16} />
+              <span className="text-sm">Filtrer</span>
             </button>
-            <button className="bg-yellow-300 text-white w-8 h-8 items-center justify-center rounded-full flex">
-              <Image
-                src="/sort.png"
-                alt="sort"
-                width={14}
-                height={14}
-                className="cursor-pointer"
-              />
+            <button
+              className="flex items-center gap-1 px-3 py-1.5 rounded-md
+                          bg-gray-100 hover:bg-gray-200 text-gray-700
+                          transition"
+            >
+              <ArrowUpDown size={16} />
+              <span className="text-sm">Trier</span>
             </button>
             {role === "admin" && <FormContainer table="parent" type="create" />}
           </div>

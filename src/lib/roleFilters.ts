@@ -1,4 +1,4 @@
-import { Prisma } from "generated/prisma/client";
+import { Prisma } from "@prisma/client";
 
 /**
  * Filtre automatiquement les élèves visibles selon le rôle

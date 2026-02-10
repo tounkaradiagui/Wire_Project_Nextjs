@@ -1,5 +1,5 @@
 import prisma from '@/lib/prisma';
-import { PrismaClient } from "../../src/generated/prisma";
+import { PrismaClient } from "@prisma/client";
 
 export async function seedLessons(prisma: PrismaClient) {
     const subjects = await prisma.subject.findMany();

@@ -1,4 +1,4 @@
-import { PrismaClient } from "../../src/generated/prisma";
+import { PrismaClient } from "@prisma/client";
 import { randomName, randomElement } from "./utils";
 import prisma from '@/lib/prisma';
 

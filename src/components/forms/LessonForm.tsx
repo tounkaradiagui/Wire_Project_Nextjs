@@ -4,7 +4,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import InputField from "../InputField";
 import {
-    LessonSchemaInput,
     lessonSchema,
 } from "@/lib/formValidationSchemas";
 import { createLesson, updateLesson } from "@/lib/actions";
@@ -33,14 +32,14 @@ const LessonForm = ({
         register,
         handleSubmit,
         formState: { errors },
-    } = useForm<LessonSchemaInput>({
+    } = useForm({
         resolver: zodResolver(lessonSchema),
         defaultValues: data,
     });
 
     const [state, formAction, isPending] = useActionState(
         type === "create" ? createLesson : updateLesson,
-        { success: false, error: false }
+        { success: false, error: null as string | null, }
     );
 
     const router = useRouter();
@@ -138,7 +137,9 @@ const LessonForm = ({
                             ))}
                         </select>
                         {errors.day && (
-                            <p className="text-xs text-red-500">{errors.day.message}</p>
+                            <span className="text-[11px] text-red-500">
+                                {errors.day.message?.toString()}
+                            </span>
                         )}
                     </div>
 
@@ -157,7 +158,9 @@ const LessonForm = ({
                             ))}
                         </select>
                         {errors.classId && (
-                            <p className="text-xs text-red-500">{errors.classId.message}</p>
+                            <span className="text-[11px] text-red-500">
+                                {errors.classId.message?.toString()}
+                            </span>
                         )}
                     </div>
 
@@ -176,7 +179,9 @@ const LessonForm = ({
                             ))}
                         </select>
                         {errors.subjectId && (
-                            <p className="text-xs text-red-500">{errors.subjectId.message}</p>
+                            <span className="text-[11px] text-red-500">
+                                {errors.subjectId.message?.toString()}
+                            </span>
                         )}
                     </div>
 
@@ -195,18 +200,27 @@ const LessonForm = ({
                             ))}
                         </select>
                         {errors.teacherId && (
-                            <p className="text-xs text-red-500">
-                                {errors.teacherId.message}
-                            </p>
+                            <span className="text-[11px] text-red-500">
+                                {errors.teacherId.message?.toString()}
+                            </span>
                         )}
                     </div>
                 </div>
-
                 <button
+                    type="submit"
                     disabled={isPending}
-                    className="bg-blue-500 text-white p-2 rounded-md disabled:opacity-50 cursor-pointer"
+                    className="bg-blue-600 text-white py-2 rounded-md cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                    {type === "create" ? "Enregistrer" : "Mettre à jour"}
+                    {isPending && (
+                        <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    )}
+                    <span>
+                        {isPending
+                            ? "Enregistrement..."
+                            : type === "create"
+                                ? "Enregistrer"
+                                : "Valider"}
+                    </span>
                 </button>
             </form>
         </div>

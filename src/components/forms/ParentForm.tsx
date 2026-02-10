@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import InputField from "../InputField";
-import { parentSchema, ParentSchemaInput } from "@/lib/formValidationSchemas";
+import { parentSchema } from "@/lib/formValidationSchemas";
 import { Dispatch, SetStateAction, useActionState, useEffect, useState, startTransition } from "react";
 import { createParent, updateParent } from "@/lib/actions";
 import { useRouter } from "next/navigation";
@@ -25,7 +25,7 @@ const ParentForm = ({
         register,
         handleSubmit,
         formState: { errors },
-    } = useForm<ParentSchemaInput>({
+    } = useForm({
         resolver: zodResolver(parentSchema),
     });
 
@@ -33,7 +33,7 @@ const ParentForm = ({
         type === "create" ? createParent : updateParent,
         {
             success: false,
-            error: false,
+            error: null as string | null,
         }
     );
 
@@ -147,7 +147,7 @@ const ParentForm = ({
                     <InputField
                         label="Date de naissance"
                         name="birthday"
-                        defaultValue={data?.birthday.toISOString().split("T")[0]}
+                        defaultValue={data?.birthday}
                         register={register}
                         error={errors?.birthday}
                         type="date"
@@ -190,9 +190,23 @@ const ParentForm = ({
                     )}
                 </div>
 
-                <button className="bg-blue-500 text-white p-2 rounded-md cursor-pointer">
-                    {type === "create" ? "Enregistrer" : "Valider"}
+                <button
+                    type="submit"
+                    disabled={isPending}
+                    className="bg-blue-600 text-white py-2 rounded-md cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                    {isPending && (
+                        <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    )}
+                    <span>
+                        {isPending
+                            ? "Enregistrement..."
+                            : type === "create"
+                                ? "Enregistrer"
+                                : "Valider"}
+                    </span>
                 </button>
+
             </form>
         </div>
     );

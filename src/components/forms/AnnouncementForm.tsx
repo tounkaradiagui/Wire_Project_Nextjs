@@ -2,182 +2,176 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import z from "zod";
 import InputField from "../InputField";
-import Image from "next/image";
-
-const schema = z.object({
-  username: z
-    .string()
-    .min(3, {
-      message: "Le nom d'utilisateur doit contenir au moins 3 caractères.",
-    })
-    .max(20, {
-      message: "Le nom d'utilisateur ne doit pas dépasser 20 caractères.",
-    }),
-  email: z.string().email({ message: "Adresse email invalide" }),
-  password: z
-    .string()
-    .min(4, { message: "Le mot de passe doit contenir au moins 4 caractères." })
-    .max(20, {
-      message: "Le mot de passe ne doit pas dépasser 20 caractères.",
-    }),
-  firstName: z.string().min(1, { message: "Le prénom est obligatoire" }),
-  lastName: z.string().min(1, { message: "Le nom est obligatoire" }),
-  phone: z.string().min(1, { message: "Le numéro est obligatoire" }),
-  birthday: z.date({ message: "Le date de naissance est obligatoire" }),
-  address: z.string().min(1, { message: "L'adresse est obligatoire" }),
-  sex: z.enum(["male", "female"], { message: "Le genre est réquis !" }),
-  bloodType: z.string().min(1, { message: "Le type saguin est réquis !" }),
-  image: z.instanceof(File, { message: "L'image est réquis !" }),
-});
-
-type Inputs = z.infer<typeof schema>;
+import { Dispatch, SetStateAction, startTransition, useActionState, useEffect, useState } from "react";
+import { toast } from "react-toastify";
+import { useRouter } from "next/navigation";
+import { announcementSchema } from "@/lib/formValidationSchemas";
+import { createAnnouncement, updateAnnouncement } from "@/lib/actions";
 
 const AnnouncementForm = ({
+  setOpen,
   type,
   data,
+  relatedData,
 }: {
+  setOpen: React.Dispatch<React.SetStateAction<boolean>>;
   type: "create" | "update";
   data?: any;
+  relatedData?: any;
 }) => {
   const {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<Inputs>({
-    resolver: zodResolver(schema),
+  } = useForm({
+    resolver: zodResolver(announcementSchema),
   });
 
+  const [state, formAction, isPending] = useActionState(
+    type === "create" ? createAnnouncement : updateAnnouncement,
+    {
+      success: false,
+      error: null as string | null,
+    }
+  );
+
+  const [serverError, setServerError] = useState<string | null>(null);
+
+  // const onSubmit = handleSubmit((data) => {
+  //   console.log(data);
+  // });
   const onSubmit = handleSubmit((data) => {
-    console.log(data);
+    startTransition(() => {
+      setServerError(null)
+      formAction(data);
+    });
   });
+
+  const router = useRouter();
+
+  useEffect(() => {
+    if (state.success) {
+      toast.success(
+        `L'annonce a été ${type === "create" ? "ajoutée avec succès" : "mise à jour avec succès"
+        }`,
+        {
+          style: {
+            background: "dark",
+            color: "#ffffff",
+            fontWeight: "bold",
+            fontSize: "14px",
+          },
+        }
+      );
+      setOpen(false);
+      router.refresh();
+    }
+
+    if (state.error) {
+      setServerError(state.error);
+      toast.error(state.error, {
+        style: {
+          background: "#dc2626",
+          color: "#ffffff",
+          fontWeight: "bold",
+          fontSize: "14px",
+        },
+      });
+      router.refresh();
+    }
+  }, [state.success, state.error, type, router, setOpen]);
+
+  const classes = relatedData?.classes || [];
 
   return (
     <form className="flex flex-col gap-8" onSubmit={onSubmit}>
-      <h1 className="text-xl font-semibold">Ajouter un nouvel élève</h1>
+      <h1 className="text-xl font-semibold">Ajouter une nouvelle annonce</h1>
       {/* SECTION 1 */}
       <span className="text-sm text-gray-600 font-semibold border-b pb-1">
-        Information de connexion
+        Informations de base
       </span>
 
       <div className="flex justify-between flex-wrap gap-4">
         <InputField
-          label="Username"
-          name="username"
-          defaultValue={data?.username}
+          label="Tite de l'annonce"
+          name="title"
+          defaultValue={data?.title}
           register={register}
-          error={errors?.username}
+          error={errors?.title}
         />
         <InputField
-          label="Adresse Email"
-          name="email"
-          type="email"
-          defaultValue={data?.email}
+          label="Date de l'annonce"
+          name="date"
+          defaultValue={data?.date}
           register={register}
-          error={errors?.email}
-        />
-        <InputField
-          label="Mot de passe"
-          name="password"
-          type="password"
-          defaultValue={data?.password}
-          register={register}
-          error={errors?.password}
-        />
-      </div>
-      <span className="text-sm text-gray-600 font-semibold border-b pb-1">
-        Information personnelle
-      </span>
-
-      <div className="flex justify-between flex-wrap gap-4">
-        <InputField
-          label="Prénom"
-          name="firstName"
-          defaultValue={data?.firstName}
-          register={register}
-          error={errors?.firstName}
-        />
-        <InputField
-          label="Nom"
-          name="lastName"
-          defaultValue={data?.lastName}
-          register={register}
-          error={errors?.lastName}
-        />
-        <InputField
-          label="Numéro de téléphone"
-          name="phone"
-          defaultValue={data?.phone}
-          register={register}
-          error={errors?.phone}
-        />
-        <InputField
-          label="Adresse"
-          name="address"
-          defaultValue={data?.address}
-          register={register}
-          error={errors?.address}
-        />
-        <InputField
-          label="Type Saguin"
-          name="bloodType"
-          defaultValue={data?.bloodType}
-          register={register}
-          error={errors?.bloodType}
-        />
-        <InputField
-          label="Date de naissance"
-          name="birthday"
-          defaultValue={data?.birthday}
-          register={register}
-          error={errors?.birthday}
+          error={errors?.date}
+          inputClassName="text-sm py-2"
           type="date"
         />
 
+        {data && (
+          <InputField
+            label="ID"
+            name="id"
+            defaultValue={data?.id}
+            register={register}
+            error={errors?.id}
+            hidden
+          />
+        )}
+
+        {/* Classe */}
         <div className="flex flex-col gap-2 rounded-full md:w-1/4">
-          <label htmlFor="">Genre</label>
+          <label>Classe</label>
           <select
+            {...register("classId")}
+            defaultValue=""
             className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
-            {...register("sex")}
-            defaultValue={data?.sex}
           >
-            <option value="">Selectionner</option>
-            <option value="MALE">Masculin</option>
-            <option value="FEMALE">Feminin</option>
+            <option value="">Toutes les classes</option>
+            {classes.map((c: any) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
           </select>
-          {errors.sex && (
-            <p className="text-xs text-red-500">
-              {errors.sex.message?.toString()}
-            </p>
+          {errors.classId && (
+            <span className="text-[11px] text-red-500">
+              {errors.classId.message?.toString()}
+            </span>
           )}
         </div>
 
-        <div className="flex flex-col gap-2 rounded-full md:w-1/4 mt-4">
-          <label
-            htmlFor="image"
-            className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 transition p-2 rounded-md cursor-pointer text-sm border border-gray-300"
-          >
-            <Image src="/upload.png" alt="" width={28} height={28} />
-            <span>Télécharger une photo</span>
-          </label>
-          <input
-            id="image"
-            type="file"
-            {...register("image")}
-            className="hidden"
+        {/* Description */}
+        <div className="flex flex-col gap-1 md:col-span-2">
+          <label>Description</label>
+          <textarea
+            {...register("description")}
+            className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm min-h-22.5"
+            placeholder="Description..."
           />
-
-          {errors?.image && (
-            <p className="text-xs text-red-500">
-              {errors.image.message?.toString()}
-            </p>
+          {errors.description && (
+            <p className="text-xs text-red-500">{errors.description.message}</p>
           )}
         </div>
       </div>
 
-      <button className="bg-blue-500 text-white p-2 rounded-md cursor-pointer">
-        {type === "create" ? "Enregistrer" : "Valider"}
+      <button
+        type="submit"
+        disabled={isPending}
+        className="bg-blue-600 text-white py-2 rounded-md cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
+      >
+        {isPending && (
+          <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+        )}
+        <span>
+          {isPending
+            ? "Enregistrement..."
+            : type === "create"
+              ? "Enregistrer"
+              : "Valider"}
+        </span>
       </button>
     </form>
   );

@@ -14,14 +14,14 @@ import {
 
 interface UserCardsProps {
   type:
-    | "admin"
-    | "student"
-    | "teacher"
-    | "parent"
-    | "absence"
-    | "subject"
-    | "message"
-    | "conversation";
+  | "admin"
+  | "student"
+  | "teacher"
+  | "parent"
+  | "absence"
+  | "subject"
+  | "message"
+  | "conversation";
 }
 
 const cardData = {
@@ -76,10 +76,22 @@ const UserCards = async ({ type }: UserCardsProps) => {
     parent: prisma.parent,
   };
 
+
   // Only use Prisma count for the supported types
-  const dynamicCount = prismaModels[type]
-    ? await prismaModels[type].count()
-    : 0;
+  // const dynamicCount = prismaModels[type]
+  //   ? await prismaModels[type].count()
+  //   : 0;
+
+
+  let dynamicCount = 0;
+
+  try {
+    if (prismaModels[type]) {
+      dynamicCount = await prismaModels[type].count();
+    }
+  } catch (error) {
+    console.error("Prisma count failed:", error);
+  }
 
   const meta = cardData[type];
 

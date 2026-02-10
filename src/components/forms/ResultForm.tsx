@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { ResultSchemaInput, resultSchema } from "@/lib/formValidationSchemas";
+import { resultSchema } from "@/lib/formValidationSchemas";
 import { createResult, updateResult } from "@/lib/actions";
 import { Dispatch, SetStateAction, startTransition, useActionState, useEffect } from "react";
 import { toast } from "react-toastify";
@@ -24,13 +24,13 @@ const ResultForm = ({
         register,
         handleSubmit,
         formState: { errors },
-    } = useForm<ResultSchemaInput>({
+    } = useForm({
         resolver: zodResolver(resultSchema),
     });
 
     const [state, formAction, isPending] = useActionState(
         type === "create" ? createResult : updateResult,
-        { success: false, error: false }
+        { success: false, error: null as string | null }
     );
 
     const router = useRouter();
@@ -128,14 +128,20 @@ const ResultForm = ({
             )}
 
             <button
+                type="submit"
                 disabled={isPending}
-                className={`p-2 rounded-md text-white transition
-                ${isPending
-                        ? "bg-gray-400 cursor-not-allowed"
-                        : "bg-blue-500 hover:bg-blue-600"}
-                `}
+                className="bg-blue-600 text-white py-2 rounded-md cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
             >
-                {isPending ? "Chargement..." : "Valider"}
+                {isPending && (
+                    <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                )}
+                <span>
+                    {isPending
+                        ? "Enregistrement..."
+                        : type === "create"
+                            ? "Enregistrer"
+                            : "Valider"}
+                </span>
             </button>
         </form>
     );

@@ -1,15 +1,17 @@
 "use server";
 
-import FormModal from "@/components/FormModal";
+import FormContainer from "@/components/FormContainer";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
-import Image from "next/image";
-import { Prisma } from "@/generated/prisma";
+import { Prisma } from "@prisma/client";
 import { ITEM_PER_PAGE } from "@/lib/settings";
-import { role } from "@/lib/utils";
 import prisma from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
+import {
+  Filter,
+  ArrowUpDown
+} from "lucide-react";
 
 type EventList = Prisma.EventGetPayload<{
   include: {
@@ -17,75 +19,12 @@ type EventList = Prisma.EventGetPayload<{
   };
 }>;
 
-const columns = [
-  { header: "Titre", accessor: "info" },
-
-  { header: "Classe", accessor: "class" },
-  {
-    header: "Date",
-    accessor: "date",
-    className: "hidden md:table-cell ",
-  },
-  {
-    header: "Date de début",
-    accessor: "startTime",
-    className: "hidden md:table-cell ",
-  },
-  {
-    header: "Date de fin",
-    accessor: "endTime",
-    className: "hidden md:table-cell ",
-  },
-  ...(role === "admin" ? [{ header: "Actions", accessor: "actions" }] : []),
-];
-
-const renderRow = (item: EventList) => (
-  <tr
-    key={item.id}
-    className="border-b hover:bg-blue-200 even:bg-slate-50 border-t border-gray-200 border-l border-r"
-  >
-    <td className="flex items-center gap-4 p-4">
-      <div className="flex flex-col">
-        <h3 className="font-semibold">{item.title}</h3>
-      </div>
-    </td>
-    <td>{item.class?.name || "-"}</td>
-    <td className="hidden md:table-cell">
-      {new Intl.DateTimeFormat("fr-FR").format(item.startTime)}
-    </td>
-    <td className="hidden md:table-cell">
-      {item.startTime.toLocaleTimeString("fr-FR", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      })}
-    </td>
-    <td className="hidden md:table-cell">
-      {item.endTime.toLocaleTimeString("fr-FR", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      })}
-    </td>
-    <td>
-      <div className="flex items-center gap-2">
-        {role === "admin" && (
-          <>
-            <FormModal table="event" type="update" data={item} />
-            <FormModal table="event" type="delete" id={item.id} />
-          </>
-        )}
-      </div>
-    </td>
-  </tr>
-);
-
 const EventListPage = async ({
   searchParams,
 }: {
   searchParams: { [key: string]: string | undefined };
 }) => {
-  const { page, ...queryParams } = searchParams;
+  const { page, ...queryParams } = await searchParams;
 
   const p = page ? parseInt(page) : 1;
 
@@ -93,6 +32,66 @@ const EventListPage = async ({
   const role = (sessionClaims?.metadata as { role?: string })?.role;
   const currentUserId = userId;
 
+  const columns = [
+    { header: "Titre", accessor: "info" },
+
+    { header: "Classe", accessor: "class" },
+    {
+      header: "Date de début",
+      accessor: "startTime",
+      className: "hidden md:table-cell ",
+    },
+    {
+      header: "Date de fin",
+      accessor: "endTime",
+      className: "hidden md:table-cell ",
+    },
+    ...(role === "admin" ? [{ header: "Actions", accessor: "actions" }] : []),
+  ];
+
+  const renderRow = (item: EventList) => (
+    <tr
+      key={item.id}
+      className="border-b hover:bg-blue-200 even:bg-slate-50 border-t border-gray-200 border-l border-r"
+    >
+      <td className="flex items-center gap-4 p-4">
+        <div className="flex flex-col">
+          <h3 className="font-semibold">{item.title}</h3>
+        </div>
+      </td>
+      <td>{item.class ? item.class.name : "Toutes les classes"}</td>
+      <td className="hidden md:table-cell">
+        {new Intl.DateTimeFormat("fr-FR").format(item.startTime)}
+      </td>
+      <td className="hidden md:table-cell">
+        {new Intl.DateTimeFormat("fr-FR").format(item.startTime)}
+      </td>
+      {/* <td className="hidden md:table-cell">
+        {item.startTime.toLocaleTimeString("fr-FR", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        })}
+      </td>
+      <td className="hidden md:table-cell">
+        {item.endTime.toLocaleTimeString("fr-FR", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        })}
+      </td> */}
+      <td>
+        <div className="flex items-center gap-2">
+          {role === "admin" && (
+            <>
+              <FormContainer table="event" type="update" data={item} />
+              <FormContainer table="event" type="delete" id={item.id} />
+            </>
+          )}
+        </div>
+      </td>
+    </tr>
+  );
   // URL PARAMS CONDITION
 
   const query: Prisma.EventWhereInput = {};
@@ -118,12 +117,14 @@ const EventListPage = async ({
     parent: { students: { some: { parentId: currentUserId! } } },
   };
 
-  query.OR = [
-    { classId: null },
-    {
-      class: roleConditions[role as keyof typeof roleConditions] || {},
-    },
-  ];
+  if (role !== "admin") {
+    query.OR = [
+      { classId: null },
+      {
+        class: roleConditions[role as keyof typeof roleConditions],
+      },
+    ];
+  }
 
   const [data, count] = await prisma.$transaction([
     prisma.event.findMany({
@@ -147,25 +148,23 @@ const EventListPage = async ({
         <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto items-center">
           <TableSearch />
           <div className="flex items-center gap-4 self-end">
-            <button className="bg-blue-300 text-white w-8 h-8 items-center justify-center rounded-full flex">
-              <Image
-                src="/filter.png"
-                alt="filter"
-                width={14}
-                height={14}
-                className="cursor-pointer"
-              />
+            <button
+              className="flex items-center gap-1 px-3 py-1.5 rounded-md
+                bg-gray-100 hover:bg-gray-200 text-gray-700
+                transition"
+            >
+              <Filter size={16} />
+              <span className="text-sm">Filtrer</span>
             </button>
-            <button className="bg-yellow-300 text-white w-8 h-8 items-center justify-center rounded-full flex">
-              <Image
-                src="/sort.png"
-                alt="sort"
-                width={14}
-                height={14}
-                className="cursor-pointer"
-              />
+            <button
+              className="flex items-center gap-1 px-3 py-1.5 rounded-md
+                bg-gray-100 hover:bg-gray-200 text-gray-700
+                transition"
+            >
+              <ArrowUpDown size={16} />
+              <span className="text-sm">Trier</span>
             </button>
-            {role === "admin" && <FormModal table="event" type="create" />}
+            {role === "admin" && <FormContainer table="event" type="create" />}
           </div>
         </div>
       </div>

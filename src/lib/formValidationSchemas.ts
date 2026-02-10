@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+// Subject Schema
 export const subjectSchema = z.object({
   id: z.coerce.number().optional(),
   name: z
@@ -11,7 +12,9 @@ export const subjectSchema = z.object({
 });
 
 export type SubjectSchemaInput = z.infer<typeof subjectSchema>;
+// End Subject Schema
 
+// Class Schema
 export const classSchema = z.object({
   id: z.coerce.number().optional(),
   name: z
@@ -29,7 +32,9 @@ export const classSchema = z.object({
 });
 
 export type ClassSchemaInput = z.infer<typeof classSchema>;
+// End Class Schema
 
+// Teacher Schema
 export const teacherSchema = z.object({
   id: z.coerce.string().optional(),
   username: z
@@ -52,12 +57,16 @@ export const teacherSchema = z.object({
   address: z.string(),
   image: z.string().optional(),
   birthday: z.coerce.date().optional(),
-  // birthday: z.coerce.date({ message: "Le date de naissance est obligatoire" }),
   sex: z.enum(["MALE", "FEMALE"], { message: "Le genre est réquis !" }),
   bloodType: z.string().min(1, { message: "Le type saguin est réquis !" }),
   subjects: z.array(z.string()).optional()
+  // subjects: z.array(z.coerce.number()).optional(),
 });
 
+export type TeacherSchemaInput = z.infer<typeof teacherSchema>;
+// End Teacher Schema
+
+// Exam Schema
 export const examSchema = z.object({
   id: z.coerce.number().optional(),
   title: z
@@ -71,9 +80,9 @@ export const examSchema = z.object({
 });
 
 export type ExamSchemaInput = z.infer<typeof examSchema>;
+// End Exam Schema
 
-export type TeacherSchemaInput = z.infer<typeof teacherSchema>;
-
+// Student Schema
 export const studentSchema = z.object({
   id: z.coerce.string().optional(),
   username: z
@@ -100,11 +109,13 @@ export const studentSchema = z.object({
   bloodType: z.string().min(1, { message: "Le type saguin est réquis !" }),
   gradeId: z.coerce.number().min(1, { message: "le niveau est réquis" }),
   classId: z.coerce.number().min(1, { message: "la classe est obligatoire" }),
-  parentId: z.coerce.string().min(1, { message: "Veuillez affecter cet élève à un parent" }),
+  parentId: z.coerce.string().min(1, { message: "Veuillez affecter un parent à cet élève" }),
 });
 
 export type StudentSchemaInput = z.infer<typeof studentSchema>;
+// End Student Schema
 
+// Parent Schema  
 export const parentSchema = z.object({
   id: z.coerce.string().optional(),
   username: z
@@ -123,7 +134,7 @@ export const parentSchema = z.object({
     .or(z.literal("")),
   name: z.string().min(1, { message: "Le prénom est obligatoire" }),
   surname: z.string().min(1, { message: "Le nom est obligatoire" }),
-  phone: z.string().optional(),
+  phone: z.string().min(1, { message: "Le numéro de téléphone est obligatoire" }),
   address: z.string(),
   image: z.string().optional(),
   birthday: z.coerce.date().optional(),
@@ -131,7 +142,9 @@ export const parentSchema = z.object({
 });
 
 export type ParentSchemaInput = z.infer<typeof parentSchema>;
+// End Parent Schema  
 
+// Lesson Schema
 export const lessonSchema = z.object({
   id: z.coerce.number().optional(),
   name: z
@@ -183,7 +196,9 @@ export const lessonSchema = z.object({
   );
 
 export type LessonSchemaInput = z.infer<typeof lessonSchema>;
+// End Lesson Schema
 
+// Assignment Schema
 export const assignmentSchema = z.object({
   id: z.coerce.number().optional(),
   title: z
@@ -191,13 +206,26 @@ export const assignmentSchema = z.object({
     .min(1, {
       message: "Le titre est réquis.",
     }),
-  startDate: z.coerce.date({ message: "La date de début est requise !" }),
-  dueDate: z.coerce.date({ message: "La date de remise est requise !" }),
+
+  startDate: z.preprocess(
+    (value) => (value ? new Date(value as string) : undefined),
+    z.date({ message: "La date de début est requise !" })
+  ),
+
+  dueDate: z.preprocess(
+    (value) => (value ? new Date(value as string) : undefined),
+    z.date({
+      message: "La date de remise est requise !"
+    })
+  ),
+
   lessonId: z.coerce.number({ message: "La leçon est requise !" })
 });
 
 export type AssignmentSchemaInput = z.infer<typeof assignmentSchema>;
+// End Assignment Schema
 
+// Result Schema
 export const resultSchema = z
   .object({
     id: z.coerce.number().optional(),
@@ -225,19 +253,53 @@ export const resultSchema = z
   );
 
 export type ResultSchemaInput = z.infer<typeof resultSchema>;
+// End Result Schema
 
-// Attendance schema
+// Announcement Schema 
+export const announcementSchema = z.object({
+  id: z.coerce.number().optional(),
+  title: z.string().min(1, { message: "Le titre est requis" }),
+  description: z.string().optional().nullable(),
+  date: z.coerce.date({ message: "La date est requise" }),
+  classId: z
+    .string()
+    .optional()
+    .transform((value) => (value && value !== "" ? Number(value) : undefined)),
+});
+
+export type AnnouncementSchemaInput = z.infer<typeof announcementSchema>;
+// End Announcement Schema
+
+// Event Schema 
+export const eventSchema = z.object({
+  id: z.coerce.number().optional(),
+  title: z.string().min(1, { message: "Le titre est requis" }),
+  description: z.string().min(1, { message: "La description est requise" }),
+  startTime: z.coerce.date({ message: "La date de début est requise" }),
+  endTime: z.coerce.date({ message: "La date de fin est requise" }),
+  classId: z
+    .string()
+    .optional()
+    .transform((value) => (value && value !== "" ? Number(value) : undefined)),
+});
+
+export type EventSchemaInput = z.infer<typeof eventSchema>;
+// End Event Schema
+
+// Attendance Status Schema
 export const AttendanceStatusEnum = z.enum([
   "PRESENT",
   "ABSENT",
   "LATE",
 ]);
 
+// Attendance Actor Schema
 export const AttendanceActorEnum = z.enum([
   "TEACHER",
   "PARENT",
 ]);
 
+// Attendance Schema
 export const attendanceSchema = z
   .object({
     id: z.coerce.number().optional(),
@@ -285,5 +347,4 @@ export const attendanceSchema = z
   });
 
 export type AttendanceSchemaInput = z.infer<typeof attendanceSchema>;
-
 // End Attendance schma

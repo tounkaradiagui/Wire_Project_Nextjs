@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import InputField from "../InputField";
 import Image from "next/image";
 import { Dispatch, SetStateAction, useActionState, useEffect, useState, startTransition } from "react";
-import { teacherSchema, TeacherSchemaInput } from "@/lib/formValidationSchemas";
+import { teacherSchema } from "@/lib/formValidationSchemas";
 import { createTeacher, updateTeacher } from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
@@ -26,15 +26,16 @@ const TeacherForm = ({
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<TeacherSchemaInput>({
+  } = useForm({
     resolver: zodResolver(teacherSchema),
   });
+
 
   const [state, formAction, isPending] = useActionState(
     type === "create" ? createTeacher : updateTeacher,
     {
       success: false,
-      error: false,
+      error: null as string | null,
     }
   );
 
@@ -53,8 +54,7 @@ const TeacherForm = ({
   useEffect(() => {
     if (state.success) {
       toast.success(
-        `L'enseignant a été ${
-          type === "create" ? "ajoutée avec succès" : "mise à jour avec succès"
+        `L'enseignant a été ${type === "create" ? "ajoutée avec succès" : "mise à jour avec succès"
         }`,
         {
           style: {
@@ -70,7 +70,7 @@ const TeacherForm = ({
     }
 
     if (state.error) {
-      toast.error("Erreur serveur, veuillez réessayer", {
+      toast.error(state.error, {
         style: {
           background: "#f87171",
           color: "#ffffff",
@@ -80,7 +80,7 @@ const TeacherForm = ({
       });
       router.refresh();
     }
-  }, [state, router, type, setOpen]);
+  }, [state, type, router, setOpen]);
 
   const { subjects } = relatedData;
 
@@ -229,12 +229,12 @@ const TeacherForm = ({
             <CldUploadWidget
               uploadPreset="school"
               onSuccess={(result: any, { widget }) => {
-              setImage(result.info);
-              widget.close();
-            }}
-              // onUpload={(result: any) => {
-              //   console.log(result.info.secure_url);
-              // }}
+                setImage(result.info);
+                widget.close();
+              }}
+            // onUpload={(result: any) => {
+            //   console.log(result.info.secure_url);
+            // }}
             >
               {({ open }) => (
                 <div
@@ -248,16 +248,38 @@ const TeacherForm = ({
             </CldUploadWidget>
           </div>
           {/* Server error */}
-          {state.error && (
+          {/* {state.error && (
             <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">
               ❌ Une erreur est survenue. Veuillez réessayer.
+            </div>
+          )} */}
+          {state.error && (
+            <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">
+              ❌ {state.error}
             </div>
           )}
         </div>
 
-        <button className="bg-blue-500 text-white p-2 rounded-md cursor-pointer">
+        {/* <button className="bg-blue-500 text-white p-2 rounded-md cursor-pointer">
           {type === "create" ? "Enregistrer" : "Valider"}
+        </button> */}
+        <button
+          type="submit"
+          disabled={isPending}
+          className="bg-blue-600 text-white py-2 rounded-md cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
+        >
+          {isPending && (
+            <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          )}
+          <span>
+            {isPending
+              ? "Enregistrement..."
+              : type === "create"
+                ? "Enregistrer"
+                : "Valider"}
+          </span>
         </button>
+
       </form>
     </div>
   );

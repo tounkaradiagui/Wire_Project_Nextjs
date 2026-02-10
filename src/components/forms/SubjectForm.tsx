@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import InputField from "../InputField";
-import { SubjectSchemaInput, subjectSchema } from "@/lib/formValidationSchemas";
+import { subjectSchema } from "@/lib/formValidationSchemas";
 import { createSubject, updateSubject } from "@/lib/actions";
 import { Dispatch, SetStateAction, useActionState, useEffect, startTransition } from "react";
 import { toast } from "react-toastify";
@@ -25,7 +25,7 @@ const SubjectForm = ({
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<SubjectSchemaInput>({
+  } = useForm({
     resolver: zodResolver(subjectSchema),
   });
 
@@ -34,7 +34,7 @@ const SubjectForm = ({
     type === "create" ? createSubject : updateSubject,
     {
       success: false,
-      error: false,
+      error: null as string | null,
     }
   );
 
@@ -131,7 +131,7 @@ const SubjectForm = ({
             multiple
             {...register("teachers")}
             defaultValue={data?.teachers}
-            className="min-h-[96px] rounded-md border border-gray-300 text-xs p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            className="min-h-24 rounded-md border border-gray-300 text-xs p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
           >
             {teachers.map(
               (teacher: { id: string; name: string; surname: string }) => (

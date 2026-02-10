@@ -37,7 +37,7 @@ const ParentSelect = ({
       <input
         type="text"
         placeholder="Rechercher un parent (username, nom...)"
-        className="input"
+        className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
         onChange={(e) => setQuery(e.target.value)}
       />
 
@@ -55,8 +55,8 @@ const ParentSelect = ({
                 setResults([]);
               }}
             >
-              Sélectionner parent
-              {parent.username} – {parent.name} {parent.surname}
+              Sélectionner identifiant:
+              {parent.id} – {parent.name} {parent.surname}
             </li>
           ))}
         </ul>

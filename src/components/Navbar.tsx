@@ -40,7 +40,7 @@ const NavbarPage = async () => {
         <input
           type="text"
           placeholder="Rechercher..."
-          className="w-[200px] p-2 bg-transparent outline-none"
+          className="w-50 p-2 bg-transparent outline-none"
         />
       </div>
       {/* Others icons */}

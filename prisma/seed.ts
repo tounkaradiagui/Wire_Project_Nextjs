@@ -1,4 +1,4 @@
-import { PrismaClient } from "../src/generated/prisma";
+import { PrismaClient } from "@prisma/client";
 
 import { seedAdmins } from "./seed/admins";
 import { seedGradesAndClasses } from "./seed/grades-classes";

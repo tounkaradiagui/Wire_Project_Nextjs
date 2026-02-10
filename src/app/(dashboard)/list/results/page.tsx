@@ -5,7 +5,7 @@ import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import Image from "next/image";
-import { Result, Prisma } from "generated/prisma/client";
+import { Result, Prisma } from "@prisma/client";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import prisma from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";

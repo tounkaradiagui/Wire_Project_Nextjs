@@ -1,4 +1,4 @@
-import { PrismaClient } from "../../src/generated/prisma";
+import { PrismaClient } from "@prisma/client";
 import prisma from '@/lib/prisma';
 
 export async function seedSubjects(prisma: PrismaClient) {

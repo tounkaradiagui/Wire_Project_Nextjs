@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import InputField from "../InputField";
-import { AssignmentSchemaInput, assignmentSchema } from "@/lib/formValidationSchemas";
+import { assignmentSchema } from "@/lib/formValidationSchemas";
 import { createAssignment, updateAssignment } from "@/lib/actions";
 import { Dispatch, SetStateAction, startTransition, useActionState, useEffect, useState } from "react";
 import { toast } from "react-toastify";
@@ -24,8 +24,7 @@ const AssignmentForm = ({
         register,
         handleSubmit,
         formState: { errors },
-    } = useForm<AssignmentSchemaInput>({
-
+    } = useForm({
         resolver: zodResolver(assignmentSchema),
     });
 
@@ -48,8 +47,6 @@ const AssignmentForm = ({
     });
 
     const router = useRouter();
-
-
 
     useEffect(() => {
         if (state.success) {
@@ -177,8 +174,8 @@ const AssignmentForm = ({
                     disabled={isPending}
                     className={`p-2 rounded-md text-white transition
                     ${isPending
-                            ? "bg-gray-400 cursor-not-allowed"
-                            : "bg-blue-500 hover:bg-blue-600 cursor-pointer"}
+                        ? "bg-gray-400 cursor-not-allowed"
+                        : "bg-blue-500 hover:bg-blue-600 cursor-pointer"}
                     `}
                 >
                     {isPending

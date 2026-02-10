@@ -1,19 +1,19 @@
 import prisma from "@/lib/prisma";
 
 const StudentAttendanceCard = async ({ id }: { id: string }) => {
-    const attendance = await prisma.attendance.findMany({
-        where: {
-        studentId: id,
-        date: {
-            gte: new Date(new Date().getFullYear(), 0, 1),
-        },
-        },
-    });
+  const attendance = await prisma.attendance.findMany({
+    where: {
+      studentId: id,
+      date: {
+        gte: new Date(new Date().getFullYear(), 0, 1),
+      },
+    },
+  });
 
-    const totalDays = attendance.length;
-    const presentDays = attendance.filter((day) => day.present).length;
+  const totalDays = attendance.length;
+  const presentDays = attendance.filter((day) => day.status === "PRESENT").length;
 
-    const percentage = totalDays === 0 ? 0 : Math.round((presentDays / totalDays) * 100);
+  const percentage = totalDays === 0 ? 0 : Math.round((presentDays / totalDays) * 100);
 
 
   return (

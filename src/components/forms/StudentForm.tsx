@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import InputField from "../InputField";
-import { studentSchema, StudentSchemaInput } from "@/lib/formValidationSchemas";
+import { studentSchema } from "@/lib/formValidationSchemas";
 import { Dispatch, SetStateAction, useActionState, useEffect, useState, startTransition } from "react";
 import { createStudent, updateStudent } from "@/lib/actions";
 import { useRouter } from "next/navigation";
@@ -28,7 +28,7 @@ const StudentForm = ({
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<StudentSchemaInput>({
+  } = useForm({
     resolver: zodResolver(studentSchema),
   });
 
@@ -36,7 +36,7 @@ const StudentForm = ({
     type === "create" ? createStudent : updateStudent,
     {
       success: false,
-      error: false,
+      error: null as string | null,
     }
   );
 
@@ -47,7 +47,7 @@ const StudentForm = ({
   const onSubmit = handleSubmit((data) => {
     console.log(data)
     startTransition(() => {
-      formAction({ ...data, image: image?.secure_url });
+      formAction({ ...data, image: image?.secure_url, parentId: parentId || "" });
     });
   });
 
@@ -184,26 +184,10 @@ const StudentForm = ({
           <InputField
             label="Date de naissance"
             name="birthday"
-            defaultValue={data?.birthday.toISOString().split("T")[0]}
+            defaultValue={data?.birthday}
             register={register}
             error={errors?.birthday}
             type="date"
-          />
-
-          {/* Parent search/select */}
-          <ParentSelect
-            onSelect={(parent) => {
-              setParentId(parent.id); // 🔴 ID EXACT de la DB
-            }}
-          />
-          {/* <input type="hidden" name="parentId" value={parentId ?? ""} /> */}
-          <InputField
-            label="Parent"
-            name="parentId"
-            defaultValue="parentId1"
-            register={register}
-            error={errors.parentId}
-
           />
 
           {data && (
@@ -281,6 +265,30 @@ const StudentForm = ({
             )}
           </div>
 
+          {/* Parent search/select */}
+          {/* <ParentSelect
+            onSelect={(parent) => {
+              setParentId(parent.id); // 🔴 ID EXACT de la DB
+            }}
+          /> */}
+          <ParentSelect
+            onSelect={(parent: any) => {
+              const id = typeof parent === "string" ? parent : parent?.id;
+              setParentId(id ?? null);
+            }}
+          />
+          {/* <input type="hidden" name="parentId" value={parentId ?? ""} /> */}
+          <InputField
+            label="Parent"
+            name="parentId"
+            // defaultValue="parentId1"
+            defaultValue={parentId ?? data?.parentId ?? ""}
+            register={register}
+            error={errors.parentId}
+
+          />
+
+
           {/* Server error */}
           {state.error && (
             <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">
@@ -289,8 +297,21 @@ const StudentForm = ({
           )}
         </div>
 
-        <button className="bg-blue-500 text-white p-2 rounded-md cursor-pointer">
-          {type === "create" ? "Enregistrer" : "Valider"}
+        <button
+          type="submit"
+          disabled={isPending}
+          className="bg-blue-600 text-white py-2 rounded-md cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
+        >
+          {isPending && (
+            <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          )}
+          <span>
+            {isPending
+              ? "Enregistrement..."
+              : type === "create"
+                ? "Enregistrer"
+                : "Valider"}
+          </span>
         </button>
       </form>
     </div>

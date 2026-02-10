@@ -10,7 +10,7 @@ import {
 } from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
-import { deleteAttendance, deleteResult, deleteAssignment, deleteLesson, deleteTeacher, deleteClass, deleteSubject, deleteStudent, deleteExam, deleteParent } from "@/lib/actions";
+import { deleteEvent, deleteAnnouncement, deleteAttendance, deleteResult, deleteAssignment, deleteLesson, deleteTeacher, deleteClass, deleteSubject, deleteStudent, deleteExam, deleteParent } from "@/lib/actions";
 import { FormContainerProps } from "./FormContainer";
 import {
   Plus,
@@ -30,8 +30,8 @@ const deleteActionMap = {
   assignment: deleteAssignment,
   result: deleteResult,
   attendance: deleteAttendance,
-  // announcement: deleteAnnouncement,
-  // event: deleteEvent,
+  announcement: deleteAnnouncement,
+  event: deleteEvent,
 };
 
 const TeacherForm = dynamic(() => import("./forms/TeacherForm"), {
@@ -71,6 +71,14 @@ const ResultForm = dynamic(() => import("./forms/ResultForm"), {
 });
 
 const AttendanceForm = dynamic(() => import("./forms/AttendanceForm"), {
+  loading: () => <h1>Chargement...</h1>,
+});
+
+const AnnouncementForm = dynamic(() => import("./forms/AnnouncementForm"), {
+  loading: () => <h1>Chargement...</h1>,
+});
+
+const EventForm = dynamic(() => import("./forms/EventForm"), {
   loading: () => <h1>Chargement...</h1>,
 });
 
@@ -162,6 +170,24 @@ const forms: {
 
   attendance: (setOpen, type, data, relatedData) => (
     <AttendanceForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
+
+  announcement: (setOpen, type, data, relatedData) => (
+    < AnnouncementForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
+
+  event: (setOpen, type, data, relatedData) => (
+    < EventForm
       type={type}
       data={data}
       setOpen={setOpen}
