@@ -10,7 +10,6 @@ const prismaClientSingleton = () => {
 
 // Extend globalThis with a prisma property (for hot reload in dev)
 declare global {
-  // eslint-disable-next-line no-var
   var prisma: ReturnType<typeof prismaClientSingleton> | undefined;
 }
 

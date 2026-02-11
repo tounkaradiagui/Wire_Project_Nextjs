@@ -12,12 +12,10 @@ import {
   MessageSquare,
   Megaphone,
   Settings,
-  LogOut,
   UserCircle,
   CheckSquare,
   Trophy,
   FileCheck2,
-  ClipboardCheck,
   NotebookPen,
 } from "lucide-react";
 import { currentUser } from "@clerk/nextjs/server";
@@ -144,7 +142,7 @@ const menuItems = [
 ];
 
 const Menu = async () => {
-  let user = null;
+  let user;
 
   try {
     user = await currentUser();

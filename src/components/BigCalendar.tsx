@@ -54,12 +54,7 @@ const BigCalendar = ({ data }: { data: { title: string; start: Date; end: Date }
       min={new Date(0, 0, 0, 8, 0)}
       max={new Date(0, 0, 0, 17, 0)}
       messages={messages}
-      formats={{
-        dayFormat: (date, culture, localizer) => {
-          const day = moment(date).format("dddd");
-          return day.charAt(0).toUpperCase() + day.slice(1);
-        },
-      }}
+      formats={formats}
     />
 
   );

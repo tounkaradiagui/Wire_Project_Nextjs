@@ -3,21 +3,11 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import InputField from "../InputField";
-import { ClassSchemaInput, classSchema } from "@/lib/formValidationSchemas";
+import { classSchema } from "@/lib/formValidationSchemas";
 import { createClass, updateClass } from "@/lib/actions";
 import { Dispatch, SetStateAction, useActionState, useEffect, startTransition } from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
-import {
-  BookOpen,
-  Users,
-  Save,
-  X,
-  Loader2,
-  School,
-  UserCircle,
-  Layers,
-} from "lucide-react";
 
 const ClassForm = ({
   setOpen,

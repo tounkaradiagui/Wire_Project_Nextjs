@@ -40,7 +40,6 @@ const AssignmentListPage = async ({
 }: {
   searchParams: { [key: string]: string | undefined };
 }) => {
-  const params = searchParams;
 
   const { page, ...queryParams } = await searchParams;
 

@@ -1,6 +1,5 @@
 "use server";
 
-import { FC } from "react";
 import prisma from "@/lib/prisma";
 import {
   Users,

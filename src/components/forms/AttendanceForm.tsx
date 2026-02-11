@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { AttendanceSchemaInput, attendanceSchema } from "@/lib/formValidationSchemas";
+import { attendanceSchema } from "@/lib/formValidationSchemas";
 import { createAttendance, updateAttendance } from "@/lib/actions";
 import { Dispatch, SetStateAction, startTransition, useActionState, useEffect, useState } from "react";
 import { toast } from "react-toastify";

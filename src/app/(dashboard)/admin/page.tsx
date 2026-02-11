@@ -5,19 +5,7 @@ import EventCalendarContainer from "@/components/EventCalendarContainer";
 import FinanceChart from "@/components/FinanceChart";
 import UserCards from "@/components/UserCards";
 
-type Props = {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-};
-
-const AdminPage = async ({ searchParams }: Props) => {
-  const params = await searchParams;
-
-  const page =
-    typeof params.page === "string" ? Number(params.page) : 1;
-
-  const date =
-    typeof params.date === "string" ? params.date : undefined;
-
+const AdminPage = async () => {
   return (
     <div className="p-4 flex gap-4 flex-col md:flex-row">
       {/* Left */}

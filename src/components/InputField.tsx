@@ -22,7 +22,6 @@ const InputField = ({
   defaultValue,
   error,
   hidden,
-  inputClassName = "",
   inputProps,
 }: InputFieldProps) => {
   return (

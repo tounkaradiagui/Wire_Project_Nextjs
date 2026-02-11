@@ -18,7 +18,7 @@ export type FormContainerProps = {
   | "event"
   | "announcement";
   type: "create" | "update" | "delete";
-  data?: any;
+  data?: Record<string, unknown>;
   id?: number | string;
   role?: "admin" | "teacher" | "parent" | "student";
 };
@@ -30,18 +30,22 @@ const FormContainer = async ({ table, type, data, id, role }: FormContainerProps
   // Fetch related data based on the table type
   if (type !== "delete") {
     switch (table) {
-      case "subject":
-        const subjectTeachers = await prisma.teacher.findMany({
-          select: {
-            id: true,
-            name: true,
-            surname: true,
-          },
-        });
-        relatedData = { teachers: subjectTeachers };
+      case "subject": {
+        const subjectTeachers =
+          await prisma.teacher.findMany({
+            select: {
+              id: true,
+              name: true,
+              surname: true,
+            },
+          });
+        relatedData = {
+          teachers: subjectTeachers
+        };
         break;
+      }
 
-      case "class":
+      case "class": {
         const classGrades = await prisma.grade.findMany({
           select: {
             id: true,
@@ -57,8 +61,9 @@ const FormContainer = async ({ table, type, data, id, role }: FormContainerProps
         });
         relatedData = { teachers: classTeachers, grades: classGrades };
         break;
+      }
 
-      case "teacher":
+      case "teacher": {
         const teacherSubjects = await prisma.subject.findMany({
           select: {
             id: true,
@@ -67,8 +72,9 @@ const FormContainer = async ({ table, type, data, id, role }: FormContainerProps
         });
         relatedData = { subjects: teacherSubjects };
         break;
+      }
 
-      case "student":
+      case "student": {
         const studentGrades = await prisma.grade.findMany({
           select: {
             id: true,
@@ -81,8 +87,9 @@ const FormContainer = async ({ table, type, data, id, role }: FormContainerProps
         });
         relatedData = { classes: studentClasses, grades: studentGrades };
         break;
+      }
 
-      case "parent":
+      case "parent": {
         const studentParentGrades = await prisma.grade.findMany({
           select: {
             id: true,
@@ -95,8 +102,9 @@ const FormContainer = async ({ table, type, data, id, role }: FormContainerProps
         });
         relatedData = { classes: studentParentGrades, grades: studentparentClasses };
         break;
+      }
 
-      case "exam":
+      case "exam": {
         const { userId, sessionClaims } = await auth();
         const role = (sessionClaims?.metadata as { role?: string })?.role;
 
@@ -112,8 +120,9 @@ const FormContainer = async ({ table, type, data, id, role }: FormContainerProps
 
         relatedData = { lessons: examLessons };
         break;
+      }
 
-      case "assignment":
+      case "assignment": {
         const assignmentLessons = await prisma.lesson.findMany({
           select: {
             id: true,
@@ -122,8 +131,9 @@ const FormContainer = async ({ table, type, data, id, role }: FormContainerProps
         });
         relatedData = { lessons: assignmentLessons };
         break;
+      }
 
-      case "announcement":
+      case "announcement": {
         const announcements = await prisma.announcement.findMany({
           include: {
             class: {
@@ -149,8 +159,9 @@ const FormContainer = async ({ table, type, data, id, role }: FormContainerProps
           classes,
         };
         break;
+      }
 
-      case "event":
+      case "event": {
         const events = await prisma.event.findMany({
           include: {
             class: {
@@ -176,6 +187,7 @@ const FormContainer = async ({ table, type, data, id, role }: FormContainerProps
           eventClasses,
         };
         break;
+      }
 
       case "lesson": {
         const { userId, sessionClaims } = await auth();
@@ -374,8 +386,6 @@ const FormContainer = async ({ table, type, data, id, role }: FormContainerProps
         };
         break;
       }
-
-
       default:
         break;
     }
