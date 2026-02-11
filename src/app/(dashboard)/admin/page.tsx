@@ -5,25 +5,23 @@ import EventCalendarContainer from "@/components/EventCalendarContainer";
 import FinanceChart from "@/components/FinanceChart";
 import UserCards from "@/components/UserCards";
 
-type AdminPageProps = {
-  searchParams?: { [key: string]: string | undefined };
+type Props = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-const AdminPage = async ({
-  searchParams,
-}: {
-  searchParams?: Promise<{ page?: string; date?: string }>;
-}) => {
-  const params = (await searchParams) ?? {};
+const AdminPage = async ({ searchParams }: Props) => {
+  const params = await searchParams;
 
-  const page = params.page ? Number(params.page) : 1;
-  const date = params.date;
+  const page =
+    typeof params.page === "string" ? Number(params.page) : 1;
+
+  const date =
+    typeof params.date === "string" ? params.date : undefined;
 
   return (
     <div className="p-4 flex gap-4 flex-col md:flex-row">
       {/* Left */}
       <div className="w-full lg:w-2/3 flex flex-col gap-8">
-        {/* Users Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           <UserCards type="admin" />
           <UserCards type="student" />
@@ -31,24 +29,21 @@ const AdminPage = async ({
           <UserCards type="parent" />
         </div>
 
-        {/* Middle charts */}
         <div className="gap-4 mt-4 flex flex-col lg:flex-row">
-          <div className="w-full lg:w-1/3 h-112.5">
+          <div className="w-full lg:w-1/3 min-h-112.5">
             <CountChartContainer />
           </div>
 
-          <div className="w-full lg:w-2/3 h-112.5">
+          <div className="w-full lg:w-2/3 min-h-112.5">
             <AttendanceChartContainer />
           </div>
         </div>
 
-        {/* Bottom chart */}
-        <div className="w-full h-125">
+        <div className="w-full min-h-125">
           <FinanceChart />
         </div>
       </div>
 
-      {/* Right */}
       <div className="w-full lg:w-1/3 flex flex-col gap-8">
         <EventCalendarContainer />
         <Announcements />

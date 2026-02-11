@@ -9,10 +9,11 @@ import { ITEM_PER_PAGE } from "@/lib/settings";
 import prisma from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import {
-  Eye,
   Filter,
   ArrowUpDown
 } from "lucide-react";
+
+// export const dynamic = "force-dynamic";
 
 type AssignmentList = {
   id: number;
