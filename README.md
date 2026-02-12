@@ -6,34 +6,11 @@
 
 ## 📌 Présentation
 
-Cette application vise à centraliser et simplifier la gestion des absences, des notes, des emplois du temps et de la communication entre **administrateurs**, **enseignants**, **élèves**, **parents** et **secrétaires**. Elle propose une interface rapide, sécurisée et évolutive adaptée aux besoins des établissements scolaires modernes.
+Cette application vise à centraliser et simplifier la gestion des absences, des notes, des emplois du temps et de la communication entre **administrateurs**, **enseignants**, **élèves** et **parents**. Elle propose une interface rapide, sécurisée et évolutive adaptée aux besoins des établissements scolaires modernes.
 
 ---
 
 ## 🚀 Fonctionnalités
-
-### 🌐 Pages Publiques
-
-* **Page d’accueil**
-
-  * Barre de navigation (Accueil, À propos, Contact, Connexion)
-  * Carousel d’images de l’établissement
-  * Présentation générale et informations clés
-  * Vidéos YouTube intégrées (plein écran)
-  * Informations d’admission et horaires
-  * Formulaire de contact (nom, prénom, email, sujet, message)
-  * Footer avec navigation et coordonnées
-
-* **Page À propos**
-
-  * Présentation de l’établissement et du personnel
-  * Téléchargement du cahier des charges
-
-* **Page Contact**
-
-  * Formulaire de contact avec validation des champs
-
----
 
 ### 🔐 Authentification & Sécurité
 
@@ -48,7 +25,6 @@ Cette application vise à centraliser et simplifier la gestion des absences, des
 
 #### 👨‍👩‍👧 Parent d’élève
 
-* Inscription et gestion des profils des enfants
 * Consultation des absences, notes, cours et emplois du temps
 * Communication directe avec les enseignants
 * Gestion du profil personnel
