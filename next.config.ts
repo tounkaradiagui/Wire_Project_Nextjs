@@ -1,13 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   images: {
-
-    domains: ['res.cloudinary.com'],
     remotePatterns: [
       {
         protocol: "https",
@@ -17,10 +11,8 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "res.cloudinary.com",
       },
-      // { hostname: "images.pexels.com" }
-    ]
-  }
-
+    ],
+  },
 };
 
 export default nextConfig;
