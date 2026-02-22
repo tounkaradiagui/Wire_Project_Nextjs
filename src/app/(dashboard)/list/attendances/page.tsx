@@ -59,7 +59,7 @@ const AttendanceListPage = async ({
     { header: "Date", accessor: "date" },
     { header: "Statut", accessor: "status" },
     { header: "Justificatif", accessor: "proofUrl" },
-    ...(role === "admin" || role === "teacher"
+    ...(role === "admin" || role === "teacher" || role === "super_admin"
       ? [{ header: "Signaler par", accessor: "createdBy" }, { header: "Actions", accessor: "actions" }]
 
       : []),
@@ -134,7 +134,7 @@ const AttendanceListPage = async ({
       </td>
 
 
-      {(role === "admin" || role === "teacher") && (
+      {(role === "admin" || role === "teacher" || role === "super_admin") && (
         <td className="hidden md:table-cell">
           {item.createdBy === "PARENT" ? "Parent" : item.createdBy === "TEACHER" ? "Enseignant" : "Administration"}
         </td>
@@ -142,7 +142,7 @@ const AttendanceListPage = async ({
 
       {/* ACTIONS */}
       <td>
-        {(role === "admin" || role === "teacher") && (
+        {(role === "admin" || role === "teacher" || role === "super_admin") && (
           <div className="flex gap-2">
             <FormContainer table="attendance" type="update" data={item} />
             <FormContainer table="attendance" type="delete" id={item.id} />
@@ -261,16 +261,16 @@ const AttendanceListPage = async ({
             </button>
             <button
               className="flex items-center gap-1 px-3 py-1.5 rounded-md
-                          bg-gray-100 hover:bg-gray-200 text-gray-700
-                          transition"
+                bg-gray-100 hover:bg-gray-200 text-gray-700
+                transition"
             >
               <Filter size={16} />
               <span className="text-sm">Filtrer</span>
             </button>
             <button
               className="flex items-center gap-1 px-3 py-1.5 rounded-md
-                          bg-gray-100 hover:bg-gray-200 text-gray-700
-                          transition"
+                bg-gray-100 hover:bg-gray-200 text-gray-700
+                transition"
             >
               <ArrowUpDown size={16} />
               <span className="text-sm">Trier</span>

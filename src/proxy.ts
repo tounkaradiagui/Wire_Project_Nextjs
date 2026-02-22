@@ -12,6 +12,10 @@ export default clerkMiddleware(async (auth, req) => {
   // Get session if exists
   const { sessionClaims } = await auth();
 
+//   if (user.publicMetadata.isBanned) {
+//   return NextResponse.redirect(new URL("/banned", req.url));
+// }
+
   // SAFE role extraction
   const role =
     (sessionClaims?.metadata as { role?: string } | undefined)?.role ?? '';

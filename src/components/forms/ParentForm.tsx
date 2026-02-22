@@ -9,7 +9,6 @@ import { createParent, updateParent } from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 
-
 const ParentForm = ({
     type,
     data,

@@ -109,37 +109,6 @@ const ClassForm = ({
             />
           )}
 
-          {/* Superviseur */}
-          <div className="flex flex-col gap-2 rounded-full md:w-1/4">
-            <label htmlFor="">
-              Superviseur
-            </label>
-
-            <select
-              {...register("supervisorId")}
-              defaultValue={data?.supervisorId ?? ""}
-              className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
-            >
-              <option value="">Sélectionner</option>
-              {teachers.map(
-                (teacher: { id: string; name: string; surname: string }) => (
-                  <option
-                    key={teacher.id}
-                    value={teacher.id}
-                  >
-                    {teacher.name} {teacher.surname}
-                  </option>
-                )
-              )}
-            </select>
-
-            {errors.supervisorId && (
-              <span className="text-[10px] text-red-500">
-                {errors.supervisorId.message?.toString()}
-              </span>
-            )}
-          </div>
-
           {/* Niveau */}
           <div className="flex flex-col gap-1">
             <label >

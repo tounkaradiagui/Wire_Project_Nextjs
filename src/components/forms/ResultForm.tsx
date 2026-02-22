@@ -61,6 +61,9 @@ const ResultForm = ({
     const assignments = relatedData?.assignments ?? [];
     const students = relatedData?.students ?? [];
 
+    console.log("RELATED DATA 👉", relatedData);
+    console.log("STUDENTS 👉", students);
+
     return (
         <form onSubmit={onSubmit} className="flex flex-col gap-6 p-6">
             <h1 className="text-xl font-semibold">

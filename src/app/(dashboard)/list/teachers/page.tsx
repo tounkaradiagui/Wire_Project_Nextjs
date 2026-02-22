@@ -24,7 +24,9 @@ type TeacherList = Prisma.TeacherGetPayload<{
         subject: true;
       };
     };
-    Class: true;
+    teacherClasses: {
+      include: { class: true },
+    },
   };
 }>;
 
@@ -95,15 +97,15 @@ const TeacherListPage = async ({
           : item.subjects || "—"}
       </td>
       <td className="hidden md:table-cell">
-        {Array.isArray(item.Class)
-          ? item.Class.map((c) => c.name).join(", ")
-          : item.Class || "—"}
+        {Array.isArray(item.teacherClasses) && item.teacherClasses.length > 0
+          ? item.teacherClasses.map((tc) => tc.class.name).join(", ")
+          : "—"}
       </td>
       <td className="hidden lg:table-cell">{item.phone}</td>
       <td className="hidden lg:table-cell">{item.address}</td>
       <td>
         <div className="flex items-center gap-2">
-          <Link href={`/list/students/${item.id}`}>
+          <Link href={`/list/teachers/${item.id}`}>
             <button className="bg-blue-500 hover:bg-blue-600 p-2 cursor-pointer rounded text-white">
               <Eye size={16} />
             </button>
@@ -146,14 +148,18 @@ const TeacherListPage = async ({
 
   const [data, count] = await prisma.$transaction([
     prisma.teacher.findMany({
-      where: query,
+      where: {
+        deletedAt: null
+      },
       include: {
         subjects: {
           include: {
-            subject: true, // ✅ LE VRAI SUBJECT
+            subject: true, // ✅ LE VRAI SUBJECT Model
           },
         },
-        Class: true,
+        teacherClasses: {
+          include: { class: true },
+        },
       },
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),

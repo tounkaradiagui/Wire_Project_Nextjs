@@ -1,5 +1,51 @@
 import { z } from "zod";
 
+// Clerk user Schema
+export const userSchema = z.object({
+  id: z.string().optional(),
+  firstName: z
+    .string()
+    .min(2, "Le prénom doit contenir au moins 2 caractères.")
+    .max(50, "Le prénom est trop long.")
+    .trim(),
+
+  lastName: z
+    .string()
+    .min(2, "Le nom doit contenir au moins 2 caractères.")
+    .max(50, "Le nom est trop long.")
+    .trim(),
+
+  username: z
+    .string()
+    .min(3, "Le nom d'utilisateur doit contenir au moins 3 caractères.")
+    .max(30, "Le nom d'utilisateur est trop long.")
+    .regex(/^[a-zA-Z0-9_-]+$/, "Username invalide"),
+
+  email: z
+    .string()
+    .email({ message: "Adresse email invalide" })
+    .optional()
+    .or(z.literal(""))
+    .transform((val) => (val === "" ? undefined : val)),
+
+  password: z
+    .string()
+    .min(4, "Le mot de passe doit contenir au moins 4 caractères.")
+    .max(100)
+    .regex(/[A-Z]/, "Doit contenir au moins une majuscule.")
+    .regex(/[a-z]/, "Doit contenir au moins une minuscule.")
+    .regex(/[0-9]/, "Doit contenir au moins un chiffre.")
+    .regex(/[^A-Za-z0-9]/, "Doit contenir au moins un caractère spécial."),
+
+  role: z.enum(["ADMIN", "TEACHER", "PARENT", "STUDENT"],
+    {message: "Le role est requis !",
+  }),
+
+  image: z.string().optional(),
+});
+
+export type UserSchemaInput = z.infer<typeof userSchema>;
+
 // Subject Schema
 export const subjectSchema = z.object({
   id: z.coerce.number().optional(),
@@ -13,6 +59,65 @@ export const subjectSchema = z.object({
 
 export type SubjectSchemaInput = z.infer<typeof subjectSchema>;
 // End Subject Schema
+
+// Teacher Schema
+export const teacherSchema = z.object({
+  id: z.string().optional(),
+
+  username: z
+    .string()
+    .min(3, {
+      message: "Le nom d'utilisateur doit contenir au moins 3 caractères.",
+    })
+    .max(20, {
+      message: "Le nom d'utilisateur ne doit pas dépasser 20 caractères.",
+    }),
+
+  email: z
+    .string()
+    .email({ message: "Adresse email invalide" })
+    .optional()
+    .or(z.literal(""))
+    .transform((val) => (val === "" ? undefined : val)),
+
+  password: z
+    .string()
+    .min(4, {
+      message: "Le mot de passe doit contenir au moins 4 caractères.",
+    })
+    .optional()
+    .or(z.literal(""))
+    .transform((val) => (val === "" ? undefined : val)),
+
+  name: z.string().min(1, { message: "Le prénom est obligatoire" }),
+
+  surname: z.string().min(1, { message: "Le nom est obligatoire" }),
+
+  phone: z.string().optional(),
+
+  address: z.string().min(1, { message: "L'adresse est obligatoire" }),
+
+  image: z.string().optional(),
+
+  birthday: z.coerce.date().optional(),
+
+  sex: z.enum(["MALE", "FEMALE"], {
+    message: "Le genre est requis !",
+  }),
+
+  bloodType: z.string().min(1, {
+    message: "Le type sanguin est requis !",
+  }),
+
+  subjects: z.array(z.string()).optional(),
+
+  classes: z
+    .array(z.coerce.number())
+    .min(1, { message: "Au moins une classe doit être assignée." }),
+});
+
+export type TeacherSchemaInput = z.infer<typeof teacherSchema>;
+// End Teacher Schema
 
 // Class Schema
 export const classSchema = z.object({
@@ -28,43 +133,11 @@ export const classSchema = z.object({
   gradeId: z.coerce.number().min(1, {
     message: "Le niveau est réquis."
   }),
-  supervisorId: z.coerce.string().optional(),
 });
 
 export type ClassSchemaInput = z.infer<typeof classSchema>;
 // End Class Schema
 
-// Teacher Schema
-export const teacherSchema = z.object({
-  id: z.coerce.string().optional(),
-  username: z
-    .string()
-    .min(3, {
-      message: "Le nom d'utilisateur doit contenir au moins 3 caractères.",
-    })
-    .max(20, {
-      message: "Le nom d'utilisateur ne doit pas dépasser 20 caractères.",
-    }),
-  email: z.string().email({ message: "Adresse email invalide" }).optional().or(z.literal("")),
-  password: z
-    .string()
-    .min(4, { message: "Le mot de passe doit contenir au moins 4 caractères." })
-    .optional()
-    .or(z.literal("")),
-  name: z.string().min(1, { message: "Le prénom est obligatoire" }),
-  surname: z.string().min(1, { message: "Le nom est obligatoire" }),
-  phone: z.string().optional(),
-  address: z.string(),
-  image: z.string().optional(),
-  birthday: z.coerce.date().optional(),
-  sex: z.enum(["MALE", "FEMALE"], { message: "Le genre est réquis !" }),
-  bloodType: z.string().min(1, { message: "Le type saguin est réquis !" }),
-  subjects: z.array(z.string()).optional()
-  // subjects: z.array(z.coerce.number()).optional(),
-});
-
-export type TeacherSchemaInput = z.infer<typeof teacherSchema>;
-// End Teacher Schema
 
 // Exam Schema
 export const examSchema = z.object({

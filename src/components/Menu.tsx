@@ -31,16 +31,28 @@ const menuItems = [
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
+        icon: Home,
+        label: "Accueil",
+        href: "/dashboard/super_admin",
+        visible: ["super_admin"],
+      },
+      {
+        icon: Home,
+        label: "Utilisateurs",
+        href: "/list/users",
+        visible: ["super_admin"],
+      },
+      {
         icon: User,
         label: "Enseignants",
         href: "/list/teachers",
-        visible: ["admin"],
+        visible: ["admin", "super_admin"],
       },
       {
         icon: GraduationCap,
         label: "Élèves",
         href: "/list/students",
-        visible: ["admin", "teacher", "parent"],
+        visible: ["admin", "teacher", "parent", "super_admin"],
       },
       // {
       //   icon: "👨‍👩‍👧",
@@ -52,55 +64,55 @@ const menuItems = [
         icon: Users,
         label: "Parents",
         href: "/list/parents",
-        visible: ["admin", "teacher"],
+        visible: ["admin", "teacher", "super_admin"],
       },
       {
         icon: BookOpen,
         label: "Matières",
         href: "/list/subjects",
-        visible: ["admin"],
+        visible: ["admin", "super_admin"],
       },
       {
         icon: ClipboardList,
         label: "Classes",
         href: "/list/classes",
-        visible: ["admin"],
+        visible: ["admin", "super_admin"],
       },
       {
         icon: FileText,
         label: "Leçons",
         href: "/list/lessons",
-        visible: ["admin", "teacher"],
+        visible: ["admin", "teacher", "super_admin"],
       },
       {
         icon: Trophy,
         label: "Trimestre",
         href: "/list/exams",
-        visible: ["admin", "teacher", "student", "parent"],
+        visible: ["admin", "teacher", "student", "parent", "super_admin"],
       },
       {
         icon: FileCheck2,
         label: "Devoirs",
         href: "/list/assignments",
-        visible: ["admin", "teacher", "student", "parent"],
+        visible: ["admin", "teacher", "student", "parent", "super_admin"],
       },
       {
         icon: NotebookPen,
         label: "Résultats",
         href: "/list/results",
-        visible: ["admin", "teacher", "student", "parent"],
+        visible: ["admin", "teacher", "student", "parent", "super_admin"],
       },
       {
         icon: CheckSquare,
         label: "Absences",
         href: "/list/attendances",
-        visible: ["admin", "teacher", "student", "parent"],
+        visible: ["admin", "teacher", "student", "parent", "super_admin"],
       },
       {
         icon: Calendar,
         label: "Événements",
         href: "/list/events",
-        visible: ["admin"],
+        visible: ["admin", "super_admin"],
       },
       {
         icon: MessageSquare,
@@ -112,7 +124,7 @@ const menuItems = [
         icon: Megaphone,
         label: "Annonces",
         href: "/list/announcements",
-        visible: ["admin"],
+        visible: ["admin", "super_admin"],
       },
     ],
   },
@@ -123,13 +135,13 @@ const menuItems = [
         icon: UserCircle,
         label: "Profil",
         href: "/profile",
-        visible: ["admin", "teacher", "student", "parent"],
+        visible: ["admin", "teacher", "student", "parent", "super_admin"],
       },
       {
         icon: Settings,
         label: "Paramètres",
         href: "/settings",
-        visible: ["admin", "teacher", "student", "parent"],
+        visible: ["admin", "teacher", "student", "parent", "super_admin"],
       },
       // {
       //   icon: LogOut,
@@ -147,7 +159,7 @@ const Menu = async () => {
   try {
     user = await currentUser();
   } catch (error) {
-    console.error("Clerk error (maybe offline):", error);
+    // console.error("Clerk error (maybe offline):", error);
     return null; // avoid crash when offline
   }
 

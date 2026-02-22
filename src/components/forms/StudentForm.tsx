@@ -45,7 +45,7 @@ const StudentForm = ({
   const [parentId, setParentId] = useState<string | null>(null);
 
   const onSubmit = handleSubmit((data) => {
-    console.log(data)
+    // console.log(data)
     startTransition(() => {
       formAction({ ...data, image: image?.secure_url, parentId: parentId || "" });
     });

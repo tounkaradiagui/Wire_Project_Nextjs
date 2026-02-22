@@ -6,25 +6,27 @@ type RouteAccessMap = {
 
 export const routeAccessMap: RouteAccessMap = {
   // ✅ routes accessibles à tous les rôles connectés
-  "/profile(.*)": ["admin", "teacher", "student", "parent"],
-  "/settings(.*)": ["admin", "teacher", "student", "parent"],
+  "/profile(.*)": ["admin", "teacher", "student", "parent", "super_admin"],
+  "/settings(.*)": ["admin", "teacher", "student", "parent", "super_admin"],
 
   // 📋 listes
-  "/list/teachers(.*)": ["admin", "teacher"],
-  "/list/students(.*)": ["admin", "teacher", "parent"],
-  "/list/parents(.*)": ["admin", "teacher"],
-  "/list/subjects(.*)": ["admin"],
-  "/list/classes(.*)": ["admin", "teacher"],
+  "/list/teachers(.*)": ["admin", "teacher", "super_admin"],
+  "/list/students(.*)": ["admin", "teacher", "parent", "super_admin"],
+  "/list/parents(.*)": ["admin", "teacher", "super_admin"],
+  "/list/subjects(.*)": ["admin", "super_admin"],
+  "/list/classes(.*)": ["admin", "teacher", "super_admin"],
+  "/list/users(.*)": ["super_admin"],
 
-  "/list/exams(.*)": ["admin", "teacher", "student", "parent"],
-  "/list/assignments(.*)": ["admin", "teacher", "student", "parent"],
-  "/list/results(.*)": ["admin", "teacher", "student", "parent"],
-  "/list/attendance(.*)": ["admin", "teacher", "student", "parent"],
-  "/list/events(.*)": ["admin", "teacher", "student", "parent"],
-  "/list/announcements(.*)": ["admin", "teacher", "student", "parent"],
+  "/list/exams(.*)": ["admin", "teacher", "student", "parent", "super_admin"],
+  "/list/assignments(.*)": ["admin", "teacher", "student", "parent", "super_admin"],
+  "/list/results(.*)": ["admin", "teacher", "student", "parent", "super_admin"],
+  "/list/attendance(.*)": ["admin", "teacher", "student", "parent", "super_admin"],
+  "/list/events(.*)": ["admin", "teacher", "student", "parent", "super_admin"],
+  "/list/announcements(.*)": ["admin", "teacher", "student", "parent", "super_admin"],
   "/list/messages(.*)": ["admin", "teacher", "parent"],
 
   // 🔐 zones role-based (TOUJOURS EN DERNIER)
+  "/dashboard/super_admin(.*)": ["super_admin"],
   "/admin(.*)": ["admin"],
   "/teacher(.*)": ["teacher"],
   "/student(.*)": ["student"],

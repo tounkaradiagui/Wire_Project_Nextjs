@@ -16,11 +16,12 @@ export type FormContainerProps = {
   | "result"
   | "attendance"
   | "event"
+  | "user"
   | "announcement";
   type: "create" | "update" | "delete";
   data?: Record<string, unknown>;
   id?: number | string;
-  role?: "admin" | "teacher" | "parent" | "student";
+  role?: "admin" | "teacher" | "parent" | "student" | "super_admin";
 };
 
 const FormContainer = async ({ table, type, data, id, role }: FormContainerProps) => {
@@ -70,9 +71,25 @@ const FormContainer = async ({ table, type, data, id, role }: FormContainerProps
             name: true,
           },
         });
-        relatedData = { subjects: teacherSubjects };
+
+        const teacherClasses = await prisma.class.findMany({
+          select: {
+            id: true,
+            name: true,
+          },
+          orderBy: {
+            name: "asc",
+          },
+        });
+
+        relatedData = {
+          subjects: teacherSubjects,
+          classes: teacherClasses,
+        };
+
         break;
       }
+
 
       case "student": {
         const studentGrades = await prisma.grade.findMany({
@@ -200,12 +217,28 @@ const FormContainer = async ({ table, type, data, id, role }: FormContainerProps
           },
         });
 
-        const lessonClasses = await prisma.class.findMany({
-          select: {
-            id: true,
-            name: true,
-          },
-        });
+        const lessonClasses =
+          role === "teacher"
+            ? await prisma.class.findMany({
+                where: {
+                  teacherClasses: {
+                    some: {
+                      teacherId: userId!,
+                    },
+                  },
+                },
+                select: {
+                  id: true,
+                  name: true,
+                },
+              })
+            : await prisma.class.findMany({
+                select: {
+                  id: true,
+                  name: true,
+                },
+              });
+
 
         // Si admin → voir tous les enseignants
         // Si teacher → lui-même uniquement

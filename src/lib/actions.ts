@@ -1,8 +1,10 @@
 "use server";
-import { EventSchemaInput, AnnouncementSchemaInput, AttendanceSchemaInput, ResultSchemaInput, ExamSchemaInput, AssignmentSchemaInput, LessonSchemaInput, ClassSchemaInput, SubjectSchemaInput, TeacherSchemaInput, StudentSchemaInput, ParentSchemaInput } from "./formValidationSchemas";
+import { UserSchemaInput, EventSchemaInput, AnnouncementSchemaInput, AttendanceSchemaInput, ResultSchemaInput, ExamSchemaInput, AssignmentSchemaInput, LessonSchemaInput, ClassSchemaInput, SubjectSchemaInput, TeacherSchemaInput, StudentSchemaInput, ParentSchemaInput } from "./formValidationSchemas";
 import prisma from '@/lib/prisma';
 import { createClerkClient } from "@clerk/nextjs/server";
 import { auth } from "@clerk/nextjs/server";
+import { revalidatePath } from "next/cache";
+
 
 
 type currentState = { success: boolean; error: string | null; };
@@ -14,6 +16,270 @@ function timeToDate(time: string) {
     return date;
 }
 
+// Generate a base username
+function generateBaseUsername(firstName: string, lastName: string) {
+    return `${firstName}_${lastName}`
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9_-]/g, "") // 👈 IMPORTANT
+        .slice(0, 30);
+}
+
+// Generate a unique username
+async function generateUniqueUsername(
+        clerk: any,
+        firstName: string,
+        lastName: string
+    ) {
+    const base = generateBaseUsername(firstName, lastName);
+
+    let counter = 0;
+
+    while (counter < 20) {
+    const username = counter === 0 ? base : `${base}${counter}`;
+
+    const existing = await clerk.users.getUserList({
+      username: [username],
+    });
+
+    if (existing.data.length === 0) {
+      return username;
+    }
+
+    counter++;
+  }
+
+  throw new Error("Impossible de générer username unique");
+}
+
+// Create clerk user Action
+export const createUser = async (
+        currentState: currentState,
+        data: UserSchemaInput
+    ) => {
+    const clerk = createClerkClient({
+        secretKey: process.env.CLERK_SECRET_KEY!,
+    });
+
+    const baseUsername = generateBaseUsername(
+        data.firstName,
+        data.lastName
+    );
+
+    let attempt = 0;
+
+    while (attempt < 10) {
+        const username =
+            attempt === 0
+                ? (data.username || baseUsername).toLowerCase()
+                : `${baseUsername}${attempt}`.toLowerCase();
+
+        try {
+            // 🎯 Conversion propre
+            const prismaRole = data.role.toUpperCase();   // ENUM PRISMA
+            const metadataRole = data.role.toLowerCase(); // CLERK + URL
+
+            const clerkUser = await clerk.users.createUser({
+                firstName: data.firstName,
+                lastName: data.lastName,
+                username,
+                password: data.password,
+                publicMetadata: {
+                    role: metadataRole,
+                    status: "active",
+                },
+            });
+
+            await prisma.userProfile.create({
+                data: {
+                    clerkId: clerkUser.id,
+                    username: clerkUser.username!,
+                    firstName: clerkUser.firstName!,
+                    lastName: clerkUser.lastName!,
+                    image: clerkUser.imageUrl || null,
+                    role: prismaRole as any, // compatible enum
+                    isActive: true,
+                    isBanned: false,
+                    bannedAt: null,
+                },
+            });
+
+            return { success: true, error: null };
+
+        } catch (error: any) {
+            const clerkError = error?.errors?.[0];
+
+            if (clerkError?.code === "form_identifier_exists") {
+                attempt++;
+                continue;
+            }
+
+            return { success: false, error: "Erreur Clerk" };
+        }
+    }
+
+    return {
+        success: false,
+        error: "Impossible de générer un username unique",
+    };
+};
+
+// Update clerk user Action
+export const updateUser = async (
+  currentState: currentState,
+  data: UserSchemaInput & { id: string }
+) => {
+  try {
+    if (!data.id) {
+        return { success: false, error: "ID manquant" };
+    }
+    const clerk = createClerkClient({
+      secretKey: process.env.CLERK_SECRET_KEY!,
+    });
+
+    let username = data.username;
+
+    const existing = await clerk.users.getUserList({
+      username: [username],
+    });
+
+    const conflict = existing.data.some(
+        (u) => u.id !== data.id
+    );
+
+    if (conflict) {
+        username = await generateUniqueUsername(
+            clerk,
+            data.firstName,
+            data.lastName
+        );
+    }
+    
+    // 🔥 UPDATE Clerk user
+    await clerk.users.updateUser(data.id, {
+      firstName: data.firstName,
+      lastName: data.lastName,
+      username,
+    //   emailAddress: data.email ? [data.email] : undefined,
+      ...(data.password && { password: data.password }),
+    });
+
+    // 🔥 UPDATE Prisma profile
+    await prisma.userProfile.update({
+      where: { clerkId: data.id },
+      data: {
+        role: data.role,
+      },
+    });
+
+    return { success: true, error: null };
+  } catch (error) {
+    // console.error(error);
+    return { success: false, error: "Erreur lors de la mise à jour" };
+  }
+};
+
+// export const toggleUserStatus = async (id: string): Promise<void> => {
+//   const { sessionClaims } = await auth();
+//   const role = (sessionClaims?.metadata as { role?: string })?.role;
+
+//   if (role !== "super_admin") {
+//     throw new Error("Action non autorisée !");
+//   }
+ 
+//   const user = await prisma.userProfile.findUnique({
+//     where: { id },
+//   });
+
+//   if (!user) {
+//     throw new Error("Utilisateur introuvable !");
+//   }
+
+//   await prisma.userProfile.update({
+//     where: { id },
+//     data: {
+//       isBanned: !user.isBanned,
+//       isActive: user.isBanned, // actif si pas banni
+//     },
+//   });
+
+//   revalidatePath("/list/users");
+
+// };
+
+export const toggleUserStatus = async (id: string): Promise<void> => {
+  const { sessionClaims } = await auth();
+  const role = (sessionClaims?.metadata as { role?: string })?.role;
+
+  if (role !== "super_admin") {
+    throw new Error("Action non autorisée !");
+  }
+
+  const clerk = createClerkClient({
+    secretKey: process.env.CLERK_SECRET_KEY!,
+  });
+
+  const user = await prisma.userProfile.findUnique({
+    where: { id },
+  });
+
+  if (!user) {
+    throw new Error("Utilisateur introuvable !");
+  }
+
+  const newBanState = !user.isBanned;
+
+  // 1️⃣ Update Prisma
+  await prisma.userProfile.update({
+    where: { id },
+    data: {
+      isBanned: newBanState,
+      isActive: !newBanState,
+      bannedAt: newBanState ? new Date() : null,
+    },
+  });
+
+  // 2️⃣ Update Clerk metadata
+  await clerk.users.updateUser(user.clerkId, {
+    publicMetadata: {
+      isBanned: newBanState,
+    },
+  });
+
+  // 3️⃣ 🔥 Revoke ALL active sessions if banned
+  if (newBanState) {
+    const sessionList = await clerk.sessions.getSessionList({
+      userId: user.clerkId,
+    });
+
+    for (const session of sessionList.data) {
+      await clerk.sessions.revokeSession(session.id);
+    }
+  }
+
+  revalidatePath("/list/users");
+};
+
+// dans chaque Server Action sensible :
+// await requireActiveUser();
+
+export async function requireActiveUser() {
+  const { userId } = await auth();
+
+  if (!userId) throw new Error("Non authentifié");
+
+  const user = await prisma.userProfile.findUnique({
+    where: { id: userId },
+    select: { isBanned: true },
+  });
+
+  if (user?.isBanned) {
+    throw new Error("Compte suspendu");
+  }
+
+  return userId;
+}
 
 // Create Subject Action
 export const createSubject = async (currentState: currentState, data: SubjectSchemaInput) => {
@@ -36,7 +302,7 @@ export const createSubject = async (currentState: currentState, data: SubjectSch
         return { success: true, error: null };
 
     } catch (error) {
-        console.log(error)
+        // console.log(error)
         return { success: false, error: "Une erreur est survenue lors de la création de la matière" };
     }
 };
@@ -75,7 +341,7 @@ export const updateSubject = async (
 
         return { success: true, error: null };
     } catch (error) {
-        console.error(error);
+        // console.error(error);
         return {
             success: false,
             error: "Une erreur est survenue lors de la mise à jour de la matière",
@@ -94,7 +360,7 @@ export const deleteSubject = async (currentState: currentState, data: FormData) 
         return { success: true, error: null }
 
     } catch (error) {
-        console.log(error)
+        // console.log(error)
         return { success: false, error: "Erreur de suppression de la matière" };
     }
 }
@@ -105,7 +371,7 @@ export const createClass = async (
     data: ClassSchemaInput
 ) => {
     try {
-        // 1️⃣ Vérifier le grade
+        // Vérifier le grade
         const grade = await prisma.grade.findUnique({
             where: { id: data.gradeId },
         })
@@ -113,30 +379,18 @@ export const createClass = async (
             return { success: false, error: "Niveau introuvable" }
         }
 
-        // 2️⃣ Vérifier le supervisor si fourni
-        if (data.supervisorId) {
-            const teacher = await prisma.teacher.findUnique({
-                where: { id: data.supervisorId },
-            })
-            if (!teacher) {
-                // throw new Error("Supervisor (Teacher) does not exist")
-                return { success: false, error: "Enseignant superviseur introuvable" }
-            }
-        }
-
-        // 3️⃣ Créer la classe
+        // Créer la classe
         await prisma.class.create({
             data: {
                 name: data.name,
                 capacity: data.capacity,
                 gradeId: data.gradeId,
-                supervisorId: data.supervisorId ?? null,
             },
         })
 
         return { success: true, error: null }
     } catch (error) {
-        console.log("createClass error:", error)
+        // console.log("createClass error:", error)
         return { success: false, error: "Erreur de création de la classe" }
     }
 }
@@ -153,7 +407,7 @@ export const updateClass = async (currentState: currentState, data: ClassSchemaI
         return { success: true, error: null }
 
     } catch (error) {
-        console.log(error)
+        // console.log(error)
         return { success: false, error: "Erreur de mise à jour de la classe" };
     }
 };
@@ -177,7 +431,7 @@ export const deleteClass = async (currentState: currentState, data: FormData) =>
 export const createTeacher = async (
     currentState: { success: boolean; error: string | null },
     data: TeacherSchemaInput
-) => {
+    ) => {
     let userId: string | null = null;
 
     const clerk = createClerkClient({
@@ -185,6 +439,7 @@ export const createTeacher = async (
     });
 
     try {
+        // 1️⃣ Créer user Clerk
         const user = await clerk.users.createUser({
             username: data.username,
             password: data.password,
@@ -195,11 +450,7 @@ export const createTeacher = async (
 
         userId = user.id;
 
-        const subjects = await prisma.subject.findMany({
-            where: { name: { in: data.subjects ?? [] } },
-            select: { id: true },
-        });
-
+        // 2️⃣ Créer teacher de base
         await prisma.teacher.create({
             data: {
                 id: user.id,
@@ -213,44 +464,73 @@ export const createTeacher = async (
                 bloodType: data.bloodType,
                 sex: data.sex,
                 birthday: data.birthday ?? null,
-
-                subjects: {
-                    create: subjects.map((s) => ({
-                        subject: { connect: { id: s.id } },
-                    })),
-                },
             },
         });
 
+        // 3️⃣ Créer relations subjects si présentes
+        if (data.subjects && data.subjects.length > 0) {
+            const subjects = await prisma.subject.findMany({
+                where: { name: { in: data.subjects } },
+                select: { id: true },
+            });
+
+            await prisma.teacherSubject.createMany({
+                data: subjects.map((s) => ({
+                    teacherId: user.id,
+                    subjectId: s.id,
+                })),
+            });
+        }
+
+        // 4️⃣ Créer relations classes si présentes
+        if (data.classes && data.classes.length > 0) {
+            const classes = await prisma.class.findMany({
+                where: { id: { in: data.classes } },
+                select: { id: true },
+            });
+
+            await prisma.teacherClass.createMany({
+                data: classes.map((c) => ({
+                    teacherId: user.id,
+                    classId: c.id,
+                })),
+            });
+        }
+
         return { success: true, error: null };
     } catch (error) {
+        // rollback Clerk si erreur
         if (userId) {
             await clerk.users.deleteUser(userId);
         }
-
-        console.error("CREATE TEACHER ERROR 👉", error);
+        // console.error("CREATE TEACHER ERROR 👉", error);
         return {
             success: false,
             error: "Une erreur est survenue lors de la création du professeur.",
         };
     }
 };
-// End Create Teacher Action
 
 // Update Teacher Action
 export const updateTeacher = async (
-    currentState: currentState,
+    _currentState: { success: boolean; error: string | null },
     data: TeacherSchemaInput
 ) => {
-    const clerk = createClerkClient({
-        secretKey: process.env.CLERK_SECRET_KEY!,
-    });
+    const { sessionClaims } = await auth();
+    const role = (sessionClaims?.metadata as { role?: string })?.role;
+
+    if (role !== "admin" && role !== "super_admin") {
+        return { success: false, error: "Action non autorisée." };
+    }
+
+    if (!data.id) {
+        return { success: false, error: "ID manquant" };
+    }
+
+    const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY! });
 
     try {
-        if (!data.id) {
-            return { success: false, error: "ID manquant" };
-        }
-
+        // Update Clerk
         await clerk.users.updateUser(data.id, {
             username: data.username,
             ...(data.password && { password: data.password }),
@@ -259,84 +539,83 @@ export const updateTeacher = async (
             publicMetadata: { role: "teacher" },
         });
 
+        // Update subjects et classes dans Prisma
         const subjects = await prisma.subject.findMany({
             where: { name: { in: data.subjects ?? [] } },
             select: { id: true },
         });
 
+        // Supprimer les anciennes relations
+        await prisma.teacherSubject.deleteMany({ where: { teacherId: data.id } });
+        await prisma.teacherClass.deleteMany({ where: { teacherId: data.id } });
+
+        // Ajouter les nouvelles
+        if (subjects.length) {
+            await prisma.teacherSubject.createMany({
+                data: subjects.map((s) => ({ teacherId: data.id!, subjectId: s.id })),
+            });
+        }
+        if (data.classes?.length) {
+            await prisma.teacherClass.createMany({
+                data: data.classes.map((classId) => ({ teacherId: data.id!, classId })),
+            });
+        }
+
+        // Update le reste du teacher
         await prisma.teacher.update({
             where: { id: data.id },
             data: {
                 username: data.username,
                 name: data.name,
                 surname: data.surname,
-                email: data.email || null,
-                phone: data.phone || null,
+                email: data.email ?? null,
+                phone: data.phone ?? null,
                 address: data.address,
-                image: data.image || null,
+                image: data.image ?? null,
                 bloodType: data.bloodType,
                 sex: data.sex,
                 birthday: data.birthday ?? null,
-
-                subjects: {
-                    deleteMany: {}, // 🔥 supprime toutes les relations existantes
-                    create: subjects.map((s) => ({
-                        subject: { connect: { id: s.id } },
-                    })),
-                },
             },
         });
 
         return { success: true, error: null };
     } catch (error) {
-        console.error(error);
-        return {
-            success: false,
-            error: "Une erreur est survenue lors de la mise à jour du professeur.",
-        };
+        // console.error(error);
+        return { success: false, error: "Erreur lors de la mise à jour." };
     }
 };
-// End Update Teacher Action
 
-// Delete Teacher Action
-export const deleteTeacher = async (id: string) => {
-    const clerk = createClerkClient({
-        secretKey: process.env.CLERK_SECRET_KEY!,
-    });
+// Delete Teacher Action if Super Admin but deactivate if admin
+export const deleteTeacher = async (currentState: currentState, data: FormData
+) => {
+    const id = data.get("id") as string;
+
+    if (!id) {
+        return { success: false, error: true };
+    }
+
+    const { sessionClaims } = await auth();
+    const role = (sessionClaims?.metadata as { role?: string })?.role;
+
+    if (role !== "admin") {
+        return { success: false, error: true };
+    }
 
     try {
-        await prisma.$transaction(async (tx) => {
-            const teacher = await tx.teacher.findUnique({
-                where: { id },
-            });
-
-            if (!teacher) {
-                throw new Error("Enseignat introuvable");
-            }
-
-            // 1️⃣ Supprimer les relations
-            await tx.teacherSubject.deleteMany({
-                where: { teacherId: id },
-            });
-
-            // 2️⃣ Supprimer le teacher Prisma
-            await tx.teacher.delete({
-                where: { id },
-            });
-
-            // 3️⃣ Supprimer le user Clerk
-            await clerk.users.deleteUser(teacher.id);
+        await prisma.teacher.update({
+            where: { id },
+            data: {
+                deletedAt: new Date(),
+            },
         });
 
-        return { success: true };
+        return { success: true, error: false };
     } catch (error) {
-        console.error(error);
-        return {
-            success: false,
-            error: "Erreur lors de la suppression du professeur",
-        };
+        // console.error(error);
+        return { success: false, error: true };
     }
 };
+
 // End Delete Teacher Action
 
 // Create Student Action
@@ -360,7 +639,7 @@ export const createStudent = async (
         if (!classId) throw new Error("Class is required");
         if (!gradeId) throw new Error("Grade is required");
 
-        console.log("FORM DATA OK:", { parentId, classId, gradeId });
+        // console.log("FORM DATA OK:", { parentId, classId, gradeId });
 
         // Vérifiez la capacité de classe pour pouvoir ajouter un élève
         const classsItem = await prisma.class.findUnique({
@@ -485,7 +764,7 @@ export const updateStudent = async (
         return { success: true, error: null };
 
     } catch (error) {
-        console.error("Update Student error ❌", error);
+        // console.error("Update Student error ❌", error);
         return { success: false, error: "Une erreur est survenue lors de la mise à jour de l'élève." };
     }
 };
@@ -544,7 +823,7 @@ export const createExam = async (currentState: currentState, data: ExamSchemaInp
         return { success: true, error: null }
 
     } catch (error) {
-        console.log(error)
+        // console.log(error)
         return { success: false, error: "Une erreur est survenue lors de la création de l'examen." };
     }
 };
@@ -581,7 +860,7 @@ export const updateExam = async (currentState: currentState, data: ExamSchemaInp
         return { success: true, error: null }
 
     } catch (error) {
-        console.log(error)
+        // console.log(error)
         return { success: false, error: "Une erreur est survenue lors de la mise à jour de l'examen." };
     }
 };
@@ -602,7 +881,7 @@ export const deleteExam = async (currentState: currentState, data: FormData) => 
         return { success: true, error: null }
 
     } catch (error) {
-        console.log(error)
+        // console.log(error)
         return { success: false, error: "Une erreur est survenue lors de la suppression de l'examen." };
     }
 };
@@ -701,7 +980,7 @@ export const updateParent = async (
 
         return { success: true, error: null };
     } catch (error) {
-        console.error("Update Parent error ❌", error);
+        // console.error("Update Parent error ❌", error);
         return { success: false, error: "Une erreur est survenue lors de la mise à jour du parent." };
     }
 };
@@ -729,7 +1008,7 @@ export const deleteParent = async (currentState: currentState, data: FormData) =
 
 // Create Lesson Action
 export const createLesson = async (
-    _currentState: { success: boolean; error: string | null; },
+    _currentState: { success: boolean; error: string | null },
     data: LessonSchemaInput
 ) => {
     const { userId, sessionClaims } = await auth();
@@ -737,12 +1016,42 @@ export const createLesson = async (
 
     try {
         if (!userId) {
-            return { success: false, error: "Utilisateur non authentifié" };
+            return { success: false, error: "Utilisateur non authentifié." };
         }
 
         const teacherId = role === "teacher" ? userId : data.teacherId;
 
-        // 🔎 Vérification conflit
+        if (!teacherId) {
+            return { success: false, error: "Aucun enseignant spécifié." };
+        }
+
+        // 🔒 1️⃣ Vérifier assignation officielle
+        const isAssigned = await prisma.teacherClass.findUnique({
+            where: {
+                teacherId_classId: {
+                    teacherId,
+                    classId: data.classId,
+                },
+            },
+        });
+
+        if (!isAssigned) {
+            return {
+                success: false,
+                error:
+                    "Cet enseignant n’est pas assigné officiellement à cette classe.",
+            };
+        }
+
+        // 🔎 2️⃣ Vérifier cohérence horaire
+        if (data.startTime >= data.endTime) {
+            return {
+                success: false,
+                error: "L'heure de fin doit être après l'heure de début.",
+            };
+        }
+
+        // 🔎 3️⃣ Vérifier conflit horaire (prof OU classe)
         const conflict = await prisma.lesson.findFirst({
             where: {
                 day: data.day,
@@ -760,7 +1069,8 @@ export const createLesson = async (
         if (conflict) {
             return {
                 success: false,
-                error: "Conflit d’horaire : l’enseignant ou la classe est déjà occupé(e)."
+                error:
+                    "Conflit d’horaire : l’enseignant ou la classe est déjà occupé(e).",
             };
         }
 
@@ -778,72 +1088,134 @@ export const createLesson = async (
 
         return { success: true, error: null };
     } catch (error) {
-        console.error("Create lesson error:", error);
-        return { success: false, error: "Une erreur est survenue lors de la création du cours." };
+        // console.error("Create lesson error:", error);
+        return {
+            success: false,
+            error: "Une erreur est survenue lors de la création du cours.",
+        };
     }
 };
 
-export const updateLesson = async (currentState: currentState, data: LessonSchemaInput) => {
+
+export const updateLesson = async (
+    _currentState: { success: boolean; error: string | null },
+    data: LessonSchemaInput
+) => {
     const { userId, sessionClaims } = await auth();
     const role = (sessionClaims?.metadata as { role?: string })?.role;
 
     try {
-        if (role === "teacher") {
-            const teacherLesson = await prisma.lesson.findFirst({
-                where: {
-                    teacherId: userId!,
-                    id: data.subjectId
-                }
-            })
+        if (!userId) {
+            return { success: false, error: "Utilisateur non authentifié." };
+        }
 
-            if (!teacherLesson) {
-                return { success: false, error: "Ce cours ne vous appartient pas" };
-            }
+        const lesson = await prisma.lesson.findUnique({
+            where: { id: data.id },
+        });
+
+        if (!lesson) {
+            return { success: false, error: "Cours introuvable." };
+        }
+
+        // 🔐 Si teacher → vérifier ownership
+        if (role === "teacher" && data.teacherId && data.teacherId !== userId) {
+            return { success: false, error: "Action non autorisée. Ce cours ne vous appartient pas." };
+        }
+
+        // 🔎 Vérifier cohérence horaire
+        if (data.startTime >= data.endTime) {
+            return {
+                success: false,
+                error: "L'heure de fin doit être après l'heure de début.",
+            };
+        }
+
+        // 🔎 Vérifier conflits (en excluant le lesson actuel)
+        const conflict = await prisma.lesson.findFirst({
+            where: {
+                id: { not: data.id },
+                day: data.day,
+                AND: [
+                    { startTime: { lt: data.endTime } },
+                    { endTime: { gt: data.startTime } },
+                ],
+                OR: [
+                    { teacherId: lesson.teacherId },
+                    { classId: lesson.classId },
+                ],
+            },
+        });
+
+        if (conflict) {
+            return {
+                success: false,
+                error: "Conflit d’horaire détecté.",
+            };
         }
 
         await prisma.lesson.update({
-            where: {
-                id: data.id,
-            },
+            where: { id: data.id },
             data: {
                 name: data.name,
+                day: data.day,
                 startTime: data.startTime,
                 endTime: data.endTime,
-                subjectId: data.subjectId
-            }
+                subjectId: data.subjectId,
+            },
         });
-        return { success: true, error: null }
 
+        return { success: true, error: null };
     } catch (error) {
-        console.log(error)
-        return { success: false, error: "Une erreur est survenue lors de la mise à jour du cours." };
+        // console.error(error);
+        return {
+            success: false,
+            error: "Une erreur est survenue lors de la mise à jour du cours.",
+        };
     }
 };
 
-export const deleteLesson = async (currentState: currentState, data: FormData) => {
-    const id = data.get("id") as string;
 
-    // const { userId, sessionClaims } = await auth();
-    // const role = (sessionClaims?.metadata as { role?: string })?.role;
+export const deleteLesson = async (
+    _currentState: { success: boolean; error: string | null },
+    data: FormData
+) => {
+    const { userId, sessionClaims } = await auth();
+    const role = (sessionClaims?.metadata as { role?: string })?.role;
+
+    const id = parseInt(data.get("id") as string);
 
     try {
-        await prisma.lesson.delete({
-            where: {
-                id: parseInt(id),
-                // ...(role === "teacher" ? {teacherId: userId!} : {}),
-            },
-            select: {
-                id: true,
-                name: true,
-            }
-        });
-        return { success: true, error: null }
+        if (!userId) {
+            return { success: false, error: "Utilisateur non authentifié." };
+        }
 
+        const lesson = await prisma.lesson.findUnique({
+            where: { id },
+        });
+
+        if (!lesson) {
+            return { success: false, error: "Cours introuvable." };
+        }
+
+        // 🔐 Teacher ne peut supprimer que ses cours
+        if (role === "teacher" && lesson.teacherId !== userId) {
+            return { success: false, error: "Action non autorisée." };
+        }
+
+        await prisma.lesson.delete({
+            where: { id },
+        });
+
+        return { success: true, error: null };
     } catch (error) {
-        console.log(error)
-        return { success: false, error: "Une erreur est survenue lors de la suppression du cours." };
+        // console.error(error);
+        return {
+            success: false,
+            error: "Une erreur est survenue lors de la suppression du cours.",
+        };
     }
 };
+
 
 // Create Assignment Action
 export const createAssignment = async (
@@ -897,7 +1269,7 @@ export const createAssignment = async (
 
         return { success: true, error: null };
     } catch (error) {
-        console.error("Create Assignment Error ❌", error);
+        // console.error("Create Assignment Error ❌", error);
         return { success: false, error: "Erreur lors de la création" };
     }
 };
@@ -961,7 +1333,7 @@ export const updateAssignment = async (
 
         return { success: true, error: null };
     } catch (error) {
-        console.error("Update Assignment Error ❌", error);
+        // console.error("Update Assignment Error ❌", error);
         return { success: false, error: "Erreur lors de la mise à jour" };
     }
 };
@@ -986,7 +1358,7 @@ export const deleteAssignment = async (currentState: currentState, data: FormDat
         return { success: true, error: null }
 
     } catch (error) {
-        console.log(error)
+        // console.log(error)
         return { success: false, error: "Une erreur est survenue lors de la suppression du devoir." };
     }
 };
@@ -1037,7 +1409,7 @@ export const createResult = async (
 
         return { success: true, error: null };
     } catch (error) {
-        console.error(error);
+        // console.error(error);
         return {
             success: false,
             error: "Erreur lors de l'enregistrement de la note",
@@ -1073,7 +1445,7 @@ export const updateResult = async (
 
         return { success: true, error: null };
     } catch (error) {
-        console.error(error);
+        // console.error(error);
         return {
             success: false,
             error: "Erreur lors de la modification de la note",
@@ -1110,7 +1482,7 @@ export const deleteResult = async (currentState: currentState, data: FormData) =
         return { success: true, error: null }
 
     } catch (error) {
-        console.log(error)
+        // console.log(error)
         return { success: false, error: "Une erreur est survenue lors de la suppression de la note." };
     }
 };
@@ -1216,11 +1588,11 @@ export const createAttendance = async (
                             : "ADMIN",
             },
         });
-        console.log("proofUrl reçu:", data.proofUrl);
+        // console.log("proofUrl reçu:", data.proofUrl);
 
         return { success: true, error: null };
     } catch (error: any) {
-        console.error("createAttendance error:", error);
+        // console.error("createAttendance error:", error);
 
         if (error.code === "P2002") {
             return {
@@ -1303,7 +1675,7 @@ export const updateAttendance = async (
 
         return { success: true, error: null };
     } catch (error) {
-        console.error("updateAttendance error:", error);
+        // console.error("updateAttendance error:", error);
         return {
             success: false,
             error: "Erreur serveur.",
@@ -1363,7 +1735,7 @@ export const deleteAttendance = async (
 
         return { success: true, error: null };
     } catch (error) {
-        console.error(error);
+        // console.error(error);
         return {
             success: false,
             error: "Erreur serveur lors de la suppression",
@@ -1536,7 +1908,7 @@ export const createAnnouncement = async (
 
         return { success: true, error: null };
     } catch (error) {
-        console.error("Create Announcement Error ❌", error);
+        // console.error("Create Announcement Error ❌", error);
         return {
             success: false,
             error: "Une erreur est survenue lors de la création de l'annonce.",
@@ -1579,7 +1951,7 @@ export const updateAnnouncement = async (
 
         return { success: true, error: null };
     } catch (error) {
-        console.error("Update Announcement Error ❌", error);
+        // console.error("Update Announcement Error ❌", error);
         return {
             success: false,
             error: "Une erreur est survenue lors de la mise à jour de l'annonce.",
@@ -1618,7 +1990,7 @@ export const deleteAnnouncement = async (
 
         return { success: true, error: null };
     } catch (error) {
-        console.error("Delete Announcement Error ❌", error);
+        // console.error("Delete Announcement Error ❌", error);
         return {
             success: false,
             error: "Une erreur est survenue lors de la suppression de l'annonce.",
@@ -1654,7 +2026,7 @@ export const createEvent = async (
 
         return { success: true, error: null };
     } catch (error) {
-        console.error("Create Event Error ❌", error);
+        // console.error("Create Event Error ❌", error);
         return {
             success: false,
             error: "Une erreur est survenue lors de la création de l'annonce.",
@@ -1698,7 +2070,7 @@ export const updateEvent = async (
 
         return { success: true, error: null };
     } catch (error) {
-        console.error("Update Event Error ❌", error);
+        // console.error("Update Event Error ❌", error);
         return {
             success: false,
             error: "Une erreur est survenue lors de la mise à jour de l'annonce.",
@@ -1737,7 +2109,7 @@ export const deleteEvent = async (
 
         return { success: true, error: null };
     } catch (error) {
-        console.error("Delete Event Error ❌", error);
+        // console.error("Delete Event Error ❌", error);
         return {
             success: false,
             error: "Une erreur est survenue lors de la suppression de l'annonce.",

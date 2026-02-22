@@ -1,6 +1,6 @@
 "use server";
 
-import FormModal from "@/components/FormModal";
+import FormContainer from "@/components/FormContainer";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
@@ -89,8 +89,8 @@ const ResultListPage = async ({
         <div className="flex items-center gap-2">
           {(role === "admin" || role === "teacher") && (
             <>
-              <FormModal table="result" type="update" data={item} />
-              <FormModal table="result" type="delete" id={item.id} />
+              <FormContainer table="result" type="update" data={item} />
+              <FormContainer table="result" type="delete" id={item.id} />
             </>
           )}
         </div>
@@ -101,58 +101,59 @@ const ResultListPage = async ({
   const currentUserId = userId;
 
   // URL PARAMS CONDITION
-
-  const query: Prisma.ResultWhereInput = {
-    ...resultRoleFilter(role, userId),
+  const where: Prisma.ResultWhereInput = {
+    AND: [],
   };
-
-  if (queryParams) {
-    for (const [key, value] of Object.entries(queryParams)) {
-      if (value !== undefined) {
-        switch (key) {
-          case "studentId":
-            query.studentId = value;
-            break;
-          case "search":
-            query.OR = [
-              { exam: { title: { contains: value, mode: "insensitive" } } },
-              { student: { name: { contains: value, mode: "insensitive" } } },
-            ];
-            break;
-          default:
-            break;
-        }
-      }
-    }
-  }
-
+  
   // Fetch data accoording to user role
+  // 🔐 Role filter
   switch (role) {
-    case "admin":
-      break;
     case "teacher":
-      query.OR = [
-        { exam: { lesson: { teacherId: currentUserId! } } },
-        { assignment: { lesson: { teacherId: currentUserId! } } },
-      ];
-      break;
+    (where.AND as Prisma.ResultWhereInput[]).push({
+      OR: [
+        { exam: { lesson: { teacherId: userId! } } },
+        { assignment: { lesson: { teacherId: userId! } } },
+      ],
+    });
+    break;
 
     case "student":
-      query.studentId = currentUserId!;
+      (where.AND as Prisma.ResultWhereInput[]).push({
+        studentId: userId!,
+      });
       break;
 
     case "parent":
-      query.student = {
-        parentId: currentUserId!,
-      };
+      (where.AND as Prisma.ResultWhereInput[]).push({
+        student: {
+          parentId: userId!,
+        },
+      });
       break;
+
     default:
       break;
   }
 
+  if (queryParams.search) {
+    (where.AND as Prisma.ResultWhereInput[]).push({
+      OR: [
+        { exam: { title: { contains: queryParams.search, mode: "insensitive" } } },
+        { student: { name: { contains: queryParams.search, mode: "insensitive" } } },
+        { student: { surname: { contains: queryParams.search, mode: "insensitive" } } },
+      ],
+    });
+  }
+
+  if (queryParams.studentId) {
+    (where.AND as Prisma.ResultWhereInput[]).push({
+      studentId: queryParams.studentId,
+    });
+  }
+        
   const [dataRes, count] = await prisma.$transaction([
     prisma.result.findMany({
-      where: query,
+      where,
       include: {
         student: { select: { name: true, surname: true } },
         exam: {
@@ -178,16 +179,15 @@ const ResultListPage = async ({
       },
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
+      orderBy: { id: "desc" },
     }),
-    prisma.result.count({ where: query }),
+    prisma.result.count({ where }),
   ]);
 
   const data: ResultList[] = dataRes
     .map((item) => {
-      const assessment = item.exam || item.assignment;
+      const assessment = item.exam ?? item.assignment;
       if (!assessment) return null;
-
-      const isExam = "startTime" in assessment;
 
       return {
         id: item.id,
@@ -198,73 +198,55 @@ const ResultListPage = async ({
         teacherSurname: assessment.lesson.teacher.surname,
         score: item.score,
         className: assessment.lesson.class.name,
-        startTime: isExam ? assessment.startTime : assessment.startDate,
+        startTime:
+          "startTime" in assessment
+            ? assessment.startTime
+            : assessment.startDate,
       };
     })
     .filter((item): item is ResultList => item !== null);
 
-
-  // const data = dataRes.map((item) => {
-  //   const assessment = item.exam || item.assignment;
-
-  //   if (!assessment) return null;
-
-  //   const isExam = "startTime" in assessment;
-
-  //   return {
-  //     id: item.id,
-  //     title: assessment.title,
-  //     studentName: item.student.name,
-  //     studentSurname: item.student.surname,
-  //     teacherName: assessment.lesson.teacher.name,
-  //     teacherSurname: assessment.lesson.teacher.surname,
-  //     score: item.score,
-  //     className: assessment.lesson.class.name,
-  //     startTime: isExam ? assessment.startTime : assessment.startDate,
-  //   };
-  // });
-
-  return (
-    <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
-      {/* TOP SECTION */}
-      <div className="flex items-center justify-between">
-        <h1 className="hidden md:block text-lg font-semibold">
-          Liste des résultats
-        </h1>
-        <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto items-center">
-          <TableSearch />
-          <div className="flex items-center gap-4 self-end">
-            <button className="bg-blue-300 text-white w-8 h-8 items-center justify-center rounded-full flex">
-              <Image
-                src="/filter.png"
-                alt="filter"
-                width={14}
-                height={14}
-                className="cursor-pointer"
-              />
-            </button>
-            <button className="bg-yellow-300 text-white w-8 h-8 items-center justify-center rounded-full flex">
-              <Image
-                src="/sort.png"
-                alt="sort"
-                width={14}
-                height={14}
-                className="cursor-pointer"
-              />
-            </button>
-            {(role === "admin" || role === "teacher") && (
-              <FormModal table="result" type="create" />
-            )}
+    return (
+      <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
+        {/* TOP SECTION */}
+        <div className="flex items-center justify-between">
+          <h1 className="hidden md:block text-lg font-semibold">
+            Liste des résultats
+          </h1>
+          <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto items-center">
+            <TableSearch />
+            <div className="flex items-center gap-4 self-end">
+              <button className="bg-blue-300 text-white w-8 h-8 items-center justify-center rounded-full flex">
+                <Image
+                  src="/filter.png"
+                  alt="filter"
+                  width={14}
+                  height={14}
+                  className="cursor-pointer"
+                />
+              </button>
+              <button className="bg-yellow-300 text-white w-8 h-8 items-center justify-center rounded-full flex">
+                <Image
+                  src="/sort.png"
+                  alt="sort"
+                  width={14}
+                  height={14}
+                  className="cursor-pointer"
+                />
+              </button>
+              {(role === "admin" || role === "teacher") && (
+                <FormContainer table="result" type="create" />
+              )}
+            </div>
           </div>
         </div>
+
+        {/* List of Results */}
+        <Table columns={columns} renderRow={renderRow} data={data} />
+
+        {/* Pagination */}
+        <Pagination page={p} count={count} />
       </div>
-
-      {/* List of Results */}
-      <Table columns={columns} renderRow={renderRow} data={data} />
-
-      {/* Pagination */}
-      <Pagination page={p} count={count} />
-    </div>
-  );
-};
+    );
+  };
 export default ResultListPage;

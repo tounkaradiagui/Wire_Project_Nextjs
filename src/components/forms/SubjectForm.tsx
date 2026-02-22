@@ -29,7 +29,6 @@ const SubjectForm = ({
     resolver: zodResolver(subjectSchema),
   });
 
-
   const [state, formAction, isPending] = useActionState(
     type === "create" ? createSubject : updateSubject,
     {

@@ -7,6 +7,24 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model UserProfile {
+  id        String   @id @default(cuid())
+  clerkId   String   @unique
+  role      Role
+  username  String @unique
+  firstName  String
+  lastName  String
+  image     String?
+
+  isActive  Boolean  @default(true)
+  isBanned  Boolean  @default(false)
+  bannedAt  DateTime?
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model Admin {
   id        String   @id
   username  String   @unique
@@ -65,9 +83,10 @@ model Teacher {
   birthday  DateTime?
   sex       UserSex
   createdAt DateTime         @default(now())
-  Class     Class[]
   lessons   Lesson[]
   subjects  TeacherSubject[]
+  teacherClasses TeacherClass[]
+  deletedAt DateTime?
 }
 
 model Grade {
@@ -83,17 +102,17 @@ model Class {
   name          String
   capacity      Int
   gradeId       Int
-  supervisorId  String?
   announcements Announcement[]
   grade         Grade          @relation(fields: [gradeId], references: [id])
-  supervisor    Teacher?       @relation(fields: [supervisorId], references: [id])
   events        Event[]
   lessons       Lesson[]
   students      Student[]
+  teacherClasses TeacherClass[]
 }
 
 model Subject {
   id       Int              @id @default(autoincrement())
+  // code     String?
   name     String           @unique
   lessons  Lesson[]
   teachers TeacherSubject[]
@@ -107,6 +126,17 @@ model TeacherSubject {
 
   @@id([teacherId, subjectId])
 }
+
+model TeacherClass {
+  teacherId String
+  classId   Int
+
+  teacher   Teacher @relation(fields: [teacherId], references: [id])
+  class     Class   @relation(fields: [classId], references: [id])
+
+  @@id([teacherId, classId])
+}
+
 
 model Lesson {
   id          Int          @id @default(autoincrement())
@@ -218,4 +248,12 @@ enum AttendanceActor {
   TEACHER
   PARENT
   ADMIN
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  TEACHER
+  PARENT
+  STUDENT
 }

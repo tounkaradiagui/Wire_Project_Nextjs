@@ -38,7 +38,7 @@ const AnnouncementListPage = async ({
       accessor: "date",
       className: "hidden md:table-cell ",
     },
-    ...(role === "admin" ? [{ header: "Actions", accessor: "actions" }] : []),
+    ...(role === "admin" || role === "super_admin" ? [{ header: "Actions", accessor: "actions" }] : []),
   ];
 
   // URL PARAMS CONDITION

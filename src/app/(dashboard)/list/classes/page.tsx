@@ -14,10 +14,8 @@ import {
   ArrowUpDown
 } from "lucide-react";
 
-// type ClassList = Class & { supervisor: Teacher } & { grade: Grade };
 type ClassList = Prisma.ClassGetPayload<{
   include: {
-    supervisor: true;
     grade: true;
   };
 }>;
@@ -45,7 +43,6 @@ const ClassListPage = async ({
       accessor: "grade",
       className: "hidden md:table-cell ",
     },
-    { header: "Surveillant", accessor: "supervisor" },
     ...(role === "admin" ? [{ header: "Actions", accessor: "actions" }] : []),
   ];
 
@@ -61,13 +58,6 @@ const ClassListPage = async ({
       </td>
       <td>{item.capacity}</td>
       <td className="hidden md:table-cell">{item.grade?.level ?? "-"}</td>
-      <td className="hidden md:table-cell">
-        {item.supervisor
-          ? `${item.supervisor.name} ${item.supervisor.surname}`
-          : <span className="text-gray-400 italic">Non assigné</span>
-        }
-        {/* {item.supervisor.name} {item.supervisor.surname} */}
-      </td>
       <td>
         <div className="flex items-center gap-2">
           {role === "admin" && (
@@ -81,17 +71,24 @@ const ClassListPage = async ({
     </tr>
   );
 
+  const teacherId = searchParams.teacherId;
+
   // URL PARAMS CONDITION
-
+  
   const query: Prisma.ClassWhereInput = {};
-
+  
+  if (teacherId) {
+    query.teacherClasses = {
+      some: {
+        teacherId,
+      },
+    };
+  }
+  
   if (queryParams) {
     for (const [key, value] of Object.entries(queryParams)) {
       if (value !== undefined) {
         switch (key) {
-          case "supervisorId":
-            query.supervisorId = value;
-            break;
           case "search":
             query.name = { contains: value, mode: "insensitive" };
             break;
@@ -106,7 +103,6 @@ const ClassListPage = async ({
     prisma.class.findMany({
       where: query,
       include: {
-        supervisor: true,
         grade: true,
       },
       take: ITEM_PER_PAGE,
@@ -127,16 +123,16 @@ const ClassListPage = async ({
           <div className="flex items-center gap-4 self-end">
             <button
               className="flex items-center gap-1 px-3 py-1.5 rounded-md
-                          bg-gray-100 hover:bg-gray-200 text-gray-700
-                          transition"
+                bg-gray-100 hover:bg-gray-200 text-gray-700
+                transition"
             >
               <Filter size={16} />
               <span className="text-sm">Filtrer</span>
             </button>
             <button
               className="flex items-center gap-1 px-3 py-1.5 rounded-md
-                          bg-gray-100 hover:bg-gray-200 text-gray-700
-                          transition"
+                bg-gray-100 hover:bg-gray-200 text-gray-700
+                transition"
             >
               <ArrowUpDown size={16} />
               <span className="text-sm">Trier</span>

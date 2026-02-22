@@ -77,7 +77,7 @@ const AssignmentListPage = async ({
       accessor: "dueDate",
       className: "hidden md:table-cell ",
     },
-    ...(role === "admin" || role === "teacher"
+    ...(role === "admin" || role === "teacher" || role === "super_admin"
       ? [{ header: "Actions", accessor: "actions" }]
       : []),
   ];

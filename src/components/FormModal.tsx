@@ -82,6 +82,10 @@ const EventForm = dynamic(() => import("./forms/EventForm"), {
   loading: () => <h1>Chargement...</h1>,
 });
 
+const UserForm = dynamic(() => import("./forms/UserForm"), {
+  loading: () => <h1>Chargement...</h1>,
+});
+
 const forms: {
   [key: string]: (
     setOpen: Dispatch<SetStateAction<boolean>>,
@@ -194,6 +198,15 @@ const forms: {
       relatedData={relatedData}
     />
   ),
+
+  user: (setOpen, type, data, relatedData) => (
+    < UserForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
 };
 
 const FormModal = ({
@@ -262,7 +275,7 @@ const FormModal = ({
             type="submit"
             disabled={isPending}
             className={`
-              py-2 px-4 rounded-md text-white font-medium transition-all
+              py-2 px-4 rounded-md text-white font-medium transition-all cursor-pointer
               ${isPending
                 ? "bg-gray-400 cursor-not-allowed"
                 : "bg-red-600 hover:bg-red-700 active:scale-95"}

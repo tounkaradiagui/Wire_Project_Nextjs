@@ -15,13 +15,17 @@ type TeacherWithCount = Prisma.TeacherGetPayload<{
       select: {
         subjects: true;
         lessons: true;
-        Class: true;
+        teacherClasses: true;
       };
     };
   };
 }>;
 
-const TeacherDetailPage = async ({ params: { id }, }: { params: { id: string }; }) => {
+const TeacherDetailPage = async (props: {
+  params: Promise<{ id: string }>;
+}) => {
+
+  const { id } = await props.params;
 
   const teacher: TeacherWithCount | null =
     await prisma.teacher.findUnique({
@@ -31,7 +35,7 @@ const TeacherDetailPage = async ({ params: { id }, }: { params: { id: string }; 
           select: {
             subjects: true,
             lessons: true,
-            Class: true,
+            teacherClasses:true 
           },
         },
       },
@@ -166,7 +170,7 @@ const TeacherDetailPage = async ({ params: { id }, }: { params: { id: string }; 
                 />
               </div>
               <div>
-                <h1 className="text-2xl font-semibold">{teacher._count.Class}</h1>
+                <h1 className="text-2xl font-semibold">{teacher._count.teacherClasses}</h1>
                 <span className="text-sm opacity-90">Classes assignées</span>
               </div>
             </div>
@@ -185,7 +189,7 @@ const TeacherDetailPage = async ({ params: { id }, }: { params: { id: string }; 
           <h2 className="text-xl font-semibold mb-4">Raccourcis</h2>
           <div className="mt-4 gap-4 flex flex-wrap text-xs text-gray-700">
             <Link
-              href={`/list/classes?supervisorId=${teacher.id}`}
+              href={`/list/classes?teacherId=${teacher.id}`}
               className="p-3 rounded-md bg-amber-200"
             >
               Classes
@@ -202,7 +206,7 @@ const TeacherDetailPage = async ({ params: { id }, }: { params: { id: string }; 
             <Link href={`/list/lessons?teacherId=${teacher.id}`} className="p-3 rounded-md bg-cyan-200">
               Leçons
             </Link>
-            <Link href={`/list/attendance?teacherId=${teacher.id}`} className="p-3 rounded-md bg-pink-200">
+            <Link href={`/list/attendances?teacherId=${teacher.id}`} className="p-3 rounded-md bg-pink-200">
               Présence
             </Link>
             <Link

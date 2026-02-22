@@ -54,7 +54,7 @@ const AttendanceForm = ({
     );
 
     const onSubmit = handleSubmit((data) => {
-        console.log(data)
+        // console.log(data)
         startTransition(() => {
             setServerError(null)
             formAction({ ...data, proofUrl: image?.secure_url });

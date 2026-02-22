@@ -66,20 +66,6 @@ const EventListPage = async ({
       <td className="hidden md:table-cell">
         {new Intl.DateTimeFormat("fr-FR").format(item.startTime)}
       </td>
-      {/* <td className="hidden md:table-cell">
-        {item.startTime.toLocaleTimeString("fr-FR", {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false,
-        })}
-      </td>
-      <td className="hidden md:table-cell">
-        {item.endTime.toLocaleTimeString("fr-FR", {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false,
-        })}
-      </td> */}
       <td>
         <div className="flex items-center gap-2">
           {role === "admin" && (

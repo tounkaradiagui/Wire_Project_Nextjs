@@ -100,12 +100,6 @@ const ExamListPage = async ({
 
   const query: Prisma.ExamWhereInput = {};
 
-  // if (role === "teacher") {
-  //   query.lesson = {
-  //     teacherId: userId!,
-  //   };
-  // }
-
   // query.lesson = {};
   query.lesson = query.lesson ?? {};
 

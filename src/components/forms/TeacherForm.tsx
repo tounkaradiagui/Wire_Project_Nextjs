@@ -43,7 +43,7 @@ const TeacherForm = ({
 
 
   const onSubmit = handleSubmit((data) => {
-    console.log(data)
+    // console.log(data)
     startTransition(() => {
       formAction({ ...data, image: image?.secure_url });
     });
@@ -51,38 +51,36 @@ const TeacherForm = ({
 
   const router = useRouter();
 
-  useEffect(() => {
-    if (state.success) {
-      toast.success(
-        `L'enseignant a été ${type === "create" ? "ajoutée avec succès" : "mise à jour avec succès"
-        }`,
-        {
-          style: {
-            background: "dark",
-            color: "#ffffff",
-            fontWeight: "bold",
-            fontSize: "14px",
-          },
-        }
-      );
-      setOpen(false);
-      router.refresh();
-    }
+useEffect(() => {
+  if (state.success) {
+    toast.success(`L'enseignant a été ${type === "create" ? "ajoutée avec succès" : "mise à jour avec succès"
+        }`, {
+      style: {
+        background: "dark",
+        color: "#ffffff",
+        fontWeight: "bold",
+        fontSize: "14px",
+      },
+    });
+    setOpen(false);
+    router.refresh();
+  }
 
-    if (state.error) {
-      toast.error(state.error, {
-        style: {
-          background: "#f87171",
-          color: "#ffffff",
-          fontWeight: "bold",
-          fontSize: "14px",
-        },
-      });
-      router.refresh();
-    }
-  }, [state, type, router, setOpen]);
+  if (state.error) {
+    toast.error("Erreur de serveur", {
+      style: {
+        background: "#f87171",
+        color: "#ffffff",
+        fontWeight: "bold",
+        fontSize: "14px",
+      },
+    });
+    router.refresh();
+  }
+}, [state.success, state.error]);
 
-  const { subjects } = relatedData;
+
+  const { subjects, classes } = relatedData;
 
   return (
     <div className="max-h-[80vh] overflow-y-auto p-6">
@@ -165,7 +163,7 @@ const TeacherForm = ({
           <InputField
             label="Date de naissance"
             name="birthday"
-            defaultValue={data?.birthday.toISOString().split("T")[0]}
+            defaultValue={data?.birthday}
             register={register}
             error={errors?.birthday}
             type="date"
@@ -224,6 +222,28 @@ const TeacherForm = ({
             )}
           </div>
 
+          <div className="flex flex-col gap-2 rounded-full md:w-1/4">
+            <label>Classes assignées</label>
+            <select
+              multiple
+              className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+              {...register("classes")}
+              defaultValue={data?.classes}
+            >
+              {classes.map((cls: { id: number; name: string }) => (
+                <option key={cls.id} value={cls.id}>
+                  {cls.name}
+                </option>
+              ))}
+            </select>
+
+            {errors.classes && (
+              <p className="text-xs text-red-500">
+                {errors.classes.message?.toString()}
+              </p>
+            )}
+          </div>
+
           <div className="flex flex-col gap-2 rounded-full md:w-1/4 mt-4">
             <input type="hidden" name="image" value={image?.secure_url || ""} />
             <CldUploadWidget
@@ -232,9 +252,6 @@ const TeacherForm = ({
                 setImage(result.info);
                 widget.close();
               }}
-            // onUpload={(result: any) => {
-            //   console.log(result.info.secure_url);
-            // }}
             >
               {({ open }) => (
                 <div
@@ -248,11 +265,6 @@ const TeacherForm = ({
             </CldUploadWidget>
           </div>
           {/* Server error */}
-          {/* {state.error && (
-            <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">
-              ❌ Une erreur est survenue. Veuillez réessayer.
-            </div>
-          )} */}
           {state.error && (
             <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">
               ❌ {state.error}
@@ -260,9 +272,6 @@ const TeacherForm = ({
           )}
         </div>
 
-        {/* <button className="bg-blue-500 text-white p-2 rounded-md cursor-pointer">
-          {type === "create" ? "Enregistrer" : "Valider"}
-        </button> */}
         <button
           type="submit"
           disabled={isPending}
