@@ -43,7 +43,8 @@ const ResultForm = ({
 
     useEffect(() => {
         if (state.success) {
-            toast.success("Note enregistrée avec succès");
+            toast.success(`La note a été ${type === "create" ? "ajoutée avec succès" : "mise à jour avec succès"
+        }`);
             setOpen(false);
             router.refresh();
         }
@@ -78,6 +79,17 @@ const ResultForm = ({
                 error={errors.score}
                 defaultValue={data?.score}
             />
+
+            {data && (
+                <InputField
+                label="ID"
+                name="id"
+                defaultValue={data?.id}
+                register={register}
+                error={errors?.id}
+                hidden
+                />
+            )}
 
             {/* Student */}
             <div>

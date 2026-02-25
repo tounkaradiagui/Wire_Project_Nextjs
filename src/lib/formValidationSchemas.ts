@@ -308,7 +308,8 @@ export const resultSchema = z
       .min(0, { message: "La note ne peut pas être négative" })
       .max(20, { message: "La note ne peut pas dépasser 20" }),
 
-    examId: z.coerce.number().optional().nullable(),
+    // examId: z.coerce.number().optional().nullable(),
+    examId: z.string().optional().transform(val => val ? Number(val) : undefined),
     assignmentId: z.coerce.number().optional().nullable(),
 
     studentId: z.string().min(1, {

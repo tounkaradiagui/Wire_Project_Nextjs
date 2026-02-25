@@ -16,6 +16,11 @@ model UserProfile {
   lastName  String
   image     String?
 
+  teacher     Teacher?
+  parent      Parent?
+  student     Student?
+  admin       Admin?
+
   isActive  Boolean  @default(true)
   isBanned  Boolean  @default(false)
   bannedAt  DateTime?
@@ -29,7 +34,14 @@ model Admin {
   id        String   @id
   username  String   @unique
   email     String?  @unique
+
+  userProfileId String      @unique
+  userProfile   UserProfile @relation(fields: [userProfileId], references: [id])
+
+
   createdAt DateTime @default(now())
+  deletedAt     DateTime?
+  isDeleted     Boolean  @default(false)
 }
 
 model Parent {
@@ -43,8 +55,14 @@ model Parent {
   address   String
   image     String?
   birthday  DateTime?
-  createdAt DateTime  @default(now())
   students  Student[]
+
+  userProfileId String      @unique
+  userProfile   UserProfile @relation(fields: [userProfileId], references: [id])
+
+  createdAt DateTime  @default(now())
+  deletedAt     DateTime?
+  isDeleted     Boolean  @default(false)
 }
 
 model Student {
@@ -68,6 +86,12 @@ model Student {
   class       Class        @relation(fields: [classId], references: [id])
   grade       Grade        @relation(fields: [gradeId], references: [id])
   parent      Parent       @relation(fields: [parentId], references: [id])
+
+  userProfileId String      @unique
+  userProfile   UserProfile @relation(fields: [userProfileId], references: [id])
+
+  deletedAt     DateTime?
+  isDeleted     Boolean  @default(false)
 }
 
 model Teacher {
@@ -82,11 +106,16 @@ model Teacher {
   bloodType String
   birthday  DateTime?
   sex       UserSex
-  createdAt DateTime         @default(now())
   lessons   Lesson[]
   subjects  TeacherSubject[]
   teacherClasses TeacherClass[]
+
+  userProfileId String      @unique
+  userProfile   UserProfile @relation(fields: [userProfileId], references: [id])
+
+  createdAt DateTime         @default(now())
   deletedAt DateTime?
+  isDeleted     Boolean  @default(false)
 }
 
 model Grade {

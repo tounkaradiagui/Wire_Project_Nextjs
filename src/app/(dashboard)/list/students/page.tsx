@@ -128,7 +128,11 @@ const StudentListPage = async ({
 
   const [data, count] = await prisma.$transaction([
     prisma.student.findMany({
-      where: query,
+      // where: query,
+      where: {
+        // deletedAt: null,
+        isDeleted: false
+      },
       include: {
         class: true,
         grade: true,

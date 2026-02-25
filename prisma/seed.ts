@@ -24,11 +24,11 @@ async function main() {
     await prisma.student.deleteMany();
     await prisma.parent.deleteMany();
     await prisma.teacher.deleteMany();
+    await prisma.admin.deleteMany();
+    await prisma.userProfile.deleteMany();
     await prisma.subject.deleteMany();
     await prisma.class.deleteMany();
     await prisma.grade.deleteMany();
-    await prisma.admin.deleteMany();
-
     console.log("🌱 Seed en cours...");
 
     await seedGradesAndClasses(prisma);
