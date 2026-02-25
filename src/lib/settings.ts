@@ -10,9 +10,9 @@ export const routeAccessMap: RouteAccessMap = {
   "/settings(.*)": ["admin", "teacher", "student", "parent", "super_admin"],
 
   // 📋 listes
-  "/list/teachers(.*)": ["admin", "teacher", "super_admin"],
-  "/list/students(.*)": ["admin", "teacher", "parent", "super_admin"],
-  "/list/parents(.*)": ["admin", "teacher", "super_admin"],
+  "/list/teachers(.*)": ["admin", "super_admin"],
+  "/list/students(.*)": ["admin", "parent", "super_admin"],
+  "/list/parents(.*)": ["admin", "super_admin"],
   "/list/subjects(.*)": ["admin", "super_admin"],
   "/list/classes(.*)": ["admin", "teacher", "super_admin"],
   "/list/users(.*)": ["super_admin"],

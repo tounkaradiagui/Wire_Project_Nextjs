@@ -154,7 +154,7 @@ const TeacherListPage = async ({
       include: {
         subjects: {
           include: {
-            subject: true, // ✅ LE VRAI SUBJECT Model
+            subject: true, // SUBJECT Model
           },
         },
         teacherClasses: {

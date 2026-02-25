@@ -136,7 +136,7 @@ const AssignmentForm = ({
                     {/* Lessons */}
                     <div className="flex flex-col gap-2 rounded-full md:w-1/4">
                         <label>
-                            Lessons
+                            Cours
                         </label>
 
                         <select

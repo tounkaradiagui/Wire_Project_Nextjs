@@ -224,7 +224,9 @@ const AssignmentListPage = async ({
               <ArrowUpDown size={16} />
               <span className="text-sm">Trier</span>
             </button>
-            {role === "admin" || role === "teacher" && <FormContainer table="assignment" type="create" />}
+            {role === "admin" && (
+              <FormContainer table="assignment" type="create" />
+            )}
           </div>
         </div>
       </div>

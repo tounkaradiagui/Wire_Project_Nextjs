@@ -87,7 +87,7 @@ const ExamListPage = async ({
       </td>
       <td>
         <div className="flex items-center gap-2">
-          {(role === "admin" || role === "teacher") && (
+          {(role === "admin") && (
             <>
               <FormContainer table="exam" type="update" data={item} />
               <FormContainer table="exam" type="delete" id={item.id} />

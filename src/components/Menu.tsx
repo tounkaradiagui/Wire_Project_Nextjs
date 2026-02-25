@@ -52,7 +52,7 @@ const menuItems = [
         icon: GraduationCap,
         label: "Élèves",
         href: "/list/students",
-        visible: ["admin", "teacher", "parent", "super_admin"],
+        visible: ["admin", "super_admin"],
       },
       // {
       //   icon: "👨‍👩‍👧",
@@ -64,7 +64,7 @@ const menuItems = [
         icon: Users,
         label: "Parents",
         href: "/list/parents",
-        visible: ["admin", "teacher", "super_admin"],
+        visible: ["admin", "super_admin"],
       },
       {
         icon: BookOpen,
