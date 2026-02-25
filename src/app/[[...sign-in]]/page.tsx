@@ -14,10 +14,19 @@ export default function LoginPage() {
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+
   const [fieldErrors, setFieldErrors] = useState<any>({});
   const [globalError, setGlobalError] = useState<string | null>(null);
 
-  const isDisabled = !identifier.trim() || !password.trim() || loading;
+  const [touched, setTouched] = useState({
+    identifier: false,
+    password: false,
+  });
+
+  const isDisabled =
+  loading ||
+  identifier.trim().length === 0 ||
+  password.trim().length === 0;
 
   // Vérification automatique du status après login
   useEffect(() => {
@@ -36,28 +45,28 @@ export default function LoginPage() {
       return;
     }
 
+    
+    const result = loginSchema.safeParse({ identifier, password });
+  
+    if (!result.success) {
+      const errors: any = {};
+  
+      result.error.issues.forEach((err) => {
+        const field = err.path[0] as string;
+        errors[field] = err.message;
+      });
+  
+      setFieldErrors(errors);
+      return;
+    }
+
     if (role) router.replace(`/${role}`);
-  }, [isSignedIn, user, router]);
+  }, [isSignedIn, user, router, identifier, password]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFieldErrors({});
     setGlobalError(null);
-
-    const result = loginSchema.safeParse({ identifier, password });
-
-    if (!result.success) {
-      const errors: any = {};
-
-      result.error.issues.forEach((err) => {
-        const field = err.path[0] as string;
-        errors[field] = err.message;
-      });
-
-      setFieldErrors(errors);
-      return;
-    }
-
 
     if (!isLoaded) return;
 
@@ -81,16 +90,9 @@ export default function LoginPage() {
         case "form_password_incorrect":
           setFieldErrors({ password: "Mot de passe incorrect" });
           break;
-        case "form_password_too_short":
-          setFieldErrors({ password: "Mot de passe trop court" });
-          break;
-
-        case "form_password_too_long":
-          setFieldErrors({ password: "Mot de passe trop long" });
-          break;
         case "user_locked":
         case "user_banned":
-          setGlobalError("Compte banni ou verrouillé");
+          setFieldErrors({password: "Compte banni ou verrouillé"});
           break;
         default:
           setGlobalError("Une erreur est survenue, veuillez réessayer");
@@ -134,26 +136,38 @@ export default function LoginPage() {
               <input
                 type="text"
                 value={identifier}
+                onBlur={() =>
+                  setTouched((prev) => ({ ...prev, identifier: true }))
+                }
                 onChange={(e) => setIdentifier(e.target.value)}
                 placeholder="Identifiant"
                 className="w-full rounded-xl border-gray-300 bg-gray-100 dark:bg-gray-800 p-3 focus:ring-2 focus:ring-blue-500 transition-all"
               />
             </motion.div>
-            {fieldErrors.identifier && (
-              <p className="text-xs text-red-500">{fieldErrors.identifier}</p>
-            )}
 
+            {touched.identifier && fieldErrors.identifier && (
+              <p className="text-xs text-red-500">
+                {fieldErrors.identifier}
+              </p>
+            )}
+  
             <motion.div whileFocus={{ scale: 1.02 }}>
               <input
                 type="password"
                 value={password}
+                onBlur={() =>
+                  setTouched((prev) => ({ ...prev, password: true }))
+                }
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Votre mot de passe"
                 className="w-full rounded-xl border-gray-300 bg-gray-100 dark:bg-gray-800 p-3 focus:ring-2 focus:ring-blue-500 transition-all"
               />
             </motion.div>
-            {fieldErrors.password && (
-              <p className="text-xs text-red-500">{fieldErrors.password}</p>
+
+            {touched.password && fieldErrors.password && (
+              <p className="text-xs text-red-500">
+                {fieldErrors.password}
+              </p>
             )}
 
             {globalError && (

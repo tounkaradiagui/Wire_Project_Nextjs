@@ -53,7 +53,7 @@ const ExamListPage = async ({
 
     { header: "Date de début", accessor: "startTimr", className: "hidden md:table-cell " },
     { header: "Date de fin", accessor: "endTime", className: "hidden md:table-cell " },
-    ...(role === "admin" || role === "teacher"
+    ...(role === "admin"
       ? [{ header: "Actions", accessor: "actions" }]
       : []),
   ];
@@ -203,7 +203,7 @@ const ExamListPage = async ({
               <ArrowUpDown size={16} />
               <span className="text-sm">Trier</span>
             </button>
-            {(role === "admin" || role === "teacher") && (
+            {(role === "admin") && (
               <FormContainer table="exam" type="create" />
             )}
           </div>

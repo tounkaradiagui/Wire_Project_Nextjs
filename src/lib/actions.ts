@@ -413,11 +413,14 @@ export const createTeacher = async (
   try {
     // Créer user Clerk
     const user = await clerk.users.createUser({
-      username: data.username,
-      password: data.password,
-      firstName: data.name,
-      lastName: data.surname,
-      publicMetadata: { role: "teacher" },
+        username: data.username,
+        password: data.password,
+        firstName: data.name,
+        lastName: data.surname,
+        publicMetadata: {
+            role: "teacher",
+            status: "active",
+        },
     });
 
     userId = user.id;
@@ -690,11 +693,14 @@ export const createStudent = async (
 
     // Create Clerk user
     const user = await clerk.users.createUser({
-      username: data.username,
-      password: data.password,
-      firstName: data.name,
-      lastName: data.surname,
-      publicMetadata: { role: "student" },
+        username: data.username,
+        password: data.password,
+        firstName: data.name,
+        lastName: data.surname,
+        publicMetadata: {
+            role: "student",
+            status: "active",
+        },
     });
 
     userId = user.id;
@@ -929,9 +935,6 @@ export const createExam = async (currentState: currentState, data: ExamSchemaInp
                 startTime: data.startTime,
                 endTime: data.endTime,
                 lessonId: data.lessonId
-                // lessons:{
-                //     connect:data.lessons.map((teacherId) => ({id: teacherId}))
-                // }
             }
         });
         return { success: true, error: null }
@@ -1020,11 +1023,14 @@ export const createParent = async (
 
   try {
     const user = await clerk.users.createUser({
-      username: data.username,
-      password: data.password,
-      firstName: data.name,
-      lastName: data.surname,
-      publicMetadata: { role: "parent" },
+        username: data.username,
+        password: data.password,
+        firstName: data.name,
+        lastName: data.surname,
+        publicMetadata: {
+            role: "parent",
+            status: "active",
+        },
     });
 
     userId = user.id;

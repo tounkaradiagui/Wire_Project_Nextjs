@@ -10,19 +10,25 @@ import { ITEM_PER_PAGE } from "@/lib/settings";
 import prisma from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import { resultRoleFilter } from "@/lib/roleFilters";
+import {
+  Eye,
+  Filter,
+  ArrowUpDown
+} from "lucide-react";
 
-type ResultList = {
-  id: number;
-  title: string;
-  studentName: string;
-  studentSurname: string;
-  teacherName: string;
-  teacherSurname: string;
-  score: number;
-  className: string;
-  startTime: Date;
-};
+type ResultList = Result;
 
+// type ResultList = {
+//   id: number;
+//   title: string;
+//   studentName: string;
+//   studentSurname: string;
+//   teacherName: string;
+//   teacherSurname: string;
+//   score: number;
+//   className: string;
+//   startTime: Date;
+// };
 
 const ResultListPage = async ({
   searchParams,
@@ -216,23 +222,21 @@ const ResultListPage = async ({
           <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto items-center">
             <TableSearch />
             <div className="flex items-center gap-4 self-end">
-              <button className="bg-blue-300 text-white w-8 h-8 items-center justify-center rounded-full flex">
-                <Image
-                  src="/filter.png"
-                  alt="filter"
-                  width={14}
-                  height={14}
-                  className="cursor-pointer"
-                />
+              <button
+                className="flex items-center gap-1 px-3 py-1.5 rounded-md
+                  bg-gray-100 hover:bg-gray-200 text-gray-700
+                  transition"
+              >
+                <Filter size={16} />
+                <span className="text-sm">Filtrer</span>
               </button>
-              <button className="bg-yellow-300 text-white w-8 h-8 items-center justify-center rounded-full flex">
-                <Image
-                  src="/sort.png"
-                  alt="sort"
-                  width={14}
-                  height={14}
-                  className="cursor-pointer"
-                />
+              <button
+                className="flex items-center gap-1 px-3 py-1.5 rounded-md
+                  bg-gray-100 hover:bg-gray-200 text-gray-700
+                  transition"
+              >
+                <ArrowUpDown size={16} />
+                <span className="text-sm">Trier</span>
               </button>
               {(role === "admin" || role === "teacher") && (
                 <FormContainer table="result" type="create" />

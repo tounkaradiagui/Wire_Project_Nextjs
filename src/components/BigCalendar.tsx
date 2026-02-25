@@ -16,9 +16,9 @@ const BigCalendar = ({ data }: { data: { title: string; start: Date; end: Date }
   };
 
   const formats = {
-    dayFormat: (date: Date, culture?: string, localizer?: any) =>
-      localizer.format(date, "dddd", culture),
-  };
+    dayHeaderFormat: (date: Date, culture?: string, localizer?: any) =>
+    localizer.format(date, "dddd D", culture),
+};
 
   // 🔹 Traduction complète des libellés
   const messages = {
@@ -27,7 +27,7 @@ const BigCalendar = ({ data }: { data: { title: string; start: Date; end: Date }
     next: "Suivant",
     month: "Mois",
     week: "Semaine",
-    work_week: "Semaine de travail",
+    work_week: "Semaine",
     day: "Jour",
     agenda: "Agenda",
     date: "Date",
@@ -45,16 +45,15 @@ const BigCalendar = ({ data }: { data: { title: string; start: Date; end: Date }
       events={data}
       startAccessor="start"
       endAccessor="end"
-      views={["work_week", "day"]}
+      views={[Views.WORK_WEEK, Views.DAY]}
       view={view}
       onView={handleViewChange}
       defaultView={Views.WORK_WEEK}
       defaultDate={new Date()}
-      style={{ height: "98%" }}
+      style={{ height: 550 }}
       min={new Date(0, 0, 0, 8, 0)}
       max={new Date(0, 0, 0, 17, 0)}
       messages={messages}
-      formats={formats}
     />
 
   );
