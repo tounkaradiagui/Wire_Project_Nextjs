@@ -36,11 +36,11 @@ const LessonListPage = async ({
   const role = (sessionClaims?.metadata as { role?: string })?.role;
 
   const columns = [
-    { header: "Nom de la matière", accessor: "info" },
+    { header: "Matière", accessor: "info" },
 
     {
-      header: "Leçon",
-      accessor: "leçon",
+      header: "Cours",
+      accessor: "cours",
       className: "hidden md:table-cell ",
     },
     {

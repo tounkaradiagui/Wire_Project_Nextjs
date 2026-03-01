@@ -19,17 +19,43 @@ const AttendanceChartContainer = async () => {
 
   // --- 2. Récupérer les présences depuis la base de données ---
 
-  const resData = await prisma.attendance.findMany({
-    where: {
-      date: {
-        gte: lastMonday, // On récupère seulement à partir du lundi
+  // const resData = await prisma.attendance.findMany({
+  //   where: {
+  //     date: {
+  //       gte: lastMonday, // On récupère seulement à partir du lundi
+  //     },
+  //   },
+  //   select: {
+  //     date: true, // Récupère la date
+  //     status: true, // Récupère s’il était présent (true/false)
+  //   },
+  // });
+const resData = await prisma.attendance.findMany({
+  where: {
+    isDeleted: false,
+    session: {
+      is: {
+        date: {
+          gte: lastMonday,
+        },
+        isDeleted: false,
       },
     },
-    select: {
-      date: true, // Récupère la date
-      status: true, // Récupère s’il était présent (true/false)
+  },
+  select: {
+    status: true,
+    session: {
+      select: {
+        date: true,
+      },
     },
-  });
+  },
+});
+
+const formatted = resData.map((item) => ({
+  date: item.session?.date,
+  status: item.status,
+}));
 
   // --- 3. Préparer la structure de données pour le graphique ---
 

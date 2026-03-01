@@ -17,6 +17,7 @@ export type FormContainerProps = {
   | "attendance"
   | "event"
   | "user"
+  | "session"
   | "announcement";
   type: "create" | "update" | "delete";
   data?: Record<string, unknown>;
@@ -338,31 +339,28 @@ const FormContainer = async ({ table, type, data, id, role }: FormContainerProps
 
         /**
          * LESSONS
-         * - admin → toutes
-         * - teacher → ses propres leçons
-         * - parent / student → leçons de leurs classes
          */
         const lessons = await prisma.lesson.findMany({
           where: {
             ...(role === "teacher"
               ? { teacherId: userId! }
               : role === "student"
-                ? {
+              ? {
                   class: {
                     students: {
                       some: { id: userId! },
                     },
                   },
                 }
-                : role === "parent"
-                  ? {
-                    class: {
-                      students: {
-                        some: { parentId: userId! },
-                      },
+              : role === "parent"
+              ? {
+                  class: {
+                    students: {
+                      some: { parentId: userId! },
                     },
-                  }
-                  : {}),
+                  },
+                }
+              : {}),
           },
           select: {
             id: true,
@@ -371,24 +369,50 @@ const FormContainer = async ({ table, type, data, id, role }: FormContainerProps
         });
 
         /**
+         * SESSIONS (IMPORTANT 🔥)
+         * On ne prend que les sessions non supprimées
+         */
+        const sessions = await prisma.session.findMany({
+          where: {
+            // isDeleted: false,
+            ...(role === "teacher"
+              ? {
+                  lesson: {
+                    teacherId: userId!,
+                  },
+                }
+              : {}),
+          },
+          select: {
+            id: true,
+            date: true,
+            lesson: {
+              select: {
+                name: true,
+              },
+            },
+          },
+          orderBy: {
+            date: "desc",
+          },
+        });
+
+        /**
          * STUDENTS
-         * - teacher → élèves de ses classes
-         * - parent → ses enfants
-         * - admin → tous
          */
         const students = await prisma.student.findMany({
           where: {
             ...(role === "teacher"
               ? {
-                class: {
-                  lessons: {
-                    some: { teacherId: userId! },
+                  class: {
+                    lessons: {
+                      some: { teacherId: userId! },
+                    },
                   },
-                },
-              }
+                }
               : role === "parent"
-                ? { parentId: userId! }
-                : {}),
+              ? { parentId: userId! }
+              : {}),
           },
           select: {
             id: true,
@@ -398,7 +422,7 @@ const FormContainer = async ({ table, type, data, id, role }: FormContainerProps
         });
 
         /**
-         * ENUMS POUR LE FORM
+         * ENUMS
          */
         const statuses = [
           { label: "Présent", value: "PRESENT" },
@@ -414,15 +438,50 @@ const FormContainer = async ({ table, type, data, id, role }: FormContainerProps
         relatedData = {
           students,
           lessons,
+          sessions,
           statuses,
           actors,
         };
+
         break;
       }
+
+      case "session": {
+        const { userId, sessionClaims } = await auth();
+        const role = (sessionClaims?.metadata as { role?: string })?.role;
+
+        // Sécurité : seuls admin et teacher peuvent créer des sessions
+        if (role !== "admin" && role !== "teacher") {
+          throw new Error("Unauthorized");
+        }
+
+        /**
+         * LESSONS DISPONIBLES
+         * - admin → toutes
+         * - teacher → seulement les siennes
+         */
+        const lessons = await prisma.lesson.findMany({
+          where: {
+            ...(role === "teacher"
+              ? { teacherId: userId! }
+              : {}),
+          },
+          select: {
+            id: true,
+            name: true,
+          },
+        });
+      
+        relatedData = {lessons};
+
+        break;
+      }
+
       default:
         break;
     }
   }
+  
   return (
     <div>
       {/* Form implementation goes here */}

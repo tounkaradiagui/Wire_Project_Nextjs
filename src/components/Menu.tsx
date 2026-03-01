@@ -80,9 +80,15 @@ const menuItems = [
       },
       {
         icon: FileText,
-        label: "Leçons",
+        label: "Cours",
         href: "/list/lessons",
         visible: ["admin", "teacher", "super_admin"],
+      },
+      {
+        icon: FileText,
+        label: "Séances",
+        href: "/list/sessions",
+        visible: ["admin", "super_admin"],
       },
       {
         icon: Trophy,

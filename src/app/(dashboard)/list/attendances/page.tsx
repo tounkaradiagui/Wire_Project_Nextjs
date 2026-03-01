@@ -76,15 +76,15 @@ const AttendanceListPage = async ({
       </td>
 
       <td className="hidden md:table-cell">
-        {item.lesson.class.name}
+        {item.session?.lesson.class.name}
       </td>
 
       <td className="hidden md:table-cell">
-        {item.lesson.name}
+        {item.session?.lesson.name}
       </td>
 
       <td>
-        {new Intl.DateTimeFormat("fr-FR").format(item.date)}
+        {new Intl.DateTimeFormat("fr-FR").format(item.session?.date!)}
       </td>
 
       {/* STATUS BADGE */}
@@ -154,16 +154,18 @@ const AttendanceListPage = async ({
 
   /* ================= QUERY ================= */
   const query: Prisma.AttendanceWhereInput = {
-    // status: "ABSENT", // 🔴 ABSENCES UNIQUEMENT
-    status: {
-      equals: AttendanceStatus.ABSENT,
-    },
+    status: AttendanceStatus.ABSENT,
+    isDeleted: false,
   };
 
   /* ---- Role rules ---- */
   switch (role) {
     case "teacher":
-      query.lesson = { teacherId: userId! };
+      query.session = {
+        lesson: {
+          teacherId: userId!,
+        },
+      };
       break;
 
     case "parent":
@@ -187,14 +189,12 @@ const AttendanceListPage = async ({
 
       switch (key) {
         case "classId":
-          query.lesson = {
-            ...(query.lesson as Prisma.LessonWhereInput),
-            classId: parseInt(value),
+          query.session = {
+            lesson: {
+              ...(query.session as any)?.lesson,
+              classId: parseInt(value),
+            },
           };
-          // query.lesson = {
-          //   ...query.lesson,
-          //   classId: parseInt(value),
-          // };
           break;
 
         case "search":
@@ -205,10 +205,6 @@ const AttendanceListPage = async ({
               mode: "insensitive",
             },
           };
-          // query.student = {
-          //   ...query.student,
-          //   name: { contains: value, mode: "insensitive" },
-          // };
           break;
       }
     }
@@ -220,24 +216,32 @@ const AttendanceListPage = async ({
       where: query,
       select: {
         id: true,
-        date: true,
         status: true,
         proofUrl: true,
         createdBy: true,
-
+        createdAt: true,
         student: true,
-        lesson: {
+        session: {
           include: {
-            class: true,
-            teacher: true,
+            lesson: {
+              include: {
+                class: true,
+                teacher: true,
+              },
+            },
           },
         },
       },
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
-      orderBy: { date: "desc" },
+      orderBy: {
+        createdAt: "desc",
+      },
     }),
-    prisma.attendance.count({ where: query }),
+
+    prisma.attendance.count({
+      where: query,
+    }),
   ]);
 
   return (

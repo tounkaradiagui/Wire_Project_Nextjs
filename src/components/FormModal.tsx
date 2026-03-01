@@ -10,7 +10,7 @@ import {
 } from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
-import { deleteEvent, deleteAnnouncement, deleteAttendance, deleteResult, deleteAssignment, deleteLesson, deleteTeacher, deleteClass, deleteSubject, deleteStudent, deleteExam, deleteParent } from "@/lib/actions";
+import { deleteSession, deleteEvent, deleteAnnouncement, deleteAttendance, deleteResult, deleteAssignment, deleteLesson, deleteTeacher, deleteClass, deleteSubject, deleteStudent, deleteExam, deleteParent } from "@/lib/actions";
 import { FormContainerProps } from "./FormContainer";
 import {
   Plus,
@@ -32,6 +32,7 @@ const deleteActionMap = {
   attendance: deleteAttendance,
   announcement: deleteAnnouncement,
   event: deleteEvent,
+  session: deleteSession,
 };
 
 const TeacherForm = dynamic(() => import("./forms/TeacherForm"), {
@@ -83,6 +84,10 @@ const EventForm = dynamic(() => import("./forms/EventForm"), {
 });
 
 const UserForm = dynamic(() => import("./forms/UserForm"), {
+  loading: () => <h1>Chargement...</h1>,
+});
+
+const SessionForm = dynamic(() => import("./forms/SessionForm"), {
   loading: () => <h1>Chargement...</h1>,
 });
 
@@ -200,7 +205,16 @@ const forms: {
   ),
 
   user: (setOpen, type, data, relatedData) => (
-    < UserForm
+    <UserForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
+
+  session: (setOpen, type, data, relatedData) => (
+    <SessionForm
       type={type}
       data={data}
       setOpen={setOpen}

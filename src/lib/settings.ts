@@ -16,7 +16,8 @@ export const routeAccessMap: RouteAccessMap = {
   "/list/subjects(.*)": ["admin", "super_admin"],
   "/list/classes(.*)": ["admin", "teacher", "super_admin"],
   "/list/users(.*)": ["super_admin"],
-
+  
+  "/list/sessions(.*)": ["admin", "super_admin"],
   "/list/exams(.*)": ["admin", "teacher", "student", "parent", "super_admin"],
   "/list/assignments(.*)": ["admin", "teacher", "student", "parent", "super_admin"],
   "/list/results(.*)": ["admin", "teacher", "student", "parent", "super_admin"],
@@ -26,7 +27,7 @@ export const routeAccessMap: RouteAccessMap = {
   "/list/messages(.*)": ["admin", "teacher", "parent"],
 
   // 🔐 zones role-based (TOUJOURS EN DERNIER)
-  "/dashboard/super_admin(.*)": ["super_admin"],
+  "/super_admin(.*)": ["super_admin"],
   "/admin(.*)": ["admin"],
   "/teacher(.*)": ["teacher"],
   "/student(.*)": ["student"],

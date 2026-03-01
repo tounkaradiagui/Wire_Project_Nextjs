@@ -6,7 +6,6 @@ import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 
 
-
 type currentState = { success: boolean; error: string | null; };
 
 function timeToDate(time: string) {
@@ -1413,6 +1412,254 @@ export const deleteLesson = async (
     }
 };
 
+// Create Session Action
+export const createSession = async (
+    currentState: currentState,
+    data: SessionSchemaInput
+    ): Promise<currentState> => {
+  try {
+    const { userId, sessionClaims } = await auth();
+    const role = (sessionClaims?.metadata as { role?: string })?.role;
+
+    if (!userId || !role) {
+      return { success: false, error: "Non autorisé." };
+    }
+
+    if (!["super_admin", "admin", "teacher"].includes(role)) {
+      return { success: false, error: "Rôle interdit." };
+    }
+
+    // 🕒 Normalisation
+    const startTime =
+      data.startTime instanceof Date
+        ? data.startTime
+        : new Date(data.startTime);
+
+    const endTime =
+      data.endTime instanceof Date
+        ? data.endTime
+        : new Date(data.endTime);
+
+    const date =
+      data.date instanceof Date ? data.date : new Date(data.date);
+
+    if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
+      return { success: false, error: "Heure invalide." };
+    }
+
+    if (endTime <= startTime) {
+      return {
+        success: false,
+        error: "L'heure de fin doit être après l'heure de début.",
+      };
+    }
+
+    // 👨‍🏫 Teacher ownership check
+    if (role === "teacher") {
+      const teacherLesson = await prisma.lesson.findFirst({
+        where: {
+          id: data.lessonId,
+          teacherId: userId,
+        },
+      });
+
+      if (!teacherLesson) {
+        return {
+          success: false,
+          error: "Ce cours ne vous appartient pas.",
+        };
+      }
+       
+    }
+
+    // 🚫 Empêcher doublon (même lesson + même startTime + non supprimé)
+    const existingSession = await prisma.session.findFirst({
+      where: {
+        lessonId: data.lessonId,
+        startTime,
+        isDeleted: false,
+      },
+    });
+
+    if (existingSession) {
+      return {
+        success: false,
+        error: "Une séance existe déjà à cette heure.",
+      };
+    }
+
+    const lesson = await prisma.lesson.findUnique({
+        where: { id: data.lessonId },
+    });
+
+    if (!lesson) {
+        return {
+            error: "La leçon sélectionnée est introuvable.",
+        };
+    }
+
+    await prisma.session.create({
+        data: {
+            date,
+            startTime,
+            endTime,
+            room: data.room ?? null,
+            lesson: {
+                connect: { id: data.lessonId }
+            },
+            isDeleted: false,
+        },
+    });
+
+    return { success: true, error: null };
+  } catch (error) {
+    // console.log("createSession error:", error);
+    return { success: false, error: "Erreur serveur." };
+  }
+};
+
+// Update Session Action
+export const updateSession = async (
+  currentState: currentState,
+  data: SessionSchemaInput
+    ): Promise<currentState> => {
+  try {
+    const { userId, sessionClaims } = await auth();
+    const role = (sessionClaims?.metadata as { role?: string })?.role;
+
+    if (!userId || !role) {
+      return { success: false, error: "Non autorisé." };
+    }
+
+    if (!["super_admin", "admin", "teacher"].includes(role)) {
+      return { success: false, error: "Rôle interdit." };
+    }
+
+    const session = await prisma.session.findUnique({
+      where: { id: data.id },
+      include: { lesson: true },
+    });
+
+    if (!session || session.isDeleted) {
+      return { success: false, error: "Séance introuvable." };
+    }
+
+    // 👨‍🏫 Vérification ownership teacher
+    if (role === "teacher" && session.lesson.teacherId !== userId) {
+      return {
+        success: false,
+        error: "Cette séance ne vous appartient pas.",
+      };
+    }
+
+    // 🕒 Normalisation
+    const startTime =
+      data.startTime instanceof Date
+        ? data.startTime
+        : new Date(data.startTime);
+
+    const endTime =
+      data.endTime instanceof Date
+        ? data.endTime
+        : new Date(data.endTime);
+
+    const date =
+      data.date instanceof Date ? data.date : new Date(data.date);
+
+    if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
+      return { success: false, error: "Heure invalide." };
+    }
+
+    if (endTime <= startTime) {
+      return {
+        success: false,
+        error: "L'heure de fin doit être après l'heure de début.",
+      };
+    }
+
+    // 🚫 Empêcher doublon (hors session actuelle)
+    const existingSession = await prisma.session.findFirst({
+      where: {
+        id: { not: data.id },
+        lessonId: session.lessonId,
+        startTime,
+        isDeleted: false,
+      },
+    });
+
+    if (existingSession) {
+      return {
+        success: false,
+        error: "Une autre séance existe déjà à cette heure.",
+      };
+    }
+
+    await prisma.session.update({
+      where: { id: data.id },
+      data: {
+        date,
+        startTime,
+        endTime,
+        room: data.room ?? null,
+      },
+    });
+
+    return { success: true, error: null };
+  } catch (error) {
+    console.log("updateSession error:", error);
+    return { success: false, error: "Erreur serveur." };
+  }
+};
+
+// Delete Session Action
+export const deleteSession = async (
+  currentState: currentState,
+  id: string
+    ): Promise<currentState> => {
+  try {
+    const { userId, sessionClaims } = await auth();
+    const role = (sessionClaims?.metadata as { role?: string })?.role;
+
+    if (!userId || !role) {
+      return { success: false, error: "Non autorisé." };
+    }
+
+    if (!["super_admin", "admin", "teacher"].includes(role)) {
+      return { success: false, error: "Rôle interdit." };
+    }
+
+    const session = await prisma.session.findUnique({
+      where: { id },
+      include: { lesson: true },
+    });
+
+    if (!session || session.isDeleted) {
+      return { success: false, error: "Séance introuvable." };
+    }
+
+    // 👨‍🏫 Ownership check
+    if (role === "teacher" && session.lesson.teacherId !== userId) {
+      return {
+        success: false,
+        error: "Cette séance ne vous appartient pas.",
+      };
+    }
+
+    await prisma.session.update({
+      where: { id },
+      data: {
+        isDeleted: true,
+        deletedAt: new Date(),
+      },
+    });
+
+    return { success: true, error: null };
+  } catch (error) {
+    console.log("deleteSession error:", error);
+    return { success: false, error: "Erreur serveur." };
+  }
+};
+
 
 // Create Assignment Action
 export const createAssignment = async (
@@ -1742,7 +1989,7 @@ export const deleteResult = async (
 export const createAttendance = async (
     currentState: currentState,
     data: AttendanceSchemaInput
-): Promise<currentState> => {
+    ): Promise<currentState> => {
 
     try {
         const { userId, sessionClaims } = await auth();
@@ -1859,6 +2106,126 @@ export const createAttendance = async (
     }
 };
 
+// export const createAttendance = async (
+//   currentState: currentState,
+//   data: AttendanceSchemaInput
+// ): Promise<currentState> => {
+//   try {
+//     const { userId, sessionClaims } = await auth();
+//     const role = (sessionClaims?.metadata as { role?: string })?.role;
+
+//     if (!userId || !role) {
+//       return { success: false, error: "Non autorisé." };
+//     }
+
+//     if (!["admin", "teacher", "parent"].includes(role)) {
+//       return { success: false, error: "Rôle interdit." };
+//     }
+
+//     if (role === "student") {
+//       return { success: false, error: "Accès refusé." };
+//     }
+
+//     // 🔍 Vérifier l'élève
+//     const student = await prisma.student.findUnique({
+//       where: { id: data.studentId },
+//       select: { parentId: true },
+//     });
+
+//     if (!student) {
+//       return { success: false, error: "Élève introuvable." };
+//     }
+
+//     // 🔍 Vérifier la session
+//     const session = await prisma.session.findFirst({
+//       where: {
+//         id: data.sessionId,
+//         isDeleted: false,
+//       },
+//       include: {
+//         lesson: true,
+//       },
+//     });
+
+//     if (!session) {
+//       return { success: false, error: "Séance introuvable." };
+//     }
+
+//     // 🔒 Parent restriction
+//     if (role === "parent") {
+//       if (student.parentId !== userId) {
+//         return { success: false, error: "Accès interdit." };
+//       }
+
+//       if (data.status !== "ABSENT") {
+//         return {
+//           success: false,
+//           error: "Un parent peut uniquement signaler une absence.",
+//         };
+//       }
+
+//       if (!data.comment && !data.proofUrl) {
+//         return {
+//           success: false,
+//           error: "Une justification est obligatoire.",
+//         };
+//       }
+//     }
+
+//     // 🔒 Teacher restriction
+//     if (role === "teacher") {
+//       if (session.lesson.teacherId !== userId) {
+//         return {
+//           success: false,
+//           error: "Vous ne pouvez pas gérer cette séance.",
+//         };
+//       }
+//     }
+
+//     // 🚫 Empêcher doublon student + session
+//     const existingAttendance = await prisma.attendance.findFirst({
+//       where: {
+//         studentId: data.studentId,
+//         sessionId: data.sessionId,
+//         isDeleted: false,
+//       },
+//     });
+
+//     if (existingAttendance) {
+//       return {
+//         success: false,
+//         error: "Présence déjà enregistrée.",
+//       };
+//     }
+
+//     await prisma.attendance.create({
+//       data: {
+//         studentId: data.studentId,
+//         sessionId: data.sessionId,
+//         status: data.status,
+//         comment: data.comment,
+//         proofUrl: data.proofUrl,
+//         createdBy:
+//           role === "parent"
+//             ? "PARENT"
+//             : role === "teacher"
+//             ? "TEACHER"
+//             : "ADMIN",
+//         isDeleted: false,
+//       },
+//     });
+
+//     return { success: true, error: null };
+//   } catch (error: any) {
+//     console.log("createAttendance error:", error);
+
+//     return {
+//       success: false,
+//       error: "Erreur serveur.",
+//     };
+//   }
+// };
+
 
 export const updateAttendance = async (
     currentState: currentState,
@@ -1938,7 +2305,7 @@ export const updateAttendance = async (
 export const deleteAttendance = async (
     currentState: currentState,
     data: FormData
-) => {
+    ) => {
     const id = Number(data.get("id"));
 
     if (!id) {
@@ -1980,8 +2347,15 @@ export const deleteAttendance = async (
         }
 
         // 3️⃣ Delete
-        await prisma.attendance.delete({
+        // await prisma.attendance.delete({
+        //     where: { id },
+        // });
+        await prisma.attendance.update({
             where: { id },
+            data: {
+                isDeleted: true,
+                deletedAt: new Date(),
+            },
         });
 
         return { success: true, error: null };

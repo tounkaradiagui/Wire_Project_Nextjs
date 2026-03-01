@@ -271,6 +271,39 @@ export const lessonSchema = z.object({
 export type LessonSchemaInput = z.infer<typeof lessonSchema>;
 // End Lesson Schema
 
+// Session Schema
+export const sessionSchema = z.object({
+   id: z.string().optional(),
+   lessonId: z.coerce.number({ message: "Le cours est obligatoire" }),
+
+  date: z.coerce
+    .date({
+      message: "La date est obligatoire",
+    }),
+
+  startTime: z.coerce
+    .date({
+      message: "L'heure de début est obligatoire",
+    }),
+
+  endTime: z.coerce
+    .date({
+      message: "L'heure de fin est obligatoire",
+    }),
+
+  room: z.string().optional(),
+}).refine(
+    (data) => data.endTime > data.startTime,
+    {
+      message: "L'heure de fin doit être après l'heure de début",
+      path: ["endTime"],
+    }
+);
+
+export type SessionSchemaInput = z.infer<typeof sessionSchema>;
+
+// End Session Schema
+
 // Assignment Schema
 export const assignmentSchema = z.object({
   id: z.coerce.number().optional(),
@@ -292,7 +325,7 @@ export const assignmentSchema = z.object({
     })
   ),
 
-  lessonId: z.coerce.number({ message: "La leçon est requise !" })
+  lessonId: z.coerce.number({ message: "Le cours est requis !" })
 });
 
 export type AssignmentSchemaInput = z.infer<typeof assignmentSchema>;

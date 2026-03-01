@@ -9,7 +9,7 @@
     "typecheck": "tsc --noEmit",
     "build": "prisma generate && next build",
     "start": "next start",
-    "dev": "next dev --turbopack"    
+    "dev": "next dev --turbopack"
   },
   "dependencies": {
     "@clerk/elements": "^0.23.82",
@@ -17,6 +17,7 @@
     "@hookform/resolvers": "^5.2.2",
     "@prisma/client": "6.18.0",
     "@prisma/extension-accelerate": "^2.0.2",
+    "@sentry/nextjs": "^10.40.0",
     "framer-motion": "^12.23.24",
     "lucide-react": "^0.546.0",
     "moment": "^2.30.1",

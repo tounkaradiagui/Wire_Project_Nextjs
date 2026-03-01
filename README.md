@@ -1,130 +1,250 @@
-# 🎓 Application de Gestion des Absences
+# 🎓 Application SaaS de Gestion des Absences
 
-> Application web moderne pour la gestion académique et le suivi des absences dans un établissement éducatif, construite avec **Next.js**, **TypeScript**, **Turbopack** et une **architecture microservices**.
+Plateforme web moderne dédiée aux établissements scolaires pour la gestion académique, le suivi des absences et l’administration éducative.  
+Construite avec **Next.js**, **TypeScript**, **Turbopack** et une architecture évolutive orientée SaaS.
 
 ---
 
 ## 📌 Présentation
 
-Cette application vise à centraliser et simplifier la gestion des absences, des notes, des emplois du temps et de la communication entre **administrateurs**, **enseignants**, **élèves** et **parents**. Elle propose une interface rapide, sécurisée et évolutive adaptée aux besoins des établissements scolaires modernes.
+Cette application centralise et simplifie la gestion :
+
+- 📅 Des séances de cours (Sessions)
+- ❌ Des absences
+- 📘 Des leçons
+- 👥 Des utilisateurs et rôles
+- 🏫 De la structure académique
+
+Elle repose sur une logique académique réelle :
+
+> Une absence est toujours liée à une **séance précise d’un cours donné**, et non simplement à une matière.
+
+### 🎯 Objectifs
+
+- ✅ Une gestion fiable
+- ✅ Une traçabilité complète
+- ✅ Une architecture scalable
+- ✅ Une base solide pour évoluer vers un véritable SaaS multi-établissements
 
 ---
 
-## 🚀 Fonctionnalités
+# 🚀 Fonctionnalités
 
-### 🔐 Authentification & Sécurité
+## 🔐 Authentification & Sécurité
 
-* Inscription utilisateur
-* Connexion sécurisée
-* Gestion des rôles et permissions
-* Protection des routes sensibles
-
----
-
-### 👥 Espaces Utilisateurs
-
-#### 👨‍👩‍👧 Parent d’élève
-
-* Consultation des absences, notes, cours et emplois du temps
-* Communication directe avec les enseignants
-* Gestion du profil personnel
-
-#### 🎒 Élève
-
-* Consultation des cours, notes et emplois du temps
-* Déclaration d’absences (avec justificatif optionnel)
-* Réception de messages des enseignants
-* Gestion du profil
-
-#### 👩‍🏫 Enseignant
-
-* Gestion et suivi des absences par classe
-* Communication avec les parents
-* Consultation des notes et emplois du temps
-* Accès aux matières enseignées
-* Gestion du profil
-
-#### 🧑‍💼 Administrateur
-
-* Accès complet à toutes les fonctionnalités
-* Gestion des utilisateurs (élèves, parents, enseignants, secrétaires)
-* Gestion des niveaux, classes et matières
-* Supervision globale du système
-
-#### 🗂️ Secrétaire
-
-* Accès administratif partiel
-* Gestion académique (hors utilisateurs et niveaux)
-* Communication avec tous les acteurs
+- Inscription et connexion sécurisée
+- Gestion des rôles et permissions
+- Protection des routes sensibles
+- Activation / Bannissement d’utilisateurs
+- Soft Delete (aucune suppression définitive critique)
+- Journalisation des actions sensibles (Audit Log – backend)
 
 ---
 
-### 🔔 Fonctionnalités en Cours
+## 👥 Espaces Utilisateurs
 
-* Notifications automatiques des absences envoyées aux parents
-* Historique et statistiques des absences
+### 👨‍👩‍👧 Parent d’élève
 
----
-
-## 🛠️ Stack Technique
-
-* **Framework** : Next.js (App Router)
-* **Bundler** : Turbopack
-* **Langage** : TypeScript
-* **UI** : Tailwind CSS
-* **Backend** : Architecture Microservices
-* **ORM** : Prisma
-* **Base de données** : PostgreSQL
-* **Authentification** : JWT / Auth Provider (selon configuration)
+- Consultation des absences
+- Consultation des notes
+- Visualisation des emplois du temps
+- Communication avec les enseignants
+- Gestion du profil personnel
 
 ---
 
-## 🧱 Architecture
+### 🎒 Élève
 
-Architecture basée sur des microservices pour assurer la scalabilité et la maintenabilité :
-
-* Service d’authentification
-* Service de gestion des utilisateurs
-* Service académique (absences, notes, classes)
-* Service de notifications
-* API Gateway
+- Consultation des cours et séances
+- Consultation des notes
+- Visualisation de l’historique des absences
+- Réception de messages
+- Gestion du profil
 
 ---
 
-## ⚙️ Installation & Configuration
+### 👩‍🏫 Enseignant
 
-### 1️⃣ Cloner le projet
+- Gestion des séances de cours
+- Marquage des absences par session
+- Consultation des matières enseignées
+- Communication avec parents et élèves
+- Gestion du profil
+
+---
+
+### 🧑‍💼 Administrateur
+
+- Accès global à la plateforme
+- Gestion des utilisateurs
+- Gestion des niveaux, classes et matières
+- Supervision des sessions et absences
+- Contrôle d’activation / bannissement
+
+---
+
+### 👑 Super Admin (SaaS)
+
+- Contrôle total du système
+- Supervision des établissements (évolution future)
+- Journal d’audit global
+- Gestion avancée des accès
+
+---
+
+### 🗂️ Secrétaire
+
+- Gestion académique partielle
+- Communication interne
+- Suivi administratif
+
+---
+
+# 🧠 Logique Académique Implémentée
+
+## 📘 Lesson (Cours)
+
+Représente une matière ou un chapitre spécifique.  
+Exemple : _Mathématiques – Chapitre 2_
+
+---
+
+## 🗓 Session (Séance)
+
+Représente un cours réel tenu à une date précise.
+
+**Exemple :**
+
+```
+Lesson : Mathématiques – Chapitre 2
+Session : 24/02/2026 à 08h00
+```
+
+Une **Session** est liée à :
+
+- Un Lesson
+- Un Teacher
+- Plusieurs Attendances
+
+---
+
+## ❌ Attendance (Absence)
+
+Une absence est obligatoirement liée à :
+
+- Une Session
+- Un Élève
+
+Cela garantit une traçabilité académique rigoureuse.
+
+---
+
+# 🏗 Stack Technique
+
+- **Framework** : Next.js (App Router)
+- **Bundler** : Turbopack
+- **Langage** : TypeScript
+- **UI** : Tailwind CSS
+- **Validation** : Zod
+- **ORM** : Prisma
+- **Base de données** : PostgreSQL
+- **Authentification** : Auth Provider (ex: Clerk ou JWT selon configuration)
+- **Architecture** : Microservices + logique SaaS
+
+---
+
+# 🧱 Architecture
+
+Architecture modulaire orientée microservices :
+
+- 🔐 Service d’authentification
+- 👥 Service utilisateurs
+- 🎓 Service académique (Lessons, Sessions, Attendance)
+- 🔔 Service notifications (en cours)
+- 📊 Service audit & logs
+- 🌐 API Gateway
+
+---
+
+# 📦 Fonctionnalités Déjà Implémentées
+
+- Modèle Lesson
+- Modèle Session
+- Modèle Attendance
+- Relations propres entre modèles
+- Validation Zod robuste
+- Pré-remplissage correct des DateTime
+- Soft Delete sur modèles critiques
+- Super Admin
+- Bannissement utilisateur
+- Base Audit Log
+- Structure évolutive SaaS
+
+---
+
+# 🔜 Fonctionnalités en Cours / À Venir
+
+- 🔔 Notifications automatiques aux parents
+- 📊 Statistiques avancées des absences
+- 🔍 Filtres et tri dynamiques dans les tableaux
+- 🖨 Carte scolaire imprimable
+- 📝 Bulletins scolaires
+- 📈 Tableau de bord analytique
+- 📤 Export PDF / Excel
+- 📅 Génération automatique des sessions
+- 🌍 Multi-établissements (vision SaaS complète)
+
+---
+
+# ⚙️ Installation & Configuration
+
+## 1️⃣ Cloner le projet
 
 ```bash
 git clone https://github.com/
 cd gestion-absences
 ```
 
-### 2️⃣ Installer les dépendances
+## 2️⃣ Installer les dépendances
 
 ```bash
 npm install
 ```
 
-### 3️⃣ Configuration de l’environnement
+## 3️⃣ Configuration de l’environnement
 
 ```bash
 cp .env.example .env.local
 ```
 
-Configurer les variables :
+Configurer :
 
-* Base de données
-* Services backend
-* Clés d’authentification
+- Base de données PostgreSQL
+- Clés d’authentification
+- Services backend
+- Variables Prisma
 
-### 4️⃣ Lancer le projet en développement
+## 4️⃣ Migration de la base de données
+
+```bash
+npx prisma migrate dev
+```
+
+## 5️⃣ Lancer le projet
 
 ```bash
 npm run dev
 ```
 
-### 5️⃣ Build production (optionnel)
+Application accessible via :
+
+```
+http://localhost:3000
+```
+
+---
+
+# 🧪 Build Production
 
 ```bash
 npm run build
@@ -133,37 +253,30 @@ npm start
 
 ---
 
-## 🧪 Utilisation
+# 🤝 Contribution
 
-* Accéder à l’application via : `http://localhost:3000`
-* Créer un compte ou se connecter
-* Naviguer selon le rôle attribué
+Les contributions sont les bienvenues 🙌
 
----
-
-## 🤝 Contribution
-
-Les contributions sont bienvenues 🙌
-
-1. Forker le dépôt
-2. Créer une branche (`feature/ma-fonctionnalite`)
-3. Commiter vos changements
-4. Pousser la branche
-5. Ouvrir une Pull Request
+1. Fork du dépôt
+2. Création d’une branche (`feature/ma-fonctionnalite`)
+3. Commit des changements
+4. Push de la branche
+5. Ouverture d’une Pull Request
 
 ---
 
-## 📄 Licence
+# 📄 Licence
 
-Distribué sous licence **MIT**. Voir le fichier `LICENSE` pour plus d’informations.
-
----
-
-## 📬 Contact
-
-📧 Email : **[tounkaradiagui@gmail.com](mailto:tounkaradiagui@gmail.com)**
-🐙 GitHub : Ouvrez une issue pour toute question ou suggestion
+Distribué sous licence **MIT**.  
+Voir le fichier `LICENSE` pour plus d’informations.
 
 ---
 
-> ✨ Projet conçu pour évoluer avec les besoins réels des établissements éducatifs modernes.
+# 📬 Contact
+
+📧 Email : **tounkaradiagui@gmail.com**  
+🐙 GitHub : Ouvrez une issue pour toute question ou suggestion.
+
+---
+
+> ✨ Conçu pour évoluer vers une solution SaaS complète adaptée aux établissements éducatifs modernes et à forte croissance.
