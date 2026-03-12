@@ -13,16 +13,6 @@ Sentry.init({
   // Enable logs to be sent to Sentry
   enableLogs: true,
 
-  // App version
-  release: process.env.NEXT_PUBLIC_APP_VERSION,
-
-  // Ignorer les erreurs inutiles
-  ignoreErrors: [
-    "NetworkError",
-    "AbortError",
-    "ResizeObserver loop limit exceeded"
-  ],
-
   // Enable sending user PII (Personally Identifiable Information)
   // https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/options/#sendDefaultPii
   sendDefaultPii: true,
