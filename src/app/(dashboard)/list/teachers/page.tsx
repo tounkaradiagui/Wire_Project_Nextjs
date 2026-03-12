@@ -16,7 +16,6 @@ import {
   ArrowUpDown
 } from "lucide-react";
 
-// type TeacherList = Teacher & { subjects: Subject[] } & { classes: Class[] };
 type TeacherList = Prisma.TeacherGetPayload<{
   include: {
     subjects: {

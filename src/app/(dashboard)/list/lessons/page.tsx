@@ -9,10 +9,12 @@ import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { auth } from "@clerk/nextjs/server";
 import {
-  Eye,
   Filter,
   ArrowUpDown
 } from "lucide-react";
+import Link from "next/link";
+import { CalendarDays } from "lucide-react";
+
 
 type LessonList = Prisma.LessonGetPayload<{
   include: {
@@ -49,8 +51,8 @@ const LessonListPage = async ({
       className: "hidden md:table-cell ",
     },
     { header: "Enseignant", accessor: "teacher" },
-    { header: "Date de début", accessor: "startTimr", className: "hidden md:table-cell " },
-    { header: "Date de fin", accessor: "endTime", className: "hidden md:table-cell " },
+    { header: "Date de début", accessor: "startDate", className: "hidden md:table-cell " },
+    { header: "Date de fin", accessor: "dueDate", className: "hidden md:table-cell " },
     ...(role === "admin" ? [{ header: "Actions", accessor: "actions" }] : []),
   ];
 
@@ -70,19 +72,21 @@ const LessonListPage = async ({
         {item.teacher.name + " " + item.teacher.surname}
       </td>
       <td className="hidden md:table-cell">
-        {new Intl.DateTimeFormat("fr-FR", {
-          dateStyle: "short",
-          timeStyle: "short",
-        }).format(item.startTime)}
+        {item.startDate && new Intl.DateTimeFormat("fr-FR").format(item.startDate)}
       </td>
       <td className="hidden md:table-cell">
-        {new Intl.DateTimeFormat("fr-FR", {
-          dateStyle: "short",
-          timeStyle: "short",
-        }).format(item.endTime)}
+        {item.dueDate && new Intl.DateTimeFormat("fr-FR").format(item.dueDate)}
       </td>
       <td>
         <div className="flex items-center gap-2">
+          <Link
+            href={`/list/sessions?lessonId=${item.id}`}
+            className="px-3 py-1 text-xs font-medium rounded-md bg-blue-500 text-white hover:bg-blue-600"
+          >
+            <CalendarDays size={14} />
+            Séances
+          </Link>
+
           {role === "admin" && (
             <>
               <FormContainer table="lesson" type="update" data={item} />
@@ -135,12 +139,6 @@ const LessonListPage = async ({
         subject: { select: { name: true } },
         teacher: { select: { name: true, surname: true } },
       },
-      // where: query,
-      // include: {
-      //   subject: { select: { name: true } },
-      //   class: { select: { name: true } },
-      //   teacher: { select: { name: true, surname: true } },
-      // },
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
     }),

@@ -150,18 +150,20 @@ export const assignmentRoleFilter = (
  * Filtre des présences
  */
 export const attendanceRoleFilter = (
-    role: string | undefined,
-    userId: string | null
+  role: string | undefined,
+  userId: string | null
 ): Prisma.AttendanceWhereInput => {
-    if (role === "teacher" && userId) {
-        return {
-            lesson: {
-                teacherId: userId,
-            },
-        };
-    }
+  if (role === "teacher" && userId) {
+    return {
+      session: {
+        lesson: {
+          teacherId: userId,
+        },
+      },
+    };
+  }
 
-    return {};
+  return {};
 };
 
 export const parentRoleFilter = (

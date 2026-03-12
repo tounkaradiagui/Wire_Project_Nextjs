@@ -19,46 +19,34 @@ const AttendanceChartContainer = async () => {
 
   // --- 2. Récupérer les présences depuis la base de données ---
 
-  // const resData = await prisma.attendance.findMany({
-  //   where: {
-  //     date: {
-  //       gte: lastMonday, // On récupère seulement à partir du lundi
-  //     },
-  //   },
-  //   select: {
-  //     date: true, // Récupère la date
-  //     status: true, // Récupère s’il était présent (true/false)
-  //   },
-  // });
-const resData = await prisma.attendance.findMany({
-  where: {
-    isDeleted: false,
-    session: {
-      is: {
-        date: {
-          gte: lastMonday,
+  const resData = await prisma.attendance.findMany({
+    where: {
+      isDeleted: false,
+      session: {
+        is: {
+          date: {
+            gte: lastMonday,
+          },
+          isDeleted: false,
         },
-        isDeleted: false,
       },
     },
-  },
-  select: {
-    status: true,
-    session: {
-      select: {
-        date: true,
+    select: {
+      status: true,
+      session: {
+        select: {
+          date: true,
+        },
       },
     },
-  },
-});
+  });
 
-const formatted = resData.map((item) => ({
-  date: item.session?.date,
-  status: item.status,
-}));
+  const formatted = resData.map((item) => ({
+    date: item.session?.date,
+    status: item.status,
+  }));
 
   // --- 3. Préparer la structure de données pour le graphique ---
-
   // Jours de la semaine (version française abrégée)
   const daysOfWeek = ["Lun", "Mar", "Mer", "Jeu", "Ven"];
 
@@ -77,43 +65,34 @@ const formatted = resData.map((item) => ({
   //   console.log(attendanceMap);
 
   // --- 4. Remplir la map d'assiduité ---
-
   resData.forEach((item) => {
-    const itemDate = new Date(item.date); // Convertit la date en objet JS
+    if (!item.session) return;
+
+    const itemDate = new Date(item.session.date); // Convertit la date en objet JS
     const day = itemDate.getDay(); // Jour de la semaine
 
     // On ne prend que les jours du lundi au vendredi
     if (day >= 1 && day <= 5) {
-      const dayName = daysOfWeek[day - 1]; // Convertit 1–5 en Lun–Ven
+      const dayName = daysOfWeek[day - 1];// Convertit 1–5 en Lun–Ven
 
       // Ajout dans le compteur selon présence ou absence
       switch (item.status) {
         case "PRESENT":
           attendanceMap[dayName].present += 1;
           break;
+
         case "ABSENT":
           attendanceMap[dayName].absent += 1;
           break;
+
         case "LATE":
           attendanceMap[dayName].late += 1;
           break;
       }
-      // if (item.present) {
-      //   attendanceMap[dayName].present += 1;
-      // } else {
-      //   attendanceMap[dayName].absent += 1;
-      // }
     }
   });
 
   // --- 5. Préparer les données finales pour le graphique ---
-
-  // const data = daysOfWeek.map((day) => ({
-  //   name: day, // Nom du jour
-  //   present: attendanceMap[day].present, // Nombre de présents
-  //   absent: attendanceMap[day].absent, // Nombre d’absents
-  // }));
-
   const data = daysOfWeek.map((day) => ({
     name: day,
     present: attendanceMap[day].present,

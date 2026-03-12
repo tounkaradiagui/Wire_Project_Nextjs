@@ -7,6 +7,7 @@ import { seedTeachers } from "./seed/teachers";
 import { seedParents } from "./seed/parents";
 import { seedStudents } from "./seed/students";
 import { seedLessons } from "./seed/lessons";
+import { seedSessions } from "./seed/sessions";
 import { seedExamsAndAssignments } from "./seed/exams-assignments";
 import { seedAttendance } from "./seed/attendance";
 import { seedResults } from "./seed/results";
@@ -17,6 +18,7 @@ async function main() {
     console.log("🌱 Reset base de données...");
 
     await prisma.attendance.deleteMany();
+    await prisma.session.deleteMany();
     await prisma.result.deleteMany();
     await prisma.exam.deleteMany();
     await prisma.assignment.deleteMany();
@@ -29,6 +31,7 @@ async function main() {
     await prisma.subject.deleteMany();
     await prisma.class.deleteMany();
     await prisma.grade.deleteMany();
+
     console.log("🌱 Seed en cours...");
 
     await seedGradesAndClasses(prisma);
@@ -38,6 +41,10 @@ async function main() {
     await seedParents(prisma);
     await seedStudents(prisma);
     await seedLessons(prisma);
+
+    // important pour calendrier + absences
+    await seedSessions(prisma);
+
     await seedExamsAndAssignments(prisma);
     await seedAttendance(prisma);
     await seedResults(prisma);

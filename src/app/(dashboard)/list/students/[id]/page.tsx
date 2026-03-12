@@ -6,7 +6,6 @@ import Performance from "@/components/Performance";
 import StudentAttendanceCard from "@/components/StudentAttendanceCard";
 import Image from "next/image";
 import Link from "next/link";
-import { Student } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import { notFound } from "next/navigation"
 import { auth } from "@clerk/nextjs/server";

@@ -38,8 +38,9 @@ export const userSchema = z.object({
     .regex(/[^A-Za-z0-9]/, "Doit contenir au moins un caractère spécial."),
 
   role: z.enum(["ADMIN", "TEACHER", "PARENT", "STUDENT"],
-    {message: "Le role est requis !",
-  }),
+    {
+      message: "Le role est requis !",
+    }),
 
   image: z.string().optional(),
 });
@@ -226,20 +227,12 @@ export const lessonSchema = z.object({
       message: "Le titre de la leçon est requis.",
     }),
 
-  day: z.enum([
-    "MONDAY",
-    "TUESDAY",
-    "WEDNESDAY",
-    "THURSDAY",
-    "FRIDAY",
-  ], { message: "Le jour est requis." }),
-
-  startTime: z.coerce.date({
-    message: "La date et l'heure de début sont requise.",
+  startDate: z.coerce.date({
+    message: "La date de début est requis.",
   }),
 
-  endTime: z.coerce.date({
-    message: "La date et l'heure de fin sont requise.",
+  dueDate: z.coerce.date({
+    message: "La date de fin est requis.",
   }),
 
   subjectId: z.coerce
@@ -261,10 +254,10 @@ export const lessonSchema = z.object({
     }),
 })
   .refine(
-    (data) => data.startTime < data.endTime,
+    (data) => data.startDate < data.dueDate,
     {
-      message: "La date et l'heure de fin doit être après la date et l'heure de début.",
-      path: ["endTime"],
+      message: "La date de fin doit être après la date de début.",
+      path: ["dueDate"],
     }
   );
 
@@ -273,8 +266,8 @@ export type LessonSchemaInput = z.infer<typeof lessonSchema>;
 
 // Session Schema
 export const sessionSchema = z.object({
-   id: z.string().optional(),
-   lessonId: z.coerce.number({ message: "Le cours est obligatoire" }),
+  id: z.string().optional(),
+  lessonId: z.coerce.number({ message: "Le cours est obligatoire" }),
 
   date: z.coerce
     .date({
@@ -293,11 +286,11 @@ export const sessionSchema = z.object({
 
   room: z.string().optional(),
 }).refine(
-    (data) => data.endTime > data.startTime,
-    {
-      message: "L'heure de fin doit être après l'heure de début",
-      path: ["endTime"],
-    }
+  (data) => data.endTime > data.startTime,
+  {
+    message: "L'heure de fin doit être après l'heure de début",
+    path: ["endTime"],
+  }
 );
 
 export type SessionSchemaInput = z.infer<typeof sessionSchema>;
@@ -415,13 +408,9 @@ export const attendanceSchema = z
       message: "L'élève est requis.",
     }),
 
-    lessonId: z.coerce.number({
-      message: "La leçon est requise.",
-    }),
-
-    date: z.coerce.date({
-      message: "La date est requise.",
-    }),
+    sessionId: z.coerce
+      .string()
+      .min(1, { message: "La séance est requise." }),
 
     status: AttendanceStatusEnum,
 
@@ -452,6 +441,7 @@ export const attendanceSchema = z
       }
     }
   });
+
 
 export type AttendanceSchemaInput = z.infer<typeof attendanceSchema>;
 // End Attendance schma

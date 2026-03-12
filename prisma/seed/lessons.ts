@@ -1,4 +1,3 @@
-import prisma from '@/lib/prisma';
 import { PrismaClient } from "@prisma/client";
 
 export async function seedLessons(prisma: PrismaClient) {
@@ -8,12 +7,17 @@ export async function seedLessons(prisma: PrismaClient) {
 
     for (const classItem of classes) {
         for (let i = 0; i < 3; i++) {
+            const startDate = new Date();
+            startDate.setDate(startDate.getDate() + i);
+
+            const dueDate = new Date(startDate);
+            dueDate.setHours(startDate.getHours() + 1);
+
             await prisma.lesson.create({
                 data: {
                     name: `Cours ${i + 1}`,
-                    day: "MONDAY",
-                    startTime: new Date(),
-                    endTime: new Date(),
+                    startDate,
+                    dueDate,
                     subjectId: subjects[i % subjects.length].id,
                     classId: classItem.id,
                     teacherId: teachers[i % teachers.length].id,

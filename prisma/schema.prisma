@@ -108,6 +108,7 @@ model Teacher {
   lessons        Lesson[]
   subjects       TeacherSubject[]
   teacherClasses TeacherClass[]
+  sessions       Session[] 
 
   userProfileId String      @unique
   userProfile   UserProfile @relation(fields: [userProfileId], references: [id])
@@ -136,6 +137,7 @@ model Class {
   lessons        Lesson[]
   students       Student[]
   teacherClasses TeacherClass[]
+  sessions Session[]
 }
 
 model Subject {
@@ -168,18 +170,20 @@ model TeacherClass {
 model Lesson {
   id          Int          @id @default(autoincrement())
   name        String
-  day         Day
-  startTime   DateTime
-  endTime     DateTime
+  startDate   DateTime?
+  dueDate     DateTime?
+
   subjectId   Int
   classId     Int
   teacherId   String
-  assignments Assignment[]
-  exams       Exam[]
+
   class       Class        @relation(fields: [classId], references: [id])
   subject     Subject      @relation(fields: [subjectId], references: [id])
   teacher     Teacher      @relation(fields: [teacherId], references: [id])
 
+  assignments Assignment[]
+  exams       Exam[]
+  
   sessions Session[]
 }
 
@@ -222,7 +226,12 @@ model Session {
   room      String?
 
   lessonId Int
+  teacherId String
+  classId Int
+
   lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  teacher   Teacher @relation(fields: [teacherId], references: [id])
+  class Class @relation(fields:[classId], references:[id])
 
   attendances Attendance[]
 
@@ -231,6 +240,7 @@ model Session {
 
   deletedAt DateTime?
   isDeleted Boolean   @default(false)
+
 }
 
 model Attendance {
@@ -243,8 +253,8 @@ model Attendance {
   studentId String
   student   Student @relation(fields: [studentId], references: [id])
 
-  sessionId String?
-  session   Session? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId String
+  session   Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

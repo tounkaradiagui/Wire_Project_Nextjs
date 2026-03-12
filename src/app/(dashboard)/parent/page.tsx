@@ -1,6 +1,4 @@
 import Announcements from "@/components/Announcements";
-import EventCalendar from "@/components/EventCalendar";
-import BigCalendar from "@/components/BigCalendar";
 import { getParentStudents } from "@/lib/actions";
 import Image from "next/image";
 import Link from "next/link";

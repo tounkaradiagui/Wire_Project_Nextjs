@@ -9,7 +9,8 @@ const AttendanceBadge = ({ status }: { status: string }) => {
 
     return (
         <span
-            className={`px-2 py-1 text-xs rounded ${styles[status as keyof typeof styles]}`}
+            className={`px-2 py-1 text-xs rounded ${styles[status as keyof typeof styles]
+                }`}
         >
             {status}
         </span>
@@ -25,9 +26,7 @@ const AbsencesPage = async ({
 
     if (!result.success) {
         return (
-            <p className="p-4 text-center text-red-500">
-                {result.error}
-            </p>
+            <p className="p-4 text-center text-red-500">{result.error}</p>
         );
     }
 
@@ -44,38 +43,66 @@ const AbsencesPage = async ({
                             <th className="p-3 text-left">Date</th>
                             <th className="p-3 text-left">Cours</th>
                             <th className="p-3 text-left">Statut</th>
+                            <th className="p-3 text-left">Séance</th>
                             <th className="p-3 text-left">Commentaire</th>
                             <th className="p-3 text-left">Justificatif</th>
                         </tr>
                     </thead>
+
                     <tbody>
-                        {attendances.map((attendance) => (
-                            <tr key={attendance.id} className="border-b">
-                                <td className="p-3">
-                                    {new Date(attendance.date).toLocaleDateString()}
-                                </td>
-                                <td className="p-3">{attendance.lesson.name}</td>
-                                <td className="p-3">
-                                    <AttendanceBadge status={attendance.status} />
-                                </td>
-                                <td className="p-3 text-gray-600">
-                                    {attendance.comment || "-"}
-                                </td>
-                                <td className="p-3">
-                                    {attendance.proofUrl ? (
-                                        <a
-                                            href={attendance.proofUrl}
-                                            target="_blank"
-                                            className="text-blue-600 underline"
-                                        >
-                                            Voir
-                                        </a>
-                                    ) : (
-                                        "-"
-                                    )}
-                                </td>
-                            </tr>
-                        ))}
+                        {attendances.map((attendance: any) => {
+                            const session = attendance.session;
+
+                            return (
+                                <tr key={attendance.id} className="border-b">
+                                    <td className="p-3">
+                                        {session
+                                            ? new Date(session.date).toLocaleDateString()
+                                            : "-"}
+                                    </td>
+
+                                    <td className="p-3">
+                                        {session?.lesson?.name ?? "-"}{" "}
+                                        {session?.class?.name
+                                            ? `(${session.class.name})`
+                                            : ""}
+                                    </td>
+
+                                    <td className="p-3">
+                                        <AttendanceBadge status={attendance.status} />
+                                    </td>
+                                    <td className="p-3">
+                                        {new Date(session.startTime).toLocaleTimeString([], {
+                                            hour: "2-digit",
+                                            minute: "2-digit",
+                                        })} -
+                                        {new Date(session.endTime).toLocaleTimeString([], {
+                                            hour: "2-digit",
+                                            minute: "2-digit",
+                                        })}
+                                    </td>
+
+
+                                    <td className="p-3 text-gray-600">
+                                        {attendance.comment || "-"}
+                                    </td>
+
+                                    <td className="p-3">
+                                        {attendance.proofUrl ? (
+                                            <a
+                                                href={attendance.proofUrl}
+                                                target="_blank"
+                                                className="text-blue-600 underline"
+                                            >
+                                                Voir
+                                            </a>
+                                        ) : (
+                                            "-"
+                                        )}
+                                    </td>
+                                </tr>
+                            );
+                        })}
                     </tbody>
                 </table>
 

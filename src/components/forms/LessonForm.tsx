@@ -60,9 +60,8 @@ const LessonForm = ({
             setOpen(false);
             router.refresh();
         }
-
         if (state.error) {
-            toast.error("Erreur serveur, veuillez réessayer");
+            toast.error(state.error || "Erreur serveur");
         }
     }, [state, type, setOpen, router]);
 
@@ -93,22 +92,22 @@ const LessonForm = ({
                     {/* Date de début */}
                     <InputField
                         label="Date de début"
-                        name="startTime"
-                        type="datetime-local"
+                        name="startDate"
+                        type="date"
                         register={register}
-                        error={errors.startTime}
+                        error={errors.startDate}
                         inputClassName="text-sm mb-2"
-                        defaultValue={data?.startTime}
+                        defaultValue={data?.startDate}
                     />
 
                     {/* Date de fin */}
                     <InputField
                         label="Date de fin"
-                        name="endTime"
-                        type="datetime-local"
+                        name="dueDate"
+                        type="date"
                         register={register}
-                        error={errors.endTime}
-                        defaultValue={data?.endTime}
+                        error={errors.dueDate}
+                        defaultValue={data?.dueDate}
                         inputClassName="text-sm py-2"
                     />
 
@@ -122,32 +121,11 @@ const LessonForm = ({
                         />
                     )}
 
-                    {/* Jour */}
-                    <div className="flex flex-col gap-2 rounded-full md:w-1/4">
-                        <label>Jour</label>
-                        <select
-                            {...register("day")}
-                            className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
-                        >
-                            <option value="">Sélectionner un jour</option>
-                            {relatedData?.days?.map((day: any) => (
-                                <option key={day.value} value={day.value}>
-                                    {day.label}
-                                </option>
-                            ))}
-                        </select>
-                        {errors.day && (
-                            <span className="text-[11px] text-red-500">
-                                {errors.day.message?.toString()}
-                            </span>
-                        )}
-                    </div>
-
                     {/* Classe */}
                     <div className="flex flex-col gap-2 rounded-full md:w-1/4">
                         <label>Classe</label>
                         <select
-                            {...register("classId")}
+                            {...register("classId", { valueAsNumber: true })}
                             className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
                         >
                             <option value="">Sélectionner une classe</option>
@@ -168,7 +146,7 @@ const LessonForm = ({
                     <div className="flex flex-col gap-2 rounded-full md:w-1/4">
                         <label >Matière</label>
                         <select
-                            {...register("subjectId")}
+                            {...register("subjectId", { valueAsNumber: true })}
                             className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
                         >
                             <option value="">Sélectionner une matière</option>

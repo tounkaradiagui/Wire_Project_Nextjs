@@ -9,24 +9,29 @@ const BigCalendarContainer = async ({
   type: "teacherId" | "classId";
   id: string | number;
 }) => {
-  const dataRes = await prisma.lesson.findMany({
+  const dataRes = await prisma.session.findMany({
     where: {
-      ...(type === "teacherId"
-        ? { teacherId: id as string }
-        : { classId: id as number }),
+      lesson: {
+        ...(type === "teacherId"
+          ? { teacherId: id as string }
+          : { classId: id as number }),
+      },
+    },
+    include: {
+      lesson: true,
     },
   });
 
-  const data = dataRes.map((lesson) => ({
-    title: lesson.name,
-    start: lesson.startTime,
-    end: lesson.endTime,
+  const data = dataRes.map((session) => ({
+    title: session.lesson.name,
+    start: session.startTime,
+    end: session.endTime,
   }));
 
   const schedule = adjustScheduleToCurrentWeek(data);
 
   return (
-    <div className="">
+    <div>
       <BigCalendar data={schedule} />
     </div>
   );

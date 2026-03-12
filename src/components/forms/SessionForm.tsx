@@ -96,8 +96,7 @@ const SessionForm = ({
     }
 
     if (state.error) {
-      setServerError(state.error);
-      toast.error(state.error);
+      toast.error(state.error || "Erreur serveur");
     }
     console.log("STATE:", state);
   }, [state.success, state.error, type, router, setOpen]);
@@ -131,11 +130,6 @@ const SessionForm = ({
                 )
                 )}
             </select>
-            {errors.lessonId && (
-                <p className="text-xs text-red-500">
-                {errors.lessonId.message}
-                </p>
-            )}
             </div>
 
             {/* DATE */}

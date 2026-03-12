@@ -49,7 +49,6 @@ const ParentSelect = ({
             <li
               key={parent.id}
               className="p-2 hover:bg-gray-100 cursor-pointer"
-              // onClick={() => onSelect({ id: "parentId1" })}
               onClick={() => {
                 onSelect(parent.id);
                 setResults([]);

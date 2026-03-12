@@ -10,7 +10,6 @@ import { Prisma } from "@prisma/client";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import prisma from "@/lib/prisma";
 import {
-  Eye,
   Filter,
   ArrowUpDown
 } from "lucide-react";
@@ -20,17 +19,21 @@ import { auth } from "@clerk/nextjs/server";
 type AttendanceList = Prisma.AttendanceGetPayload<{
   select: {
     id: true;
-    date: true;
+    createdAt: true;
     status: true;
     proofUrl: true;
     createdBy: true;
     student: true;
-    lesson: {
+    session: {
       include: {
-        class: true;
-        teacher: true;
-      };
-    };
+        lesson: {
+          include: {
+            class: true,
+            teacher: true,
+          },
+        },
+      },
+    },
   };
 }>;
 
@@ -56,7 +59,7 @@ const AttendanceListPage = async ({
     { header: "Élève", accessor: "student" },
     { header: "Classe", accessor: "class", className: "hidden md:table-cell" },
     { header: "Cours", accessor: "lesson", className: "hidden md:table-cell" },
-    { header: "Date", accessor: "date" },
+    { header: "Séance", accessor: "session" },
     { header: "Statut", accessor: "status" },
     { header: "Justificatif", accessor: "proofUrl" },
     ...(role === "admin" || role === "teacher" || role === "super_admin"
@@ -84,7 +87,17 @@ const AttendanceListPage = async ({
       </td>
 
       <td>
-        {new Intl.DateTimeFormat("fr-FR").format(item.session?.date!)}
+        {item.session?.startTime && item.session?.endTime ? (
+          `${new Date(item.session.startTime).toLocaleTimeString("fr-FR", {
+            hour: "2-digit",
+            minute: "2-digit",
+          })} - ${new Date(item.session.endTime).toLocaleTimeString("fr-FR", {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}`
+        ) : (
+          "—"
+        )}
       </td>
 
       {/* STATUS BADGE */}

@@ -9,6 +9,8 @@ import { ITEM_PER_PAGE } from "@/lib/settings";
 import prisma from "@/lib/prisma";
 import { Filter, ArrowUpDown } from "lucide-react";
 import { auth } from "@clerk/nextjs/server";
+import Link from "next/link";
+import { ClipboardCheck } from "lucide-react";
 
 /* ================= TYPE ================= */
 
@@ -76,11 +78,35 @@ const SessionListPage = async ({
 
       <td>{item.room ?? "—"}</td>
 
-      {(role === "admin" || role === "super_admin") && (
+
+      {(role === "admin" || role === "super_admin" || role === "teacher") && (
         <td>
-          <div className="flex gap-2">
-            <FormContainer table="session" type="update" data={item} />
-            <FormContainer table="session" type="delete" id={item.id} />
+          <div className="flex gap-2 items-center">
+
+            {/* <Link
+              href={`/list/sessions/${item.id}/attendance`}
+
+              className="flex items-center gap-1 px-3 py-1 text-xs rounded-md bg-green-600 text-white hover:bg-green-700"
+            >
+              <ClipboardCheck size={14} />
+              Présences
+            </Link> */}
+            <Link
+              href=""
+
+              className="flex items-center gap-1 px-3 py-1 text-xs rounded-md bg-green-600 text-white hover:bg-green-700"
+            >
+              <ClipboardCheck size={14} />
+              Présences
+            </Link>
+
+            {(role === "admin" || role === "super_admin") && (
+              <>
+                <FormContainer table="session" type="update" data={item} />
+                <FormContainer table="session" type="delete" id={item.id} />
+              </>
+            )}
+
           </div>
         </td>
       )}

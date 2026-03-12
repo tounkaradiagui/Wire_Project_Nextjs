@@ -1,19 +1,23 @@
-import { PrismaClient } from "@prisma/client";
-import prisma from '@/lib/prisma';
+import { PrismaClient, AttendanceStatus } from "@prisma/client";
 
 export async function seedAttendance(prisma: PrismaClient) {
     const students = await prisma.student.findMany({ take: 50 });
-    const lessons = await prisma.lesson.findMany({ take: 5 });
+    const sessions = await prisma.session.findMany();
 
-    for (const student of students) {
-        for (const lesson of lessons) {
+    const statuses: AttendanceStatus[] = [
+        AttendanceStatus.PRESENT,
+        AttendanceStatus.ABSENT,
+        AttendanceStatus.LATE,
+    ];
+
+    for (const session of sessions) {
+        for (const student of students) {
             await prisma.attendance.create({
                 data: {
-                    date: new Date(),
-                    status: "ABSENT",
                     studentId: student.id,
-                    lessonId: lesson.id,
-                    comment: "Absent non justifié",
+                    sessionId: session.id,
+                    status: statuses[Math.floor(Math.random() * statuses.length)],
+                    comment: "Généré automatiquement",
                     createdBy: "TEACHER",
                 },
             });

@@ -221,24 +221,24 @@ const FormContainer = async ({ table, type, data, id, role }: FormContainerProps
         const lessonClasses =
           role === "teacher"
             ? await prisma.class.findMany({
-                where: {
-                  teacherClasses: {
-                    some: {
-                      teacherId: userId!,
-                    },
+              where: {
+                teacherClasses: {
+                  some: {
+                    teacherId: userId!,
                   },
                 },
-                select: {
-                  id: true,
-                  name: true,
-                },
-              })
+              },
+              select: {
+                id: true,
+                name: true,
+              },
+            })
             : await prisma.class.findMany({
-                select: {
-                  id: true,
-                  name: true,
-                },
-              });
+              select: {
+                id: true,
+                name: true,
+              },
+            });
 
 
         // Si admin → voir tous les enseignants
@@ -261,19 +261,10 @@ const FormContainer = async ({ table, type, data, id, role }: FormContainerProps
               },
             });
 
-        const days = [
-          { label: "Lundi", value: "MONDAY" },
-          { label: "Mardi", value: "TUESDAY" },
-          { label: "Mercredi", value: "WEDNESDAY" },
-          { label: "Jeudi", value: "THURSDAY" },
-          { label: "Vendredi", value: "FRIDAY" },
-        ];
-
         relatedData = {
           subjects: lessonSubjects,
           classes: lessonClasses,
           teachers: lessonTeachers,
-          days,
         };
         break;
       }
@@ -333,6 +324,37 @@ const FormContainer = async ({ table, type, data, id, role }: FormContainerProps
         break;
       }
 
+      case "session": {
+        const { userId, sessionClaims } = await auth();
+        const role = (sessionClaims?.metadata as { role?: string })?.role;
+
+        // Sécurité : seuls admin et teacher peuvent créer des sessions
+        if (role !== "admin" && role !== "teacher") {
+          throw new Error("Unauthorized");
+        }
+
+        /**
+         * LESSONS DISPONIBLES
+         * - admin → toutes
+         * - teacher → seulement les siennes
+         */
+        const lessons = await prisma.lesson.findMany({
+          where: {
+            ...(role === "teacher"
+              ? { teacherId: userId! }
+              : {}),
+          },
+          select: {
+            id: true,
+            name: true,
+          },
+        });
+
+        relatedData = { lessons };
+
+        break;
+      }
+
       case "attendance": {
         const { userId, sessionClaims } = await auth();
         const role = (sessionClaims?.metadata as { role?: string })?.role;
@@ -345,22 +367,22 @@ const FormContainer = async ({ table, type, data, id, role }: FormContainerProps
             ...(role === "teacher"
               ? { teacherId: userId! }
               : role === "student"
-              ? {
+                ? {
                   class: {
                     students: {
                       some: { id: userId! },
                     },
                   },
                 }
-              : role === "parent"
-              ? {
-                  class: {
-                    students: {
-                      some: { parentId: userId! },
+                : role === "parent"
+                  ? {
+                    class: {
+                      students: {
+                        some: { parentId: userId! },
+                      },
                     },
-                  },
-                }
-              : {}),
+                  }
+                  : {}),
           },
           select: {
             id: true,
@@ -374,27 +396,34 @@ const FormContainer = async ({ table, type, data, id, role }: FormContainerProps
          */
         const sessions = await prisma.session.findMany({
           where: {
-            // isDeleted: false,
+            isDeleted: false,
             ...(role === "teacher"
               ? {
-                  lesson: {
-                    teacherId: userId!,
-                  },
-                }
+                lesson: {
+                  teacherId: userId!,
+                },
+              }
               : {}),
           },
           select: {
             id: true,
             date: true,
+            startTime: true,
             lesson: {
               select: {
                 name: true,
               },
             },
+            class: {
+              select: {
+                name: true,
+              },
+            },
           },
-          orderBy: {
-            date: "desc",
-          },
+          orderBy: [
+            { date: "desc" },
+            { startTime: "asc" },
+          ],
         });
 
         /**
@@ -404,15 +433,15 @@ const FormContainer = async ({ table, type, data, id, role }: FormContainerProps
           where: {
             ...(role === "teacher"
               ? {
-                  class: {
-                    lessons: {
-                      some: { teacherId: userId! },
-                    },
+                class: {
+                  lessons: {
+                    some: { teacherId: userId! },
                   },
-                }
+                },
+              }
               : role === "parent"
-              ? { parentId: userId! }
-              : {}),
+                ? { parentId: userId! }
+                : {}),
           },
           select: {
             id: true,
@@ -446,42 +475,11 @@ const FormContainer = async ({ table, type, data, id, role }: FormContainerProps
         break;
       }
 
-      case "session": {
-        const { userId, sessionClaims } = await auth();
-        const role = (sessionClaims?.metadata as { role?: string })?.role;
-
-        // Sécurité : seuls admin et teacher peuvent créer des sessions
-        if (role !== "admin" && role !== "teacher") {
-          throw new Error("Unauthorized");
-        }
-
-        /**
-         * LESSONS DISPONIBLES
-         * - admin → toutes
-         * - teacher → seulement les siennes
-         */
-        const lessons = await prisma.lesson.findMany({
-          where: {
-            ...(role === "teacher"
-              ? { teacherId: userId! }
-              : {}),
-          },
-          select: {
-            id: true,
-            name: true,
-          },
-        });
-      
-        relatedData = {lessons};
-
-        break;
-      }
-
       default:
         break;
     }
   }
-  
+
   return (
     <div>
       {/* Form implementation goes here */}

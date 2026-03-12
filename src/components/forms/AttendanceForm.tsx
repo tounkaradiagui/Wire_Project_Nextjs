@@ -11,7 +11,6 @@ import InputField from "../InputField";
 import Image from "next/image";
 import { CldUploadWidget } from "next-cloudinary";
 
-
 type AttendanceFormProps = {
     setOpen: Dispatch<SetStateAction<boolean>>;
     type: "create" | "update";
@@ -54,7 +53,7 @@ const AttendanceForm = ({
     );
 
     const onSubmit = handleSubmit((data) => {
-        // console.log(data)
+        console.log(data)
         startTransition(() => {
             setServerError(null)
             formAction({ ...data, proofUrl: image?.secure_url });
@@ -126,11 +125,7 @@ const AttendanceForm = ({
                                     </option>
                                 )
                             )}
-                            {/* {relatedData?.students?.map((student) => (
-                                <option key={student.id} value={student.id}>
-                                    {student.name} {student.surname}
-                                </option>
-                            ))} */}
+
                         </select>
                         {errors.studentId && (
                             <p className="text-xs text-red-500">{errors.studentId.message}</p>
@@ -138,43 +133,34 @@ const AttendanceForm = ({
                     </div>
 
                     <div className="flex flex-col gap-1">
-                        <label>Cours</label>
+                        <label className="text-sm font-medium">Séance</label>
                         <select
-                            {...register("lessonId", { valueAsNumber: true })}
+                            {...register("sessionId")}
                             disabled={role === "parent"}
-                            defaultValue={data?.lessonId}
                             className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm"
                         >
-                            {relatedData?.lessons?.map(
-                                (lesson: { id: number; name: string }) => (
-                                    <option key={lesson.id} value={lesson.id}>
-                                        {lesson.name}
-                                    </option>
-                                )
-                            )}
-                            {/* {relatedData?.lessons?.map((lesson) => (
-                                <option key={lesson.id} value={lesson.id}>
-                                    {lesson.name}
+                            <option value="">Sélectionner une séance</option>
+
+                            {relatedData?.sessions?.map((session: any) => (
+                                <option key={session.id} value={session.id}>
+                                    {session.lesson.name} - {session.class.name} -{" "}
+                                    {new Date(session.date).toLocaleDateString()} -{" "}
+                                    {new Date(session.startTime).toLocaleTimeString([], {
+                                        hour: "2-digit",
+                                        minute: "2-digit",
+                                    })}
                                 </option>
-                            ))} */}
+                            ))}
                         </select>
-                        {errors.lessonId && (
-                            <p className="text-xs text-red-500">{errors.lessonId.message}</p>
+
+                        {errors.sessionId && (
+                            <p className="text-xs text-red-500">{errors.sessionId.message}</p>
                         )}
                     </div>
                 </div>
 
                 {/* ROW 2 : DATE + STATUS */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <InputField
-                        label="Date"
-                        name="date"
-                        defaultValue={data?.date}
-                        register={register}
-                        error={errors?.date}
-                        type="date"
-                    />
-
                     {data && (
                         <InputField
                             label="ID"
@@ -268,10 +254,8 @@ const AttendanceForm = ({
                             </CldUploadWidget>
                         </div>
 
-
                     </div>
-                )
-                }
+                )}
 
                 {/* ACTION */}
                 <button

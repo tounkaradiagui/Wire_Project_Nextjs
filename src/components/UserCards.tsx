@@ -75,13 +75,6 @@ const UserCards = async ({ type }: UserCardsProps) => {
     parent: prisma.parent,
   };
 
-
-  // Only use Prisma count for the supported types
-  // const dynamicCount = prismaModels[type]
-  //   ? await prismaModels[type].count()
-  //   : 0;
-
-
   let dynamicCount = 0;
 
   try {

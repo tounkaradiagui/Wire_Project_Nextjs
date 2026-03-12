@@ -29,35 +29,40 @@ const currentWorkWeek = () => {
     return startOfWeek;
 }
 
-export const adjustScheduleToCurrentWeek = (lessons: { title: string, start: Date, end: Date }[]): { title: string, start: Date, end: Date }[] => {
+export const adjustScheduleToCurrentWeek = (
+    lessons: { title: string; start?: Date; end?: Date }[]
+) => {
     const startOfWeek = currentWorkWeek();
 
-    return lessons.map((lesson) => {
-        const lessonDayOfWeek = lesson.start.getDay();
+    return lessons
+        .filter((lesson) => lesson.start && lesson.end)
+        .map((lesson) => {
+            const lessonDayOfWeek = lesson.start!.getDay();
 
-        const daysFromMonday = lessonDayOfWeek === 0 ? 6 : lessonDayOfWeek - 1;
+            const daysFromMonday = lessonDayOfWeek === 0 ? 6 : lessonDayOfWeek - 1;
 
-        const adjustedStartDate = new Date(startOfWeek);
+            const adjustedStartDate = new Date(startOfWeek);
 
-        adjustedStartDate.setDate(startOfWeek.getDate() + daysFromMonday);
+            adjustedStartDate.setDate(startOfWeek.getDate() + daysFromMonday);
 
-        const adjustedEndDate = new Date(adjustedStartDate);
-        adjustedStartDate.setHours(
-            lesson.start.getHours(),
-            lesson.start.getMinutes(),
-            lesson.start.getSeconds(),
-        );
-        adjustedEndDate.setHours(
-            lesson.end.getHours(),
-            lesson.end.getMinutes(),
-            lesson.end.getSeconds(),
-        );
+            const adjustedEndDate = new Date(adjustedStartDate);
 
-        return {
-            title: lesson.title,
-            start: adjustedStartDate,
-            end: adjustedEndDate
-        };
-    });
+            adjustedStartDate.setHours(
+                lesson.start!.getHours(),
+                lesson.start!.getMinutes(),
+                lesson.start!.getSeconds()
+            );
 
-}
+            adjustedEndDate.setHours(
+                lesson.end!.getHours(),
+                lesson.end!.getMinutes(),
+                lesson.end!.getSeconds()
+            );
+
+            return {
+                title: lesson.title,
+                start: adjustedStartDate,
+                end: adjustedEndDate,
+            };
+        });
+};
