@@ -1,9 +1,10 @@
+
 import { neon } from "@neondatabase/serverless";
 
 const sql = neon(process.env.DATABASE_URL!);
 
 export async function GET() {
-    const data = await sql`SELECT 1`;
+  const result = await sql`SELECT NOW() as time`;
 
-    return Response.json(data);
+  return Response.json(result);
 }
