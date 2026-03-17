@@ -416,6 +416,7 @@ const FormContainer = async ({ table, type, data, id, role }: FormContainerProps
             },
             class: {
               select: {
+                id: true,
                 name: true,
               },
             },
@@ -447,6 +448,7 @@ const FormContainer = async ({ table, type, data, id, role }: FormContainerProps
             id: true,
             name: true,
             surname: true,
+            classId: true,
           },
         });
 

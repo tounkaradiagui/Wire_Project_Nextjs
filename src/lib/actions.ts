@@ -2074,22 +2074,26 @@ export const createAttendance = async (
             };
         }
 
-        await prisma.attendance.upsert({
+        // Vérifie si une absence existe déjà
+        const existingAttendance = await prisma.attendance.findUnique({
             where: {
                 studentId_sessionId: {
                     studentId: data.studentId,
-                    sessionId: data.sessionId
-                }
+                    sessionId: data.sessionId,
+                },
             },
+        });
 
-            update: {
-                status: data.status,
-                comment: data.comment ?? null,
-                proofUrl: data.proofUrl ?? null,
-                updatedAt: new Date()
-            },
+        if (existingAttendance) {
+            return {
+                success: false,
+                error: "Une absence existe déjà pour cet élève dans cette séance.",
+            };
+        }
 
-            create: {
+        // Création
+        await prisma.attendance.create({
+            data: {
                 studentId: data.studentId,
                 sessionId: data.sessionId,
                 status: data.status,
@@ -2101,10 +2105,10 @@ export const createAttendance = async (
                         : role === "teacher"
                             ? "TEACHER"
                             : "ADMIN",
-
-            }
+            },
         });
 
+        console.log("sessionId envoyé :", data.sessionId);
         return { success: true, error: null };
 
     } catch (error) {
@@ -2120,6 +2124,7 @@ export const createAttendance = async (
 
 };
 
+// Update attendance
 export const updateAttendance = async (
     currentState: currentState,
     data: AttendanceSchemaInput
@@ -2337,12 +2342,66 @@ export const getStudentAttendancesForParent = async (studentId: string) => {
         };
     }
 
+    // Vérifier que l'élève appartient au parent
+    // const student = await prisma.student.findUnique({
+    //     where: { id: studentId },
+    //     select: { parentId: true }
+    // });
+
+    // if (!student || student.parentId !== userId) {
+    //     return {
+    //         success: false,
+    //         error: "Accès interdit à cet élève",
+    //         data: [],
+    //     };
+    // }
+
+    console.log("studentId reçu:", studentId);
+
+    // const attendances = await prisma.attendance.findMany({
+    //     where: {
+    //         studentId,
+    //         isDeleted: false,
+    //         student: {
+    //             parentId: userId!,
+    //         },
+    //     },
+
+    //     orderBy: {
+    //         session: {
+    //             date: "desc",
+    //         },
+    //     },
+
+    //     include: {
+    //         session: {
+    //             select: {
+    //                 date: true,
+    //                 startTime: true,
+    //                 lesson: {
+    //                     select: {
+    //                         name: true,
+    //                     },
+    //                 },
+    //                 class: {
+    //                     select: {
+    //                         name: true,
+    //                     },
+    //                 },
+    //             },
+    //         },
+    //     },
+    // });
     const attendances = await prisma.attendance.findMany({
         where: {
-            studentId,
             isDeleted: false,
+
+            // 🔥 FILTRE PRINCIPAL (OBLIGATOIRE)
+            studentId: studentId,
+
+            // 🔐 sécurité parent
             student: {
-                parentId: userId,
+                parentId: userId!,
             },
         },
 
@@ -2357,15 +2416,12 @@ export const getStudentAttendancesForParent = async (studentId: string) => {
                 select: {
                     date: true,
                     startTime: true,
+                    endTime: true,
                     lesson: {
-                        select: {
-                            name: true,
-                        },
+                        select: { name: true },
                     },
                     class: {
-                        select: {
-                            name: true,
-                        },
+                        select: { name: true },
                     },
                 },
             },
@@ -2378,6 +2434,82 @@ export const getStudentAttendancesForParent = async (studentId: string) => {
         error: null,
     };
 };
+
+// Fetch Student Attendances For Parent
+// export const getStudentAttendancesForParent = async (studentId: string) => {
+
+//     const { userId, sessionClaims } = await auth();
+//     const role = (sessionClaims?.metadata as { role?: string })?.role;
+
+//     if (!studentId) {
+//         return {
+//             success: false,
+//             error: "Student ID manquant",
+//             data: [],
+//         };
+//     }
+
+//     console.log("studentId:", studentId);
+
+//     if (!userId || role !== "parent") {
+//         return {
+//             success: false,
+//             error: "Accès refusé",
+//             data: [],
+//         };
+//     }
+
+//     // Vérifier que l'élève appartient au parent
+//     const student = await prisma.student.findUnique({
+//         where: { id: studentId },
+//         select: { parentId: true }
+//     });
+
+//     if (!student || student.parentId !== userId) {
+//         return {
+//             success: false,
+//             error: "Accès interdit à cet élève",
+//             data: [],
+//         };
+//     }
+
+//     // Récupérer seulement les absences de cet élève
+//     const attendances = await prisma.attendance.findMany({
+//         where: {
+//             studentId: studentId,
+//             isDeleted: false,
+//         },
+
+//         orderBy: {
+//             session: {
+//                 date: "desc",
+//             },
+//         },
+
+//         include: {
+//             session: {
+//                 select: {
+//                     date: true,
+//                     startTime: true,
+//                     endTime: true,
+//                     lesson: {
+//                         select: { name: true },
+//                     },
+//                     class: {
+//                         select: { name: true },
+//                     },
+//                 },
+//             },
+//         },
+//     });
+
+//     return {
+//         success: true,
+//         data: attendances,
+//         error: null,
+//     };
+// };
+
 
 // Fetch Student Assignments For Parent
 export const getStudentAssignmentsForParent = async (studentId: string) => {

@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import InputField from "../InputField";
 import { examSchema } from "@/lib/formValidationSchemas";
 import { createExam, updateExam } from "@/lib/actions";
-import { Dispatch, SetStateAction, startTransition, useActionState, useEffect } from "react";
+import { Dispatch, SetStateAction, startTransition, useActionState, useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 
@@ -37,7 +37,10 @@ const ExamForm = ({
         }
     );
 
+    const [serverError, setServerError] = useState<string | null>(null);
+
     const onSubmit = handleSubmit((data) => {
+        setServerError(null)
         startTransition(() => {
             formAction(data);
         });
@@ -64,6 +67,7 @@ const ExamForm = ({
         }
 
         if (state.error) {
+            setServerError(state.error)
             toast.error("Erreur serveur, veuillez réessayer", {
                 style: {
                     background: "#f87171",
@@ -157,11 +161,9 @@ const ExamForm = ({
                     </div>
                 </div>
 
-                {/* Server error */}
-                {state.error && (
-                    <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">
-                        ❌ Une erreur est survenue. Veuillez réessayer.
-                    </div>
+                {/* Global error */}
+                {serverError && (
+                    <span className="text-xs text-red-500">{serverError}</span>
                 )}
 
                 {/* Actions */}

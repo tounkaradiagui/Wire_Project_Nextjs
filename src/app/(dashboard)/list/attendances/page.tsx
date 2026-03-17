@@ -20,9 +20,10 @@ type AttendanceList = Prisma.AttendanceGetPayload<{
   select: {
     id: true;
     createdAt: true;
+    createdBy: true;
+    updatedAt: true;
     status: true;
     proofUrl: true;
-    createdBy: true;
     student: true;
     session: {
       include: {
@@ -57,13 +58,15 @@ const AttendanceListPage = async ({
   /* ================= COLUMNS ================= */
   const columns = [
     { header: "Élève", accessor: "student" },
-    { header: "Classe", accessor: "class", className: "hidden md:table-cell" },
-    { header: "Cours", accessor: "lesson", className: "hidden md:table-cell" },
+    { header: "Classe", accessor: "class" },
+    { header: "Cours", accessor: "lesson" },
     { header: "Séance", accessor: "session" },
     { header: "Statut", accessor: "status" },
-    { header: "Justificatif", accessor: "proofUrl" },
+    { header: "Date", accessor: "date", className: "hidden md:table-cell " },
+    { header: "Mise à jour", accessor: "miseajour", className: "hidden lg:table-cell " },
+    { header: "Justificatif", accessor: "proofUrl", className: "hidden lg:table-cell " },
     ...(role === "admin" || role === "teacher" || role === "super_admin"
-      ? [{ header: "Signaler par", accessor: "createdBy" }, { header: "Actions", accessor: "actions" }]
+      ? [{ header: "Signaler par", accessor: "createdBy", className: "hidden lg:table-cell " }, { header: "Actions", accessor: "actions" }]
 
       : []),
   ];
@@ -78,11 +81,11 @@ const AttendanceListPage = async ({
         {item.student.name} {item.student.surname}
       </td>
 
-      <td className="hidden md:table-cell">
+      <td>
         {item.session?.lesson.class.name}
       </td>
 
-      <td className="hidden md:table-cell">
+      <td>
         {item.session?.lesson.name}
       </td>
 
@@ -115,8 +118,24 @@ const AttendanceListPage = async ({
         </span>
       </td>
 
+      <td className="hidden md:table-cell ">
+        {item.createdAt ? (
+          `${new Date(item.createdAt).toLocaleDateString("fr-FR")}`
+        ) : (
+          "—"
+        )}
+      </td>
+      <td className="hidden lg:table-cell ">
+
+        {item.updatedAt ? (
+          `${new Date(item.updatedAt).toLocaleDateString("fr-FR")}`
+        ) : (
+          "—"
+        )}
+      </td>
+
       {/* PROOF */}
-      <td>
+      <td className="hidden lg:table-cell ">
         {item.proofUrl ? (
           isPdf(item.proofUrl) ? (
             <a
@@ -148,7 +167,7 @@ const AttendanceListPage = async ({
 
 
       {(role === "admin" || role === "teacher" || role === "super_admin") && (
-        <td className="hidden md:table-cell">
+        <td className="hidden lg:table-cell">
           {item.createdBy === "PARENT" ? "Parent" : item.createdBy === "TEACHER" ? "Enseignant" : "Administration"}
         </td>
       )}
@@ -233,6 +252,7 @@ const AttendanceListPage = async ({
         proofUrl: true,
         createdBy: true,
         createdAt: true,
+        updatedAt: true,
         student: true,
         session: {
           include: {
@@ -270,12 +290,16 @@ const AttendanceListPage = async ({
 
           <div className="flex gap-3">
             {/* EXPORT */}
-            <button className="bg-green-500 text-white px-3 py-1 rounded text-sm">
-              Export Excel
-            </button>
-            <button className="bg-red-500 text-white px-3 py-1 rounded text-sm">
-              Export PDF
-            </button>
+            {(role === "admin" || role === "teacher" || role === "super_admin") && (
+              <>
+                <button className="bg-green-500 text-white px-3 py-1 rounded text-sm">
+                  Export Excel
+                </button>
+                <button className="bg-red-500 text-white px-3 py-1 rounded text-sm">
+                  Export PDF
+                </button>
+              </>
+            )}
             <button
               className="flex items-center gap-1 px-3 py-1.5 rounded-md
                 bg-gray-100 hover:bg-gray-200 text-gray-700

@@ -45,7 +45,7 @@ const ResultListPage = async ({
     { header: "Titre", accessor: "title" },
 
     { header: "Elève", accessor: "student" },
-    { header: "Note", accessor: "score", className: "hidden md:table-cell " },
+    { header: "Note", accessor: "score" },
     {
       header: "Enseignant",
       accessor: "teacher",
@@ -56,7 +56,7 @@ const ResultListPage = async ({
       accessor: "class",
       className: "hidden md:table-cell ",
     },
-    { header: "Type", accessor: "type", className: "hidden md:table-cell " },
+    { header: "Type", accessor: "type" },
 
     {
       header: "Date",
@@ -79,12 +79,12 @@ const ResultListPage = async ({
         </div>
       </td>
       <td>{item.studentName + " " + item.studentSurname}</td>
-      <td className="hidden md:table-cell">{item.score}</td>
+      <td>{item.score}</td>
       <td className="hidden md:table-cell">
         {item.teacherName + " " + item.teacherSurname}
       </td>
       <td className="hidden md:table-cell">{item.className}</td>
-      <td className="hidden md:table-cell">
+      <td>
         {item.type === "Exam" ? (
           <span className="px-2 py-1 text-xs rounded bg-blue-100 text-blue-700">
             Trimestre

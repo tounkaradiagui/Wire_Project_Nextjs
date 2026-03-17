@@ -30,13 +30,12 @@ const AnnouncementListPage = async ({
   const currentUserId = userId;
 
   const columns = [
-    { header: "Titre de l'annonce", accessor: "info" },
+    { header: "Titre", accessor: "info" },
 
     { header: "Classe", accessor: "class" },
     {
       header: "Date",
       accessor: "date",
-      className: "hidden md:table-cell ",
     },
     ...(role === "admin" || role === "super_admin" ? [{ header: "Actions", accessor: "actions" }] : []),
   ];
@@ -97,7 +96,7 @@ const AnnouncementListPage = async ({
         </div>
       </td>
       <td>{item.class ? item.class.name : "Toutes les classes"}</td>
-      <td className="hidden md:table-cell">
+      <td>
         {new Intl.DateTimeFormat("fr-FR").format(item.date)}
       </td>
       <td>

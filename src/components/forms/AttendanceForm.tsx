@@ -45,22 +45,36 @@ const AttendanceForm = ({
 
     const status = watch("status");
 
+    // Start sessions filters
+    const selectedSessionId = watch("sessionId");
+    const selectedSession = relatedData?.sessions?.find(
+        (session: any) => session.id === selectedSessionId
+    );
+
+    // Students filters
+    const filteredStudents = selectedSession
+        ? relatedData?.students?.filter(
+            (student: any) => student.classId === selectedSession.class.id
+        )
+        : [];
+
     const [image, setImage] = useState<any>(null);
 
     const [state, formAction, isPending] = useActionState(
         type === "create" ? createAttendance : updateAttendance,
         { success: false, error: null as string | null, }
     );
+    
+    const [serverError, setServerError] = useState<string | null>(null);
 
     const onSubmit = handleSubmit((data) => {
-        console.log(data)
+        // console.log(data)
         startTransition(() => {
             setServerError(null)
             formAction({ ...data, proofUrl: image?.secure_url });
         });
     });
 
-    const [serverError, setServerError] = useState<string | null>(null);
 
 
     useEffect(() => {
@@ -109,29 +123,7 @@ const AttendanceForm = ({
                 </span>
 
                 {/* ROW 1 : STUDENT + LESSON */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="flex flex-col gap-1">
-                        <label>Élève</label>
-                        <select
-                            {...register("studentId")}
-                            disabled={role === "parent"}
-                            defaultValue={data?.studentId}
-                            className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm"
-                        >
-                            {relatedData?.students?.map(
-                                (student: { id: string; name: string; surname: string }) => (
-                                    <option key={student.id} value={student.id}>
-                                        {student.name} {student.surname}
-                                    </option>
-                                )
-                            )}
-
-                        </select>
-                        {errors.studentId && (
-                            <p className="text-xs text-red-500">{errors.studentId.message}</p>
-                        )}
-                    </div>
-
+                <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
                     <div className="flex flex-col gap-1">
                         <label className="text-sm font-medium">Séance</label>
                         <select
@@ -143,8 +135,10 @@ const AttendanceForm = ({
 
                             {relatedData?.sessions?.map((session: any) => (
                                 <option key={session.id} value={session.id}>
-                                    {session.lesson.name} - {session.class.name} -{" "}
-                                    {new Date(session.date).toLocaleDateString()} -{" "}
+                                    {session.lesson.name} • {session.class.name}
+                                    {" — "}
+                                    {new Date(session.date).toLocaleDateString()}
+                                    {" à "}
                                     {new Date(session.startTime).toLocaleTimeString([], {
                                         hour: "2-digit",
                                         minute: "2-digit",
@@ -161,6 +155,26 @@ const AttendanceForm = ({
 
                 {/* ROW 2 : DATE + STATUS */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-1">
+                        <label>Élève</label>
+                        <select
+                            {...register("studentId")}
+                            disabled={!selectedSessionId || role === "parent"}
+                            defaultValue={data?.studentId}
+                            className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm"
+                        >
+                            <option value="">Sélectionner un élève</option>
+
+                            {filteredStudents?.map((student: any) => (
+                                <option key={student.id} value={student.id}>
+                                    {student.name} {student.surname}
+                                </option>
+                            ))}
+                        </select>
+                        {errors.studentId && (
+                            <p className="text-xs text-red-500">{errors.studentId.message}</p>
+                        )}
+                    </div>
                     {data && (
                         <InputField
                             label="ID"

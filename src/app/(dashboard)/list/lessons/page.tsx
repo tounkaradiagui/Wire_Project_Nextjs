@@ -43,17 +43,15 @@ const LessonListPage = async ({
     {
       header: "Cours",
       accessor: "cours",
-      className: "hidden md:table-cell ",
     },
     {
       header: "Classe",
       accessor: "class",
-      className: "hidden md:table-cell ",
     },
-    { header: "Enseignant", accessor: "teacher" },
+    { header: "Enseignant", accessor: "teacher", className: "hidden md:table-cell " },
     { header: "Date de début", accessor: "startDate", className: "hidden md:table-cell " },
     { header: "Date de fin", accessor: "dueDate", className: "hidden md:table-cell " },
-    ...(role === "admin" ? [{ header: "Actions", accessor: "actions" }] : []),
+    ...(role === "admin" || role === "teacher" ? [{ header: "Actions", accessor: "actions" }] : []),
   ];
 
   const renderRow = (item: LessonList) => (
@@ -66,9 +64,9 @@ const LessonListPage = async ({
           <h3 className="font-semibold">{item.subject.name}</h3>
         </div>
       </td>
-      <td className="hidden md:table-cell">{item.name}</td>
+      <td>{item.name}</td>
       <td>{item.class.name}</td>
-      <td className="hidden md:table-cell">
+      <td className="hidden md:table-cell ">
         {item.teacher.name + " " + item.teacher.surname}
       </td>
       <td className="hidden md:table-cell">
@@ -79,15 +77,15 @@ const LessonListPage = async ({
       </td>
       <td>
         <div className="flex items-center gap-2">
+
           <Link
             href={`/list/sessions?lessonId=${item.id}`}
             className="px-3 py-1 text-xs font-medium rounded-md bg-blue-500 text-white hover:bg-blue-600"
           >
             <CalendarDays size={14} />
-            Séances
+            {/* Séances */}
           </Link>
-
-          {role === "admin" && (
+          {role === "admin" || role === "teacher" && (
             <>
               <FormContainer table="lesson" type="update" data={item} />
               <FormContainer table="lesson" type="delete" id={item.id} />
@@ -95,7 +93,7 @@ const LessonListPage = async ({
           )}
         </div>
       </td>
-    </tr>
+    </tr >
   );
 
 

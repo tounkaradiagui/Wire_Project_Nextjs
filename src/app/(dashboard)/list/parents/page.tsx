@@ -38,10 +38,10 @@ const ParentListPage = async ({
     {
       header: "Nom des élèves",
       accessor: "students",
-      className: "hidden md:table-cell ",
+      className: ""
     },
-    { header: "Téléphone", accessor: "phone", className: "hidden md:table-cell" },
-    { header: "Adresse", accessor: "address", className: "hidden md:table-cell" },
+    { header: "Téléphone", accessor: "phone", className: "" },
+    { header: "Adresse", accessor: "address", className: "" },
     ...(role === "admin" ? [{ header: "Actions", accessor: "actions" }] : []),
   ];
 
@@ -56,13 +56,13 @@ const ParentListPage = async ({
           <p className="text-xs text-gray-500">{item?.email}</p>
         </div>
       </td>
-      <td className="hidden lg:table-cell">
+      <td className="">
         {Array.isArray(item.students)
           ? item.students.map((c) => c.name).join(", ")
           : item.students || "—"}
       </td>
-      <td className="hidden lg:table-cell">{item.phone}</td>
-      <td className="hidden lg:table-cell">{item.address}</td>
+      <td className="">{item.phone}</td>
+      <td className="">{item.address}</td>
       <td>
         <div className="flex items-center gap-2">
           {role === "admin" && (
@@ -103,7 +103,7 @@ const ParentListPage = async ({
   const [data, count] = await prisma.$transaction([
     prisma.parent.findMany({
       // where: query,
-       where: {
+      where: {
         // deletedAt: null,
         isDeleted: false
       },

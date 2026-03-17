@@ -9,7 +9,6 @@ import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { auth } from "@clerk/nextjs/server";
 import {
-  Eye,
   Filter,
   ArrowUpDown
 } from "lucide-react";
@@ -42,16 +41,15 @@ const ExamListPage = async ({
 
   const columns = [
     { header: "Titre", accessor: "title" },
-    { header: "Nom de la matière", accessor: "info" },
+    { header: "Matière", accessor: "info" },
 
     {
       header: "Classe",
       accessor: "class",
-      className: "hidden md:table-cell ",
     },
     { header: "Enseignant", accessor: "teacher" },
 
-    { header: "Date de début", accessor: "startTimr", className: "hidden md:table-cell " },
+    { header: "Date de début", accessor: "startTime", className: "hidden md:table-cell " },
     { header: "Date de fin", accessor: "endTime", className: "hidden md:table-cell " },
     ...(role === "admin"
       ? [{ header: "Actions", accessor: "actions" }]
@@ -70,7 +68,7 @@ const ExamListPage = async ({
       </td>
       <td>{item.lesson.subject.name}</td>
       <td>{item.lesson.class.name}</td>
-      <td className="hidden md:table-cell">
+      <td>
         {item.lesson.teacher.name + " " + item.lesson.teacher.surname}
       </td>
       <td className="hidden md:table-cell">

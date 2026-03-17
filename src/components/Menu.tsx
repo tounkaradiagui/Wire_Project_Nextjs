@@ -88,7 +88,7 @@ const menuItems = [
         icon: FileText,
         label: "Séances",
         href: "/list/sessions",
-        visible: ["admin", "super_admin"],
+        visible: ["admin", "teacher", "super_admin"],
       },
       {
         icon: Trophy,

@@ -162,6 +162,10 @@ const EventForm = ({
           )}
         </div>
       </div>
+      {/* Global error */}
+      {serverError && (
+        <span className="text-xs text-red-500">{serverError}</span>
+      )}
 
       <button
         type="submit"

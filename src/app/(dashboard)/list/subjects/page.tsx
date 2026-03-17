@@ -40,7 +40,7 @@ const SubjectListPage = async ({
     { header: "Nom de la matière", accessor: "info" },
     {
       header: "Enseignants",
-      accessor: "subjects",
+      accessor: "teachers",
       className: "hidden md:table-cell ",
     },
     { header: "Actions", accessor: "actions" },
@@ -56,7 +56,7 @@ const SubjectListPage = async ({
           <h3 className="font-semibold">{item.name}</h3>
         </div>
       </td>
-      <td className="hidden lg:table-cell">
+      <td className="hidden md:table-cell">
         {item.teachers.length > 0
           ? item.teachers.map((t) => t.teacher.name).join(", ")
           : "—"}

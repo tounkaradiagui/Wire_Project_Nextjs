@@ -52,9 +52,12 @@ const AbsencesPage = async ({
                     <tbody>
                         {attendances.map((attendance: any) => {
                             const session = attendance.session;
-
+                            // const student = attendance.student;
                             return (
                                 <tr key={attendance.id} className="border-b">
+                                    {/* <h1>
+                                        Absences de {student.name} {student.surname}
+                                    </h1> */}
                                     <td className="p-3">
                                         {session
                                             ? new Date(session.date).toLocaleDateString()
@@ -75,13 +78,13 @@ const AbsencesPage = async ({
                                         {new Date(session.startTime).toLocaleTimeString([], {
                                             hour: "2-digit",
                                             minute: "2-digit",
-                                        })} -
+                                        })}
+                                        {/* -
                                         {new Date(session.endTime).toLocaleTimeString([], {
                                             hour: "2-digit",
                                             minute: "2-digit",
-                                        })}
+                                        })} */}
                                     </td>
-
 
                                     <td className="p-3 text-gray-600">
                                         {attendance.comment || "-"}

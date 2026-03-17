@@ -30,7 +30,7 @@ const SessionListPage = async ({
 }: {
   searchParams: { [key: string]: string | undefined };
 }) => {
-  const { page, ...queryParams } = await searchParams;
+  const { page, lessonId, ...queryParams } = await searchParams;
   const p = page ? parseInt(page) : 1;
 
   const { userId, sessionClaims } = await auth();
@@ -44,7 +44,7 @@ const SessionListPage = async ({
     { header: "Date", accessor: "date" },
     { header: "Horaire", accessor: "time" },
     { header: "Salle", accessor: "room" },
-    ...(role === "admin" || role === "super_admin"
+    ...(role === "admin" || role === "teacher" || role === "super_admin"
       ? [{ header: "Actions", accessor: "actions" }]
       : []),
   ];
@@ -96,11 +96,11 @@ const SessionListPage = async ({
 
               className="flex items-center gap-1 px-3 py-1 text-xs rounded-md bg-green-600 text-white hover:bg-green-700"
             >
-              <ClipboardCheck size={14} />
-              Présences
+              <ClipboardCheck size={16} />
+              {/* Présences */}
             </Link>
 
-            {(role === "admin" || role === "super_admin") && (
+            {(role === "admin" || role === "super_admin" || role === "teacher") && (
               <>
                 <FormContainer table="session" type="update" data={item} />
                 <FormContainer table="session" type="delete" id={item.id} />
@@ -119,6 +119,10 @@ const SessionListPage = async ({
     isDeleted: false,
   };
 
+  if (lessonId) {
+    query.lessonId = parseInt(lessonId);
+  }
+
   // 🔐 RBAC
   if (role === "teacher") {
     query.lesson = {
@@ -132,7 +136,6 @@ const SessionListPage = async ({
     prisma.session.findMany({
       // where: query,
       where: {
-        // deletedAt: null,
         isDeleted: false
       },
       include: {

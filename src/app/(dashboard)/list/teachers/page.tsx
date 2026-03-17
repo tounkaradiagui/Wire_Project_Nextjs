@@ -41,34 +41,80 @@ const TeacherListPage = async ({
   const { sessionClaims } = await auth();
   const role = (sessionClaims?.metadata as { role?: string })?.role;
 
+  // const columns = [
+  //   { header: "Infos", accessor: "info" },
+  //   {
+  //     header: "Identifiant",
+  //     accessor: "teacherId",
+  //   },
+  //   {
+  //     header: "Matière",
+  //     accessor: "subjects",
+  //     className: "hidden md:table-cell",
+  //   },
+  //   {
+  //     header: "Classes",
+  //     accessor: "classes",
+  //     className: "hidden md:table-cell",
+  //   },
+  //   {
+  //     header: "Téléphone",
+  //     accessor: "phone",
+  //     className: "hidden md:table-cell",
+  //   },
+  //   {
+  //     header: "Adresse",
+  //     accessor: "address",
+  //     className: "hidden lg:table-cell",
+  //   },
+  //   ...(role === "admin" ? [{ header: "Actions", accessor: "actions" }] : []),
+  // ];
+
   const columns = [
-    { header: "Infos", accessor: "info" },
+    {
+      header: "Infos",
+      accessor: "info",
+    },
+
     {
       header: "Identifiant",
       accessor: "teacherId",
       className: "hidden md:table-cell",
     },
+
     {
       header: "Matière",
       accessor: "subjects",
       className: "hidden md:table-cell",
     },
+
     {
       header: "Classes",
       accessor: "classes",
-      className: "hidden lg:table-cell",
+      className: "hidden md:table-cell",
     },
+
     {
       header: "Téléphone",
       accessor: "phone",
       className: "hidden lg:table-cell",
     },
+
     {
       header: "Adresse",
       accessor: "address",
-      className: "hidden lg:table-cell",
+      className: "hidden xl:table-cell",
     },
-    ...(role === "admin" ? [{ header: "Actions", accessor: "actions" }] : []),
+
+    ...(role === "admin" || role === "super_admin"
+      ? [
+        {
+          header: "Actions",
+          accessor: "actions",
+          className: "text-right",
+        },
+      ]
+      : []),
   ];
 
   const renderRow = (item: TeacherList) => (
@@ -109,7 +155,7 @@ const TeacherListPage = async ({
               <Eye size={16} />
             </button>
           </Link>
-          {role === "admin" && (
+          {role === "admin" || role === "super_admin" && (
             <>
               <FormContainer table="teacher" type="update" data={item} />
               <FormContainer table="teacher" type="delete" id={item.id} />

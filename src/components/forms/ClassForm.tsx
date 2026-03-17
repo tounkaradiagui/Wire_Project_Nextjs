@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import InputField from "../InputField";
 import { classSchema } from "@/lib/formValidationSchemas";
 import { createClass, updateClass } from "@/lib/actions";
-import { Dispatch, SetStateAction, useActionState, useEffect, startTransition } from "react";
+import { Dispatch, SetStateAction, useActionState, useEffect, startTransition, useState } from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 
@@ -36,8 +36,12 @@ const ClassForm = ({
     }
   );
 
+  const [serverError, setServerError] = useState<string | null>(null);
+
+
   const onSubmit = handleSubmit((formData) => {
     startTransition(() => {
+      setServerError(null)
       formAction(formData);
     });
   });
@@ -45,6 +49,7 @@ const ClassForm = ({
   const router = useRouter();
 
   useEffect(() => {
+    setServerError(state.error)
     if (state.success) {
       toast.success(
         `La classe a été ${type === "create" ? "ajoutée avec succès" : "mise à jour avec succès"
@@ -60,10 +65,6 @@ const ClassForm = ({
   }, [state.success, state.error, type, setOpen, router]);
 
   //   const { teachers, grades } = relatedData;
-
-  const teachers = Array.isArray(relatedData?.teachers)
-    ? relatedData.teachers
-    : [];
 
   const grades = Array.isArray(relatedData?.grades) ? relatedData.grades : [];
 
@@ -139,11 +140,10 @@ const ClassForm = ({
           </div>
 
         </div>
-        {/* Error */}
-        {state.error && (
-          <div className="text-[11px] text-red-600 bg-red-50 dark:bg-red-900/30 p-2 rounded">
-            Une erreur est survenue, veuillez réessayer.
-          </div>
+
+        {/* Global error */}
+        {serverError && (
+          <span className="text-xs text-red-500">{serverError}</span>
         )}
 
         {/* Actions */}

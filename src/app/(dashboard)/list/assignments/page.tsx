@@ -13,7 +13,6 @@ import {
   ArrowUpDown
 } from "lucide-react";
 
-// export const dynamic = "force-dynamic";
 
 type AssignmentList = {
   id: number;
@@ -55,16 +54,14 @@ const AssignmentListPage = async ({
     {
       header: "Titre",
       accessor: "title",
-      className: "hidden md:table-cell ",
     },
 
     {
       header: "Classe",
       accessor: "class",
-      className: "hidden md:table-cell ",
     },
 
-    { header: "Enseignant", accessor: "teacher" },
+    { header: "Enseignant", accessor: "teacher", className: "hidden md:table-cell ", },
 
     {
       header: "Date de debut",

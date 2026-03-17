@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { resultSchema } from "@/lib/formValidationSchemas";
 import { createResult, updateResult } from "@/lib/actions";
-import { Dispatch, SetStateAction, startTransition, useActionState, useEffect } from "react";
+import { Dispatch, SetStateAction, startTransition, useActionState, useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import InputField from "../InputField";
@@ -34,9 +34,12 @@ const ResultForm = ({
     );
 
     const router = useRouter();
+    const [serverError, setServerError] = useState<string | null>(null);
+
 
     const onSubmit = handleSubmit((data) => {
         startTransition(() => {
+            setServerError(null)
             formAction(data);
         });
     });
@@ -44,26 +47,27 @@ const ResultForm = ({
     useEffect(() => {
         if (state.success) {
             toast.success(`La note a été ${type === "create" ? "ajoutée avec succès" : "mise à jour avec succès"
-        }`);
+                }`);
             setOpen(false);
             router.refresh();
         }
 
         if (state.error) {
+            setServerError(state.error);
             toast.error(
                 typeof state.error === "string"
                     ? state.error
                     : "Erreur serveur"
             );
         }
-    }, [state]);
+    }, [state.success, state.error, type, router, setOpen]);
 
     const exams = relatedData?.exams ?? [];
     const assignments = relatedData?.assignments ?? [];
     const students = relatedData?.students ?? [];
 
-    console.log("RELATED DATA 👉", relatedData);
-    console.log("STUDENTS 👉", students);
+    // console.log("RELATED DATA 👉", relatedData);
+    // console.log("STUDENTS 👉", students);
 
     return (
         <form onSubmit={onSubmit} className="flex flex-col gap-6 p-6">
@@ -82,19 +86,19 @@ const ResultForm = ({
 
             {data && (
                 <InputField
-                label="ID"
-                name="id"
-                defaultValue={data?.id}
-                register={register}
-                error={errors?.id}
-                hidden
+                    label="ID"
+                    name="id"
+                    defaultValue={data?.id}
+                    register={register}
+                    error={errors?.id}
+                    hidden
                 />
             )}
 
             {/* Student */}
             <div>
                 <label>Élève</label>
-                <select {...register("studentId")} className="input">
+                <select {...register("studentId")} className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full">
                     <option value="">Sélectionner</option>
                     {students.map((s: any) => (
                         <option key={s.id} value={s.id}>
@@ -109,37 +113,52 @@ const ResultForm = ({
                 )}
             </div>
 
-            {/* Exam */}
-            <div>
-                <label>Examen (optionnel)</label>
-                <select {...register("examId")} className="input">
-                    <option value="">---</option>
-                    {exams.map((e: any) => (
-                        <option key={e.id} value={e.id}>
-                            {e.title}
-                        </option>
-                    ))}
-                </select>
-            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Exam */}
+                <div className="flex flex-col gap-1">
+                    <label>Examen (optionnel)</label>
+                    <select {...register("examId")} className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full">
+                        <option value="">Choisir</option>
+                        {exams.map((e: any) => (
+                            <option key={e.id} value={e.id}>
+                                {e.title}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+                {
+                    errors.examId && (
+                        <span className="text-red-500 text-xs">
+                            {errors.examId.message}
+                        </span>
+                    )
+                }
 
-            {/* Assignment */}
-            <div>
-                <label>Devoir (optionnel)</label>
-                <select {...register("assignmentId")} className="input">
-                    <option value="">---</option>
-                    {assignments.map((a: any) => (
-                        <option key={a.id} value={a.id}>
-                            {a.title}
-                        </option>
-                    ))}
-                </select>
+
+                {/* Assignment */}
+                <div className="flex flex-col gap-1">
+                    <label>Dévoir (optionnel)</label>
+                    <select {...register("assignmentId")} className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full">
+                        <option value="">Choisir</option>
+                        {assignments.map((a: any) => (
+                            <option key={a.id} value={a.id}>
+                                {a.title}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+                {
+                    errors.assignmentId && (
+                        <span className="text-red-500 text-xs">
+                            {errors.assignmentId.message}
+                        </span>
+                    )
+                }
             </div>
 
             {/* Global error */}
-            {errors.examId && (
-                <span className="text-red-500 text-xs">
-                    {errors.examId.message}
-                </span>
+            {serverError && (
+                <span className="text-xs text-red-500">{serverError}</span>
             )}
 
             <button
@@ -158,7 +177,7 @@ const ResultForm = ({
                             : "Valider"}
                 </span>
             </button>
-        </form>
+        </form >
     );
 };
 

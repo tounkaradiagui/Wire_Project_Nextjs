@@ -41,7 +41,7 @@ const StudentListPage = async ({
     {
       header: "Identifiant",
       accessor: "studentId",
-      className: "hidden md:table-cell ",
+      className: "hidden md:table-cell",
     },
     {
       header: "Niveau",
@@ -54,7 +54,7 @@ const StudentListPage = async ({
       className: "hidden md:table-cell",
     },
     { header: "Téléphone", accessor: "phone", className: "hidden md:table-cell" },
-    { header: "Adresse", accessor: "address", className: "hidden md:table-cell" },
+    { header: "Adresse", accessor: "address", className: "hidden lg:table-cell" },
     ...(role === "admin" || role === "teacher" || role === "parent"
       ? [{ header: "Actions", accessor: "actions" }]
       : []),
@@ -81,7 +81,7 @@ const StudentListPage = async ({
       <td className="hidden md:table-cell">{item.username}</td>
       <td className="hidden md:table-cell">{item.grade.level}</td>
       <td className="hidden md:table-cell">{item.class.name}</td>
-      <td className="hidden lg:table-cell">{item.phone}</td>
+      <td className="hidden md:table-cell">{item.phone}</td>
       <td className="hidden lg:table-cell">{item.address}</td>
       <td>
         <div className="flex items-center gap-2">
