@@ -10,12 +10,9 @@ import Image from "next/image";
 import Link from "next/link";
 import prisma from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
-import { studentRoleFilter } from "@/lib/roleFilters";
-import {
-  Eye,
-  Filter,
-  ArrowUpDown
-} from "lucide-react";
+import { studentRoleFilter } from "@/lib/filters/studentFilters";
+import { Eye } from "lucide-react";
+import TableActions from "@/lib/helpers/TableActions";
 
 
 type StudentList = Student & {
@@ -41,6 +38,11 @@ const StudentListPage = async ({
     {
       header: "Identifiant",
       accessor: "studentId",
+      className: "hidden md:table-cell",
+    },
+    {
+      header: "Genre",
+      accessor: "sex",
       className: "hidden md:table-cell",
     },
     {
@@ -79,6 +81,9 @@ const StudentListPage = async ({
         </div>
       </td>
       <td className="hidden md:table-cell">{item.username}</td>
+      <td className="hidden md:table-cell">
+        {item.sex === "MALE" ? "Masculin" : "Féminin"}
+      </td>
       <td className="hidden md:table-cell">{item.grade.level}</td>
       <td className="hidden md:table-cell">{item.class.name}</td>
       <td className="hidden md:table-cell">{item.phone}</td>
@@ -101,38 +106,76 @@ const StudentListPage = async ({
     </tr>
   );
 
-  // URL PARAMS CONDITION
+  // ----------------------
+  // FILTERS
+  // ----------------------
 
   const query: Prisma.StudentWhereInput = {
     ...studentRoleFilter(role, userId),
+    isDeleted: false,
   };
-
-  // URL filters
-  if (queryParams?.search) {
-    query.name = { contains: queryParams.search, mode: "insensitive" };
-  }
 
   if (queryParams) {
     for (const [key, value] of Object.entries(queryParams)) {
-      if (value !== undefined) {
-        switch (key) {
-          case "search":
-            query.name = { contains: value, mode: "insensitive" };
-            break;
-          default:
-            break;
-        }
+      if (!value) continue;
+
+      switch (key) {
+        case "search":
+          query.OR = [
+            { name: { contains: value, mode: "insensitive" } },
+            { surname: { contains: value, mode: "insensitive" } },
+            { username: { contains: value, mode: "insensitive" } },
+          ];
+          break;
+
+        case "classId":
+          query.classId = parseInt(value);
+          break;
+
+        case "gradeId":
+          query.gradeId = parseInt(value);
+          break;
+
+        case "sex":
+          query.sex = value as any;
+          break;
+
+        default:
+          break;
       }
     }
   }
 
+  // ----------------------
+  // SORT (SECURE)
+  // ----------------------
+
+  const allowedSortFields = [
+    "name",
+    "surname",
+    "username",
+    "createdAt",
+  ];
+
+  const sortBy = allowedSortFields.includes(queryParams.sortBy || "")
+    ? queryParams.sortBy
+    : "createdAt";
+
+  const sortOrder =
+    queryParams.sortOrder === "asc" ? "asc" : "desc";
+
+  const orderBy: Prisma.StudentOrderByWithRelationInput = {
+    [sortBy!]: sortOrder,
+  };
+
+  // ----------------------
+  // QUERY
+  // ----------------------
+
   const [data, count] = await prisma.$transaction([
     prisma.student.findMany({
-      // where: query,
-      where: {
-        // deletedAt: null,
-        isDeleted: false
-      },
+      where: query,
+      orderBy,
       include: {
         class: true,
         grade: true,
@@ -153,22 +196,7 @@ const StudentListPage = async ({
         <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto items-center">
           <TableSearch />
           <div className="flex items-center gap-4 self-end">
-            <button
-              className="flex items-center gap-1 px-3 py-1.5 rounded-md
-               bg-gray-100 hover:bg-gray-200 text-gray-700
-               transition"
-            >
-              <Filter size={16} />
-              <span className="text-sm">Filtrer</span>
-            </button>
-            <button
-              className="flex items-center gap-1 px-3 py-1.5 rounded-md
-               bg-gray-100 hover:bg-gray-200 text-gray-700
-               transition"
-            >
-              <ArrowUpDown size={16} />
-              <span className="text-sm">Trier</span>
-            </button>
+            <TableActions />
             {role === "admin" && <FormContainer table="student" type="create" />}
           </div>
         </div>
