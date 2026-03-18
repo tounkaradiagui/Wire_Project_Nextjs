@@ -9,11 +9,11 @@ import { AttendanceStatus } from "@prisma/client";
 import { Prisma } from "@prisma/client";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import prisma from "@/lib/prisma";
-import {
-  Filter,
-  ArrowUpDown
-} from "lucide-react";
 import { auth } from "@clerk/nextjs/server";
+import AttendanceFiltersModal from "@/lib/filters/AttendanceFiltersModal";
+import TableActions from "@/lib/helpers/TableActions";
+import ResetFiltersButton from "@/lib/filters/ResetFiltersButton";
+import ActiveFilters from "@/lib/filters/ActiveFilters";
 
 
 type AttendanceList = Prisma.AttendanceGetPayload<{
@@ -190,7 +190,10 @@ const AttendanceListPage = async ({
     isDeleted: false,
   };
 
-  /* ---- Role rules ---- */
+  // ----------------------
+  // ROLE FILTER
+  // ----------------------
+
   switch (role) {
     case "teacher":
       query.session = {
@@ -209,43 +212,95 @@ const AttendanceListPage = async ({
     case "student":
       query.studentId = userId!;
       break;
-
-    default:
-      break;
   }
 
-  /* ---- Filters ---- */
+  // ----------------------
+  // FILTERS
+  // ----------------------
+
   if (queryParams) {
     for (const [key, value] of Object.entries(queryParams)) {
       if (!value) continue;
 
       switch (key) {
-        case "classId":
+        case "search": {
+          query.student = {
+            ...(query.student as Prisma.StudentWhereInput),
+            OR: [
+              { name: { contains: value, mode: "insensitive" } },
+              { surname: { contains: value, mode: "insensitive" } },
+            ],
+          };
+          break;
+        }
+
+        case "status": {
+          query.status = value as AttendanceStatus;
+          break;
+        }
+
+        case "classId": {
           query.session = {
+            ...(query.session as any),
             lesson: {
               ...(query.session as any)?.lesson,
               classId: parseInt(value),
             },
           };
           break;
+        }
 
-        case "search":
-          query.student = {
-            ...(query.student as Prisma.StudentWhereInput),
-            name: {
-              contains: value,
-              mode: "insensitive",
+        case "teacherId": {
+          query.session = {
+            ...(query.session as any),
+            lesson: {
+              ...(query.session as any)?.lesson,
+              teacherId: value,
             },
           };
+          break;
+        }
+
+        case "date": {
+          const start = new Date(value);
+          const end = new Date(value);
+          end.setHours(23, 59, 59);
+
+          query.createdAt = {
+            gte: start,
+            lte: end,
+          };
+          break;
+        }
+
+        default:
           break;
       }
     }
   }
 
+  const allowedSortFields = [
+    "createdAt",
+    "updatedAt",
+    "status",
+  ];
+
+  const sortBy = allowedSortFields.includes(queryParams.sortBy || "")
+    ? queryParams.sortBy
+    : "createdAt";
+
+  const sortOrder =
+    queryParams.sortOrder === "asc" ? "asc" : "desc";
+
+  const orderBy: Prisma.AttendanceOrderByWithRelationInput = {
+    [sortBy!]: sortOrder,
+  };
+
   /* ================= DATA ================= */
-  const [data, count] = await prisma.$transaction([
+  const [data, count, classes, teachers] = await prisma.$transaction([
     prisma.attendance.findMany({
       where: query,
+      orderBy,
       select: {
         id: true,
         status: true,
@@ -267,13 +322,16 @@ const AttendanceListPage = async ({
       },
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
-      orderBy: {
-        createdAt: "desc",
-      },
     }),
 
-    prisma.attendance.count({
-      where: query,
+    prisma.attendance.count({ where: query }),
+
+    prisma.class.findMany({
+      select: { id: true, name: true },
+    }),
+
+    prisma.teacher.findMany({
+      select: { id: true, name: true },
     }),
   ]);
 
@@ -295,28 +353,12 @@ const AttendanceListPage = async ({
                 <button className="bg-green-500 text-white px-3 py-1 rounded text-sm">
                   Export Excel
                 </button>
-                <button className="bg-red-500 text-white px-3 py-1 rounded text-sm">
-                  Export PDF
-                </button>
               </>
             )}
-            <button
-              className="flex items-center gap-1 px-3 py-1.5 rounded-md
-                bg-gray-100 hover:bg-gray-200 text-gray-700
-                transition"
-            >
-              <Filter size={16} />
-              <span className="text-sm">Filtrer</span>
-            </button>
-            <button
-              className="flex items-center gap-1 px-3 py-1.5 rounded-md
-                bg-gray-100 hover:bg-gray-200 text-gray-700
-                transition"
-            >
-              <ArrowUpDown size={16} />
-              <span className="text-sm">Trier</span>
-            </button>
-
+            <ResetFiltersButton />
+            <ActiveFilters />
+            <AttendanceFiltersModal classes={classes} teachers={teachers} />
+            <TableActions />
             {(role === "admin" || role === "teacher" || role === "parent") && (
               <FormContainer table="attendance" type="create" />
             )}

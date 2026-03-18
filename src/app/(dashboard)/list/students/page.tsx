@@ -10,9 +10,12 @@ import Image from "next/image";
 import Link from "next/link";
 import prisma from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
-import { studentRoleFilter } from "@/lib/filters/studentFilters";
+import { studentRoleFilter } from '@/lib/roleFilters';
 import { Eye } from "lucide-react";
 import TableActions from "@/lib/helpers/TableActions";
+import StudentFiltersModal from "@/lib/filters/StudentFiltersModal";
+import ActiveFilters from "@/lib/filters/ActiveFilters";
+import ResetFiltersButton from "@/lib/filters/ResetFiltersButton";
 
 
 type StudentList = Student & {
@@ -172,7 +175,7 @@ const StudentListPage = async ({
   // QUERY
   // ----------------------
 
-  const [data, count] = await prisma.$transaction([
+  const [data, count, classes, grades] = await prisma.$transaction([
     prisma.student.findMany({
       where: query,
       orderBy,
@@ -184,6 +187,8 @@ const StudentListPage = async ({
       skip: ITEM_PER_PAGE * (p - 1),
     }),
     prisma.student.count({ where: query }),
+    prisma.class.findMany({ select: { id: true, name: true } }),
+    prisma.grade.findMany({ select: { id: true, level: true } }),
   ]);
 
   return (
@@ -196,6 +201,9 @@ const StudentListPage = async ({
         <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto items-center">
           <TableSearch />
           <div className="flex items-center gap-4 self-end">
+            <ResetFiltersButton />
+            <ActiveFilters />
+            <StudentFiltersModal classes={classes} grades={grades} />
             <TableActions />
             {role === "admin" && <FormContainer table="student" type="create" />}
           </div>

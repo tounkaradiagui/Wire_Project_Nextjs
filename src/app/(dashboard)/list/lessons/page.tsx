@@ -14,6 +14,10 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { CalendarDays } from "lucide-react";
+import TableActions from "@/lib/helpers/TableActions";
+import LessonFiltersModal from "@/lib/filters/LessonFiltersModal";
+import ActiveFilters from "@/lib/filters/ActiveFilters";
+import ResetFiltersButton from "@/lib/filters/ResetFiltersButton";
 
 
 type LessonList = Prisma.LessonGetPayload<{
@@ -98,50 +102,95 @@ const LessonListPage = async ({
 
 
   // URL PARAMS CONDITION
-
   const query: Prisma.LessonWhereInput = {};
 
-  // L'enseignant ne peut voir que ses propres leçons
+  // restriction teacher
   if (role === "teacher") {
     query.teacherId = userId!;
   }
 
+  // filtres dynamiques
   if (queryParams) {
     for (const [key, value] of Object.entries(queryParams)) {
-      if (value !== undefined) {
-        switch (key) {
-          case "classId":
-            query.classId = parseInt(value);
-            break;
-          case "teacherId":
-            query.teacherId = value;
-            break;
-          case "search":
-            query.OR = [
-              { subject: { name: { contains: value, mode: "insensitive" } } },
-              { teacher: { name: { contains: value, mode: "insensitive" } } },
-            ];
-            break;
-          default:
-            break;
-        }
+      if (!value) continue;
+
+      switch (key) {
+        case "classId":
+          query.classId = parseInt(value);
+          break;
+
+        case "teacherId":
+          query.teacherId = value;
+          break;
+
+        case "subjectId":
+          query.subjectId = parseInt(value);
+          break;
+
+        case "date":
+          query.startDate = {
+            gte: new Date(value),
+          };
+          break;
+
+        case "search":
+          query.OR = [
+            { name: { contains: value, mode: "insensitive" } },
+            { subject: { name: { contains: value, mode: "insensitive" } } },
+            { teacher: { name: { contains: value, mode: "insensitive" } } },
+          ];
+          break;
       }
     }
   }
 
-  const [data, count] = await prisma.$transaction([
-    prisma.lesson.findMany({
-      where: query,
-      include: {
-        class: { select: { name: true } },
-        subject: { select: { name: true } },
-        teacher: { select: { name: true, surname: true } },
-      },
-      take: ITEM_PER_PAGE,
-      skip: ITEM_PER_PAGE * (p - 1),
-    }),
-    prisma.lesson.count({ where: query }),
-  ]);
+  // Afficher les filtres actifs
+  const allowedSortFields = [
+    "name",
+    "startDate",
+    "dueDate",
+  ];
+
+  const sortBy = allowedSortFields.includes(queryParams.sortBy || "")
+    ? queryParams.sortBy
+    : "startDate";
+
+  const sortOrder =
+    queryParams.sortOrder === "asc" ? "asc" : "desc";
+
+  const orderBy: Prisma.LessonOrderByWithRelationInput = {
+    [sortBy!]: sortOrder,
+  };
+
+  const [data, count, classes, teachers, subjects] =
+    await prisma.$transaction([
+
+      prisma.lesson.findMany({
+        where: query,
+        include: {
+          class: { select: { name: true } },
+          subject: { select: { name: true } },
+          teacher: { select: { name: true, surname: true } },
+        },
+        take: ITEM_PER_PAGE,
+        skip: ITEM_PER_PAGE * (p - 1),
+        orderBy,
+      }),
+
+      prisma.lesson.count({ where: query }),
+
+      prisma.class.findMany({
+        select: { id: true, name: true },
+      }),
+
+      prisma.teacher.findMany({
+        select: { id: true, name: true, surname: true },
+      }),
+
+      prisma.subject.findMany({
+        select: { id: true, name: true },
+      }),
+    ]);
 
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
@@ -153,22 +202,14 @@ const LessonListPage = async ({
         <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto items-center">
           <TableSearch />
           <div className="flex items-center gap-4 self-end">
-            <button
-              className="flex items-center gap-1 px-3 py-1.5 rounded-md
-                bg-gray-100 hover:bg-gray-200 text-gray-700
-                transition"
-            >
-              <Filter size={16} />
-              <span className="text-sm">Filtrer</span>
-            </button>
-            <button
-              className="flex items-center gap-1 px-3 py-1.5 rounded-md
-                bg-gray-100 hover:bg-gray-200 text-gray-700
-                transition"
-            >
-              <ArrowUpDown size={16} />
-              <span className="text-sm">Trier</span>
-            </button>
+            <ResetFiltersButton />
+            <ActiveFilters />
+            <LessonFiltersModal
+              classes={classes}
+              teachers={teachers}
+              subjects={subjects}
+            />
+            <TableActions />
             {role === "admin" && <FormContainer table="lesson" type="create" />}
           </div>
         </div>

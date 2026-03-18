@@ -12,6 +12,10 @@ import {
   Filter,
   ArrowUpDown
 } from "lucide-react";
+import ResetFiltersButton from "@/lib/filters/ResetFiltersButton";
+import ActiveFilters from "@/lib/filters/ActiveFilters";
+import TableActions from "@/lib/helpers/TableActions";
+import ResultFiltersModal from "@/lib/filters/ResultFiltersModal";
 
 
 type ResultList = {
@@ -111,90 +115,188 @@ const ResultListPage = async ({
     </tr>
   );
 
-  // URL PARAMS CONDITION
-  const where: Prisma.ResultWhereInput = {
-    AND: [],
+  const where: Prisma.ResultWhereInput = {};
+
+  // ----------------------
+  // ROLE FILTER
+  // ----------------------
+
+  if (role === "teacher") {
+    where.OR = [
+      { exam: { lesson: { teacherId: userId! } } },
+      { assignment: { lesson: { teacherId: userId! } } },
+    ];
+  }
+
+  if (role === "student") {
+    where.studentId = userId!;
+  }
+
+  if (role === "parent") {
+    where.student = {
+      parentId: userId!,
+    };
+  }
+
+  // ----------------------
+  // FILTERS
+  // ----------------------
+
+  if (queryParams) {
+    for (const [key, value] of Object.entries(queryParams)) {
+      if (!value) continue;
+
+      switch (key) {
+        case "search":
+          where.AND = [
+            ...(Array.isArray(where.AND)
+              ? where.AND
+              : where.AND
+                ? [where.AND]
+                : []),
+            {
+              OR: [
+                { exam: { title: { contains: value, mode: "insensitive" } } },
+                { assignment: { title: { contains: value, mode: "insensitive" } } },
+                { student: { name: { contains: value, mode: "insensitive" } } },
+                { student: { surname: { contains: value, mode: "insensitive" } } },
+              ],
+            },
+          ];
+          break;
+
+        case "studentId":
+          where.studentId = value;
+          break;
+
+        case "classId":
+          where.AND = [
+            ...(Array.isArray(where.AND)
+              ? where.AND
+              : where.AND
+                ? [where.AND]
+                : []),
+            {
+              OR: [
+                { exam: { lesson: { classId: parseInt(value) } } },
+                { assignment: { lesson: { classId: parseInt(value) } } },
+              ],
+            },
+          ];
+          break;
+
+        case "teacherId":
+          where.AND = [
+            ...(Array.isArray(where.AND)
+              ? where.AND
+              : where.AND
+                ? [where.AND]
+                : []),
+            {
+              OR: [
+                { exam: { lesson: { teacherId: value } } },
+                { assignment: { lesson: { teacherId: value } } },
+              ],
+            },
+          ];
+          break;
+
+        case "type":
+          if (value === "Exam") {
+            where.examId = { not: null };
+          }
+          if (value === "Assignment") {
+            where.assignmentId = { not: null };
+          }
+          break;
+
+        case "minScore": {
+          const scoreFilter =
+            typeof where.score === "object" && where.score !== null
+              ? where.score
+              : {};
+
+          where.score = {
+            ...scoreFilter,
+            gte: parseInt(value),
+          };
+          break;
+        }
+
+        case "maxScore": {
+          const scoreFilter =
+            typeof where.score === "object" && where.score !== null
+              ? where.score
+              : {};
+
+          where.score = {
+            ...scoreFilter,
+            lte: parseInt(value),
+          };
+          break;
+        }
+      }
+    }
+  }
+
+  // Tri dynamique
+  const allowedSortFields = ["score", "id"];
+
+  const sortBy = allowedSortFields.includes(queryParams.sortBy || "")
+    ? queryParams.sortBy
+    : "id";
+
+  const sortOrder =
+    queryParams.sortOrder === "asc" ? "asc" : "desc";
+
+  const orderBy: Prisma.ResultOrderByWithRelationInput = {
+    [sortBy!]: sortOrder,
   };
 
-  // Fetch data accoording to user role
-  // 🔐 Role filter
-  switch (role) {
-    case "teacher":
-      (where.AND as Prisma.ResultWhereInput[]).push({
-        OR: [
-          { exam: { lesson: { teacherId: userId! } } },
-          { assignment: { lesson: { teacherId: userId! } } },
-        ],
-      });
-      break;
+  // Data & sources filters
+  const [dataRes, count, classes, teachers, students] =
+    await prisma.$transaction([
 
-    case "student":
-      (where.AND as Prisma.ResultWhereInput[]).push({
-        studentId: userId!,
-      });
-      break;
-
-    case "parent":
-      (where.AND as Prisma.ResultWhereInput[]).push({
-        student: {
-          parentId: userId!,
-        },
-      });
-      break;
-
-    default:
-      break;
-  }
-
-  if (queryParams.search) {
-    (where.AND as Prisma.ResultWhereInput[]).push({
-      OR: [
-        { exam: { title: { contains: queryParams.search, mode: "insensitive" } } },
-        { student: { name: { contains: queryParams.search, mode: "insensitive" } } },
-        { student: { surname: { contains: queryParams.search, mode: "insensitive" } } },
-      ],
-    });
-  }
-
-  if (queryParams.studentId) {
-    (where.AND as Prisma.ResultWhereInput[]).push({
-      studentId: queryParams.studentId,
-    });
-  }
-
-  const [dataRes, count] = await prisma.$transaction([
-    prisma.result.findMany({
-      where,
-      include: {
-        student: { select: { name: true, surname: true } },
-        exam: {
-          include: {
-            lesson: {
-              select: {
-                class: { select: { name: true } },
-                teacher: { select: { name: true, surname: true } },
+      prisma.result.findMany({
+        where,
+        include: {
+          student: { select: { id: true, name: true, surname: true } },
+          exam: {
+            include: {
+              lesson: {
+                select: {
+                  class: { select: { id: true, name: true } },
+                  teacher: { select: { id: true, name: true, surname: true } },
+                },
+              },
+            },
+          },
+          assignment: {
+            include: {
+              lesson: {
+                select: {
+                  class: { select: { id: true, name: true } },
+                  teacher: { select: { id: true, name: true, surname: true } },
+                },
               },
             },
           },
         },
-        assignment: {
-          include: {
-            lesson: {
-              select: {
-                class: { select: { name: true } },
-                teacher: { select: { name: true, surname: true } },
-              },
-            },
-          },
-        },
-      },
-      take: ITEM_PER_PAGE,
-      skip: ITEM_PER_PAGE * (p - 1),
-      orderBy: { id: "desc" },
-    }),
-    prisma.result.count({ where }),
-  ]);
+        take: ITEM_PER_PAGE,
+        skip: ITEM_PER_PAGE * (p - 1),
+        orderBy,
+      }),
 
+      prisma.result.count({ where }),
+
+      prisma.class.findMany({ select: { id: true, name: true } }),
+
+      prisma.teacher.findMany({ select: { id: true, name: true, surname: true } }),
+
+      prisma.student.findMany({ select: { id: true, name: true, surname: true } }),
+    ]);
+
+  // Data
   const data: ResultList[] = dataRes
     .map((item) => {
       const assessment = item.exam ?? item.assignment;
@@ -229,22 +331,10 @@ const ResultListPage = async ({
         <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto items-center">
           <TableSearch />
           <div className="flex items-center gap-4 self-end">
-            <button
-              className="flex items-center gap-1 px-3 py-1.5 rounded-md
-                  bg-gray-100 hover:bg-gray-200 text-gray-700
-                  transition"
-            >
-              <Filter size={16} />
-              <span className="text-sm">Filtrer</span>
-            </button>
-            <button
-              className="flex items-center gap-1 px-3 py-1.5 rounded-md
-                  bg-gray-100 hover:bg-gray-200 text-gray-700
-                  transition"
-            >
-              <ArrowUpDown size={16} />
-              <span className="text-sm">Trier</span>
-            </button>
+            <ResetFiltersButton />
+            <ActiveFilters />
+            <ResultFiltersModal classes={classes} teachers={teachers} />
+            <TableActions />
             {(role === "admin" || role === "teacher") && (
               <FormContainer table="result" type="create" />
             )}

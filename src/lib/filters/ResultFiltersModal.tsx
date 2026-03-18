@@ -1,0 +1,121 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Filter } from "lucide-react";
+
+const ResultFiltersModal = ({ classes, teachers }: any) => {
+    const router = useRouter();
+    const searchParams = useSearchParams();
+
+    const [open, setOpen] = useState(false);
+
+    const [classId, setClassId] = useState(searchParams.get("classId") || "");
+    const [teacherId, setTeacherId] = useState(searchParams.get("teacherId") || "");
+    const [type, setType] = useState(searchParams.get("type") || "");
+    const [minScore, setMinScore] = useState(searchParams.get("minScore") || "");
+    const [maxScore, setMaxScore] = useState(searchParams.get("maxScore") || "");
+
+    const applyFilters = () => {
+        const params = new URLSearchParams(searchParams.toString());
+
+        if (classId) params.set("classId", classId)
+        else params.delete("classId");
+
+        if (teacherId) params.set("teacherId", teacherId)
+        else params.delete("teacherId");
+
+        if (type) params.set("type", type)
+        else params.delete("type");
+
+        if (minScore) params.set("minScore", minScore)
+        else params.delete("minScore");
+
+        if (maxScore) params.set("maxScore", maxScore)
+        else params.delete("maxScore");
+
+        params.set("page", "1");
+
+        router.push(`?${params.toString()}`);
+        setOpen(false);
+    };
+
+    const resetFilters = () => {
+        router.push("?");
+        setOpen(false);
+    };
+
+    return (
+        <>
+            <button
+                onClick={() => setOpen(true)}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-md
+                            bg-gray-100 hover:bg-gray-200 text-gray-700 transition cursor-pointer"
+            >
+                <Filter size={16} />
+                <span className="text-sm">Filtrer</span>
+            </button>
+
+            {open && (
+                <div className="fixed inset-0 bg-black/30 flex justify-center items-center">
+                    <div className="bg-white p-6 rounded-xl space-y-4 w-87.5">
+
+                        <h2>Filtres résultats</h2>
+
+                        <select className="w-full border p-2 rounded" value={classId} onChange={(e) => setClassId(e.target.value)}>
+                            <option value="">Toutes classes</option>
+                            {classes.map((c: any) => (
+                                <option key={c.id} value={c.id}>{c.name}</option>
+                            ))}
+                        </select>
+
+                        <select className="w-full border p-2 rounded" value={teacherId} onChange={(e) => setTeacherId(e.target.value)}>
+                            <option value="">Tous enseignants</option>
+                            {teachers.map((t: any) => (
+                                <option key={t.id} value={t.id}>{t.name} {t.surname}</option>
+                            ))}
+                        </select>
+
+                        <select className="w-full border p-2 rounded" value={type} onChange={(e) => setType(e.target.value)}>
+                            <option value="">Tous types</option>
+                            <option value="Exam">Examen</option>
+                            <option value="Assignment">Devoir</option>
+                        </select>
+
+                        <input
+                            type="number"
+                            placeholder="Score min"
+                            className="w-full border p-2 rounded"
+                            value={minScore}
+                            onChange={(e) => setMinScore(e.target.value)}
+                        />
+
+                        <input
+                            type="number"
+                            placeholder="Score max"
+                            className="w-full border p-2 rounded"
+                            value={maxScore}
+                            onChange={(e) => setMaxScore(e.target.value)}
+                        />
+
+                        <div className="flex justify-between">
+                            <button onClick={resetFilters} className="text-red-500 cursor-pointer text-sm">
+                                Reset
+                            </button>
+
+                            <button
+                                onClick={applyFilters}
+                                className="bg-blue-500 cursor-pointer text-white px-4 py-2 rounded"
+                            >
+                                Appliquer
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+            )}
+        </>
+    );
+};
+
+export default ResultFiltersModal;

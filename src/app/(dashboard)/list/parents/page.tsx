@@ -14,6 +14,10 @@ import {
   ArrowUpDown
 } from "lucide-react";
 import { parentRoleFilter } from "@/lib/roleFilters";
+import ResetFiltersButton from "@/lib/filters/ResetFiltersButton";
+import ActiveFilters from "@/lib/filters/ActiveFilters";
+import ParentFiltersModal from "@/lib/filters/ParentFiltersModal";
+import TableActions from "@/lib/helpers/TableActions";
 
 
 type ParentList = Parent & { students: Student[] };
@@ -77,36 +81,84 @@ const ParentListPage = async ({
     </tr>
   );
 
-  let query: Prisma.ParentWhereInput = {
+  // ----------------------
+  // BASE QUERY
+  // ----------------------
+
+  const query: Prisma.ParentWhereInput = {
     ...parentRoleFilter(role, userId),
+    isDeleted: false,
   };
 
-  // Recherche
-  if (queryParams?.search) {
-    query.name = {
-      contains: queryParams.search,
-      mode: "insensitive",
-    };
+  // ----------------------
+  // FILTERS + SEARCH
+  // ----------------------
+
+  if (queryParams) {
+    for (const [key, value] of Object.entries(queryParams)) {
+      if (!value) continue;
+
+      switch (key) {
+        case "search":
+          query.OR = [
+            { name: { contains: value, mode: "insensitive" } },
+            { surname: { contains: value, mode: "insensitive" } },
+            { username: { contains: value, mode: "insensitive" } },
+            { email: { contains: value, mode: "insensitive" } },
+          ];
+          break;
+
+        case "sex":
+          query.sex = value as any;
+          break;
+
+        case "classId":
+          query.students = {
+            some: {
+              classId: parseInt(value),
+            },
+          };
+          break;
+
+        case "studentName":
+          query.students = {
+            some: {
+              name: {
+                contains: value,
+                mode: "insensitive",
+              },
+            },
+          };
+          break;
+
+        default:
+          break;
+      }
+    }
   }
 
-  if (search) {
-    query = {
-      OR: [
-        { name: { contains: search, mode: "insensitive" } },
-        { surname: { contains: search, mode: "insensitive" } },
-        { username: { contains: search, mode: "insensitive" } },
-        { email: { contains: search, mode: "insensitive" } },
-      ],
-    };
-  }
+  const allowedSortFields = [
+    "name",
+    "surname",
+    "username",
+    "createdAt",
+  ];
 
-  const [data, count] = await prisma.$transaction([
+  const sortBy = allowedSortFields.includes(queryParams.sortBy || "")
+    ? queryParams.sortBy
+    : "createdAt";
+
+  const sortOrder =
+    queryParams.sortOrder === "asc" ? "asc" : "desc";
+
+  const orderBy: Prisma.ParentOrderByWithRelationInput = {
+    [sortBy!]: sortOrder,
+  };
+
+  const [data, count, classes] = await prisma.$transaction([
     prisma.parent.findMany({
-      // where: query,
-      where: {
-        // deletedAt: null,
-        isDeleted: false
-      },
+      where: query,
+      orderBy,
       include: {
         students: {
           include: {
@@ -117,7 +169,12 @@ const ParentListPage = async ({
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
     }),
+
     prisma.parent.count({ where: query }),
+
+    prisma.class.findMany({
+      select: { id: true, name: true },
+    }),
   ]);
 
   return (
@@ -130,22 +187,10 @@ const ParentListPage = async ({
         <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto items-center">
           <TableSearch />
           <div className="flex items-center gap-4 self-end">
-            <button
-              className="flex items-center gap-1 px-3 py-1.5 rounded-md
-                bg-gray-100 hover:bg-gray-200 text-gray-700
-                transition"
-            >
-              <Filter size={16} />
-              <span className="text-sm">Filtrer</span>
-            </button>
-            <button
-              className="flex items-center gap-1 px-3 py-1.5 rounded-md
-                bg-gray-100 hover:bg-gray-200 text-gray-700
-                transition"
-            >
-              <ArrowUpDown size={16} />
-              <span className="text-sm">Trier</span>
-            </button>
+            <ResetFiltersButton />
+            <ActiveFilters />
+            <ParentFiltersModal classes={classes} />
+            <TableActions />
             {role === "admin" && <FormContainer table="parent" type="create" />}
           </div>
         </div>

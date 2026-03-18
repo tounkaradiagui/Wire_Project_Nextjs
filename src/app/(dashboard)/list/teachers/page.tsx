@@ -10,11 +10,12 @@ import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
-import {
-  Eye,
-  Filter,
-  ArrowUpDown
-} from "lucide-react";
+import { Eye } from "lucide-react";
+import TableActions from "@/lib/helpers/TableActions";
+import TeacherFiltersModal from "@/lib/filters/TeacherFiltersModal";
+
+import ActiveFilters from "@/lib/filters/ActiveFilters";
+import ResetFiltersButton from "@/lib/filters/ResetFiltersButton";
 
 type TeacherList = Prisma.TeacherGetPayload<{
   include: {
@@ -41,35 +42,6 @@ const TeacherListPage = async ({
   const { sessionClaims } = await auth();
   const role = (sessionClaims?.metadata as { role?: string })?.role;
 
-  // const columns = [
-  //   { header: "Infos", accessor: "info" },
-  //   {
-  //     header: "Identifiant",
-  //     accessor: "teacherId",
-  //   },
-  //   {
-  //     header: "Matière",
-  //     accessor: "subjects",
-  //     className: "hidden md:table-cell",
-  //   },
-  //   {
-  //     header: "Classes",
-  //     accessor: "classes",
-  //     className: "hidden md:table-cell",
-  //   },
-  //   {
-  //     header: "Téléphone",
-  //     accessor: "phone",
-  //     className: "hidden md:table-cell",
-  //   },
-  //   {
-  //     header: "Adresse",
-  //     accessor: "address",
-  //     className: "hidden lg:table-cell",
-  //   },
-  //   ...(role === "admin" ? [{ header: "Actions", accessor: "actions" }] : []),
-  // ];
-
   const columns = [
     {
       header: "Infos",
@@ -79,6 +51,12 @@ const TeacherListPage = async ({
     {
       header: "Identifiant",
       accessor: "teacherId",
+      className: "hidden md:table-cell",
+    },
+
+    {
+      header: "Genre",
+      accessor: "sex",
       className: "hidden md:table-cell",
     },
 
@@ -99,6 +77,18 @@ const TeacherListPage = async ({
       accessor: "phone",
       className: "hidden lg:table-cell",
     },
+
+    // {
+    //   header: "Création",
+    //   accessor: "createdAt",
+    //   className: "hidden lg:table-cell",
+    // },
+
+    // {
+    //   header: "Mise à jour",
+    //   accessor: "updatedAt",
+    //   className: "hidden lg:table-cell",
+    // },
 
     {
       header: "Adresse",
@@ -137,6 +127,9 @@ const TeacherListPage = async ({
       </td>
       <td className="hidden md:table-cell">{item.username}</td>
       <td className="hidden md:table-cell">
+        {item.sex === "MALE" ? "Masculin" : "Féminin"}
+      </td>
+      <td className="hidden md:table-cell">
         {Array.isArray(item.subjects)
           ? item.subjects.map((s) => s.subject.name).join(", ")
           : item.subjects || "—"}
@@ -147,6 +140,8 @@ const TeacherListPage = async ({
           : "—"}
       </td>
       <td className="hidden lg:table-cell">{item.phone}</td>
+      {/* <td className="hidden lg:table-cell">{item.createdAt}</td>
+      <td className="hidden lg:table-cell">{item.updatedAt}</td> */}
       <td className="hidden lg:table-cell">{item.address}</td>
       <td>
         <div className="flex items-center gap-2">
@@ -166,40 +161,88 @@ const TeacherListPage = async ({
     </tr>
   );
 
-  // URL PARAMS CONDITION
+  // ----------------------
+  // FILTERS
+  // ----------------------
 
-  const query: Prisma.TeacherWhereInput = {};
+  const query: Prisma.TeacherWhereInput = {
+    isDeleted: false,
+  };
 
   if (queryParams) {
     for (const [key, value] of Object.entries(queryParams)) {
-      if (value !== undefined) {
-        switch (key) {
-          case "classId":
-            query.lessons = {
-              some: {
-                classId: parseInt(value),
-              },
-            };
-            break;
-          case "search":
-            query.name = { contains: value, mode: "insensitive" };
-            break;
-          default:
-            break;
-        }
+      if (!value) continue;
+
+      switch (key) {
+        case "search":
+          query.OR = [
+            { name: { contains: value, mode: "insensitive" } },
+            { surname: { contains: value, mode: "insensitive" } },
+            { username: { contains: value, mode: "insensitive" } },
+            { email: { contains: value, mode: "insensitive" } },
+          ];
+          break;
+
+        case "sex":
+          query.sex = value as any;
+          break;
+
+        case "classId":
+          query.teacherClasses = {
+            some: {
+              classId: parseInt(value),
+            },
+          };
+          break;
+
+        case "subjectId":
+          query.subjects = {
+            some: {
+              subjectId: parseInt(value),
+            },
+          };
+          break;
+
+        default:
+          break;
       }
     }
   }
 
-  const [data, count] = await prisma.$transaction([
+  // ----------------------
+  // SORT (SECURE)
+  // ----------------------
+
+  const allowedSortFields = [
+    "name",
+    "surname",
+    "username",
+    "createdAt",
+  ];
+
+  const sortBy = allowedSortFields.includes(queryParams.sortBy || "")
+    ? queryParams.sortBy
+    : "createdAt";
+
+  const sortOrder =
+    queryParams.sortOrder === "asc" ? "asc" : "desc";
+
+  const orderBy: Prisma.TeacherOrderByWithRelationInput = {
+    [sortBy!]: sortOrder,
+  };
+
+  // ----------------------
+  // QUERY
+  // ----------------------
+
+  const [data, count, classes, subjects] = await prisma.$transaction([
     prisma.teacher.findMany({
-      where: {
-        deletedAt: null
-      },
+      where: query,
+      orderBy,
       include: {
         subjects: {
           include: {
-            subject: true, // SUBJECT Model
+            subject: true,
           },
         },
         teacherClasses: {
@@ -209,7 +252,16 @@ const TeacherListPage = async ({
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
     }),
+
     prisma.teacher.count({ where: query }),
+
+    prisma.class.findMany({
+      select: { id: true, name: true },
+    }),
+
+    prisma.subject.findMany({
+      select: { id: true, name: true },
+    }),
   ]);
 
   return (
@@ -222,22 +274,10 @@ const TeacherListPage = async ({
         <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto items-center">
           <TableSearch />
           <div className="flex items-center gap-4 self-end">
-            <button
-              className="flex items-center gap-1 px-3 py-1.5 rounded-md
-               bg-gray-100 hover:bg-gray-200 text-gray-700
-               transition"
-            >
-              <Filter size={16} />
-              <span className="text-sm">Filtrer</span>
-            </button>
-            <button
-              className="flex items-center gap-1 px-3 py-1.5 rounded-md
-               bg-gray-100 hover:bg-gray-200 text-gray-700
-               transition"
-            >
-              <ArrowUpDown size={16} />
-              <span className="text-sm">Trier</span>
-            </button>
+            <ResetFiltersButton />
+            <ActiveFilters />
+            <TeacherFiltersModal classes={classes} subjects={subjects} />
+            <TableActions />
             {role === "admin" && (
               <FormContainer table="teacher" type="create" />
             )}

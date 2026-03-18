@@ -4,15 +4,13 @@ import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import { Prisma } from "@prisma/client";
-import Image from "next/image";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import FormContainer from "@/components/FormContainer";
-import {
-  Eye,
-  Filter,
-  ArrowUpDown
-} from "lucide-react";
+import TableActions from "@/lib/helpers/TableActions";
+import SubjectFiltersModal from "@/lib/filters/SubjectFiltersModal";
+import ActiveFilters from "@/lib/filters/ActiveFilters";
+import ResetFiltersButton from "@/lib/filters/ResetFiltersButton";
 
 
 type SubjectList = Prisma.SubjectGetPayload<{
@@ -54,6 +52,7 @@ const SubjectListPage = async ({
       <td className="flex items-center gap-4 p-4">
         <div className="flex flex-col">
           <h3 className="font-semibold">{item.name}</h3>
+          <p className="text-xs text-gray-500">{item.code ? item.code : "Aucun code défini"}</p>
         </div>
       </td>
       <td className="hidden md:table-cell">
@@ -72,15 +71,51 @@ const SubjectListPage = async ({
     </tr>
   );
 
-  let query: Prisma.SubjectWhereInput = {};
+  // BASE QUERY
+  const query: Prisma.SubjectWhereInput = {};
 
-  if (search) {
-    query = {
-      OR: [{ name: { contains: search, mode: "insensitive" } }],
-    };
+  if (params) {
+    for (const [key, value] of Object.entries(params)) {
+      if (!value) continue;
+
+      switch (key) {
+        case "search":
+          query.OR = [
+            { name: { contains: value, mode: "insensitive" } },
+            { code: { contains: value, mode: "insensitive" } },
+          ];
+          break;
+
+        case "teacherId":
+          query.teachers = {
+            some: {
+              teacherId: value,
+            },
+          };
+          break;
+
+        default:
+          break;
+      }
+    }
   }
 
-  const [data, count] = await prisma.$transaction([
+  // Tri dynamique
+  const allowedSortFields = ["name", "code", "id"];
+
+  const sortBy = allowedSortFields.includes(params.sortBy || "")
+    ? params.sortBy
+    : "id";
+
+  const sortOrder =
+    params.sortOrder === "asc" ? "asc" : "desc";
+
+  const orderBy: Prisma.SubjectOrderByWithRelationInput = {
+    [sortBy!]: sortOrder,
+  };
+
+  // Role basé sur les filtres d'accès (ex: un enseignant ne voit que ses matières) 
+  const [data, count, teachers] = await prisma.$transaction([
     prisma.subject.findMany({
       where: query,
       include: {
@@ -92,9 +127,14 @@ const SubjectListPage = async ({
       },
       skip: (page - 1) * ITEM_PER_PAGE,
       take: ITEM_PER_PAGE,
-      orderBy: { id: "asc" },
+      orderBy,
     }),
+
     prisma.subject.count({ where: query }),
+
+    prisma.teacher.findMany({
+      select: { id: true, name: true },
+    }),
   ]);
 
   return (
@@ -107,22 +147,10 @@ const SubjectListPage = async ({
         <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto items-center">
           <TableSearch />
           <div className="flex items-center gap-4 self-end">
-            <button
-              className="flex items-center gap-1 px-3 py-1.5 rounded-md
-                bg-gray-100 hover:bg-gray-200 text-gray-700
-                transition"
-            >
-              <Filter size={16} />
-              <span className="text-sm">Filtrer</span>
-            </button>
-            <button
-              className="flex items-center gap-1 px-3 py-1.5 rounded-md
-                bg-gray-100 hover:bg-gray-200 text-gray-700
-                transition"
-            >
-              <ArrowUpDown size={16} />
-              <span className="text-sm">Trier</span>
-            </button>
+            <ResetFiltersButton />
+            <ActiveFilters />
+            <SubjectFiltersModal teachers={teachers} />
+            <TableActions />
             <FormContainer table="subject" type="create" />
           </div>
         </div>
