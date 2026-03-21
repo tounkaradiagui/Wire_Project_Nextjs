@@ -1409,9 +1409,20 @@ export const createSession = async (
             return { success: false, error: "Rôle interdit." };
         }
 
-        const startTime = new Date(data.startTime);
-        const endTime = new Date(data.endTime);
-        const date = new Date(data.date);
+        // ✅ Normaliser la date (jour pur)
+        const baseDate = new Date(data.date);
+        baseDate.setHours(0, 0, 0, 0);
+
+        // ✅ Extraire heures une seule fois
+        const startInput = new Date(data.startTime);
+        const endInput = new Date(data.endTime);
+
+        // ✅ Construire heures liées au jour
+        const startTime = new Date(baseDate);
+        startTime.setHours(startInput.getHours(), startInput.getMinutes(), 0, 0);
+
+        const endTime = new Date(baseDate);
+        endTime.setHours(endInput.getHours(), endInput.getMinutes(), 0, 0);
 
         if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
             return { success: false, error: "Heure invalide." };
@@ -1424,6 +1435,7 @@ export const createSession = async (
             };
         }
 
+        // ✅ Récupérer le lesson
         const lesson = await prisma.lesson.findUnique({
             where: { id: data.lessonId },
         });
@@ -1435,31 +1447,58 @@ export const createSession = async (
             };
         }
 
+        // 👨‍🏫 Vérification ownership
         if (role === "teacher" && lesson.teacherId !== userId) {
             return {
                 success: false,
                 error: "Ce cours ne vous appartient pas.",
             };
         }
-        if (!lesson.startDate || !lesson.dueDate || date < lesson.startDate || date > lesson.dueDate) {
+
+        // ✅ Normaliser aussi les dates du lesson
+        const lessonStart = lesson.startDate
+            ? new Date(lesson.startDate)
+            : null;
+
+        const lessonEnd = lesson.dueDate
+            ? new Date(lesson.dueDate)
+            : null;
+
+        lessonStart?.setHours(0, 0, 0, 0);
+        lessonEnd?.setHours(23, 59, 59, 999);
+
+        if (!lessonStart || !lessonEnd || baseDate < lessonStart || baseDate > lessonEnd) {
             return {
                 success: false,
                 error: "La date de la séance est hors de la période du cours.",
             };
         }
 
-        // 🚫 Conflits
+        // ✅ Définir la journée
+        const startOfDay = new Date(baseDate);
+        startOfDay.setHours(0, 0, 0, 0);
+
+        const endOfDay = new Date(baseDate);
+        endOfDay.setHours(23, 59, 59, 999);
+
+        // 🚫 Vérifier conflits
         const conflict = await prisma.session.findFirst({
             where: {
-                date,
                 isDeleted: false,
+
+                date: {
+                    gte: startOfDay,
+                    lte: endOfDay,
+                },
+
                 AND: [
                     { startTime: { lt: endTime } },
                     { endTime: { gt: startTime } },
                 ],
+
                 OR: [
-                    { lesson: { teacherId: lesson.teacherId } },
-                    { lesson: { classId: lesson.classId } },
+                    { teacherId: lesson.teacherId },
+                    { classId: lesson.classId },
                 ],
             },
         });
@@ -1472,22 +1511,25 @@ export const createSession = async (
             };
         }
 
-        await prisma.session.create({
+        // ✅ Création
+        const createdSession = await prisma.session.create({
             data: {
-                date,
+                date: baseDate, // ✅ FIX IMPORTANT
                 startTime,
                 endTime,
                 room: data.room ?? null,
-                lesson: { connect: { id: data.lessonId } },
-                teacher: { connect: { id: lesson.teacherId } },
-                class: { connect: { id: lesson.classId } },
+                lessonId: data.lessonId,
+                teacherId: lesson.teacherId,
+                classId: lesson.classId,
                 isDeleted: false,
             },
         });
 
+        // console.log("Session créée :", createdSession.id);
+
         return { success: true, error: null };
     } catch (error) {
-        console.error(error);
+        console.error("createSession error:", error);
         return { success: false, error: "Erreur serveur." };
     }
 };
@@ -1513,11 +1555,10 @@ export const updateSession = async (
             return { success: false, error: "ID de la session manquant." };
         }
 
+        // ✅ Récupérer session
         const session = await prisma.session.findUnique({
             where: { id: data.id },
-            include: {
-                lesson: true,
-            },
+            include: { lesson: true },
         });
 
         if (!session || session.isDeleted) {
@@ -1526,7 +1567,7 @@ export const updateSession = async (
 
         const lesson = session.lesson;
 
-        // 👨‍🏫 Ownership teacher
+        // 👨‍🏫 Ownership
         if (role === "teacher" && lesson.teacherId !== userId) {
             return {
                 success: false,
@@ -1534,9 +1575,19 @@ export const updateSession = async (
             };
         }
 
-        const startTime = new Date(data.startTime);
-        const endTime = new Date(data.endTime);
-        const date = new Date(data.date);
+        // ✅ Normaliser date
+        const baseDate = new Date(data.date);
+        baseDate.setHours(0, 0, 0, 0);
+
+        // ✅ Extraire heures
+        const startInput = new Date(data.startTime);
+        const endInput = new Date(data.endTime);
+
+        const startTime = new Date(baseDate);
+        startTime.setHours(startInput.getHours(), startInput.getMinutes(), 0, 0);
+
+        const endTime = new Date(baseDate);
+        endTime.setHours(endInput.getHours(), endInput.getMinutes(), 0, 0);
 
         if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
             return { success: false, error: "Heure invalide." };
@@ -1549,11 +1600,19 @@ export const updateSession = async (
             };
         }
 
-        // Synchroniser date
-        startTime.setFullYear(date.getFullYear(), date.getMonth(), date.getDate());
-        endTime.setFullYear(date.getFullYear(), date.getMonth(), date.getDate());
+        // ✅ Normaliser période lesson
+        const lessonStart = lesson.startDate
+            ? new Date(lesson.startDate)
+            : null;
 
-        if (!lesson.startDate || !lesson.dueDate || date < lesson.startDate || date > lesson.dueDate) {
+        const lessonEnd = lesson.dueDate
+            ? new Date(lesson.dueDate)
+            : null;
+
+        lessonStart?.setHours(0, 0, 0, 0);
+        lessonEnd?.setHours(23, 59, 59, 999);
+
+        if (!lessonStart || !lessonEnd || baseDate < lessonStart || baseDate > lessonEnd) {
             return {
                 success: false,
                 error:
@@ -1561,19 +1620,32 @@ export const updateSession = async (
             };
         }
 
-        // 🚫 Conflits professeur + classe
+        // ✅ Intervalle journée
+        const startOfDay = new Date(baseDate);
+        startOfDay.setHours(0, 0, 0, 0);
+
+        const endOfDay = new Date(baseDate);
+        endOfDay.setHours(23, 59, 59, 999);
+
+        // 🚫 Vérifier conflits (exclure session actuelle)
         const conflict = await prisma.session.findFirst({
             where: {
                 id: { not: data.id },
-                date,
                 isDeleted: false,
+
+                date: {
+                    gte: startOfDay,
+                    lte: endOfDay,
+                },
+
                 AND: [
                     { startTime: { lt: endTime } },
                     { endTime: { gt: startTime } },
                 ],
+
                 OR: [
-                    { lesson: { teacherId: lesson.teacherId } },
-                    { lesson: { classId: lesson.classId } },
+                    { teacherId: lesson.teacherId },
+                    { classId: lesson.classId },
                 ],
             },
         });
@@ -1586,10 +1658,11 @@ export const updateSession = async (
             };
         }
 
+        // ✅ Update
         await prisma.session.update({
             where: { id: data.id },
             data: {
-                date,
+                date: baseDate,
                 startTime,
                 endTime,
                 room: data.room ?? null,
@@ -1602,7 +1675,6 @@ export const updateSession = async (
         return { success: false, error: "Erreur serveur." };
     }
 };
-
 // Delete Session Action
 export const deleteSession = async (
     currentState: currentState,
@@ -2010,6 +2082,7 @@ export const createAttendance = async (
         }
 
         const sessionId = data.sessionId;
+        console.log("sessionId:", data.sessionId);
 
         const session = await prisma.session.findUnique({
             where: { id: sessionId },
@@ -2343,55 +2416,21 @@ export const getStudentAttendancesForParent = async (studentId: string) => {
     }
 
     // Vérifier que l'élève appartient au parent
-    // const student = await prisma.student.findUnique({
-    //     where: { id: studentId },
-    //     select: { parentId: true }
-    // });
+    const student = await prisma.student.findUnique({
+        where: { id: studentId },
+        select: { parentId: true }
+    });
 
-    // if (!student || student.parentId !== userId) {
-    //     return {
-    //         success: false,
-    //         error: "Accès interdit à cet élève",
-    //         data: [],
-    //     };
-    // }
+    if (!student || student.parentId !== userId) {
+        return {
+            success: false,
+            error: "Accès interdit à cet élève",
+            data: [],
+        };
+    }
 
     console.log("studentId reçu:", studentId);
 
-    // const attendances = await prisma.attendance.findMany({
-    //     where: {
-    //         studentId,
-    //         isDeleted: false,
-    //         student: {
-    //             parentId: userId!,
-    //         },
-    //     },
-
-    //     orderBy: {
-    //         session: {
-    //             date: "desc",
-    //         },
-    //     },
-
-    //     include: {
-    //         session: {
-    //             select: {
-    //                 date: true,
-    //                 startTime: true,
-    //                 lesson: {
-    //                     select: {
-    //                         name: true,
-    //                     },
-    //                 },
-    //                 class: {
-    //                     select: {
-    //                         name: true,
-    //                     },
-    //                 },
-    //             },
-    //         },
-    //     },
-    // });
     const attendances = await prisma.attendance.findMany({
         where: {
             isDeleted: false,
@@ -2434,82 +2473,6 @@ export const getStudentAttendancesForParent = async (studentId: string) => {
         error: null,
     };
 };
-
-// Fetch Student Attendances For Parent
-// export const getStudentAttendancesForParent = async (studentId: string) => {
-
-//     const { userId, sessionClaims } = await auth();
-//     const role = (sessionClaims?.metadata as { role?: string })?.role;
-
-//     if (!studentId) {
-//         return {
-//             success: false,
-//             error: "Student ID manquant",
-//             data: [],
-//         };
-//     }
-
-//     console.log("studentId:", studentId);
-
-//     if (!userId || role !== "parent") {
-//         return {
-//             success: false,
-//             error: "Accès refusé",
-//             data: [],
-//         };
-//     }
-
-//     // Vérifier que l'élève appartient au parent
-//     const student = await prisma.student.findUnique({
-//         where: { id: studentId },
-//         select: { parentId: true }
-//     });
-
-//     if (!student || student.parentId !== userId) {
-//         return {
-//             success: false,
-//             error: "Accès interdit à cet élève",
-//             data: [],
-//         };
-//     }
-
-//     // Récupérer seulement les absences de cet élève
-//     const attendances = await prisma.attendance.findMany({
-//         where: {
-//             studentId: studentId,
-//             isDeleted: false,
-//         },
-
-//         orderBy: {
-//             session: {
-//                 date: "desc",
-//             },
-//         },
-
-//         include: {
-//             session: {
-//                 select: {
-//                     date: true,
-//                     startTime: true,
-//                     endTime: true,
-//                     lesson: {
-//                         select: { name: true },
-//                     },
-//                     class: {
-//                         select: { name: true },
-//                     },
-//                 },
-//             },
-//         },
-//     });
-
-//     return {
-//         success: true,
-//         data: attendances,
-//         error: null,
-//     };
-// };
-
 
 // Fetch Student Assignments For Parent
 export const getStudentAssignmentsForParent = async (studentId: string) => {

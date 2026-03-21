@@ -16,6 +16,11 @@ const AttendanceChartContainer = async () => {
 
   const lastMonday = new Date(today); // Copie de la date actuelle
   lastMonday.setDate(today.getDate() - daySinceMonday); // Reculer jusqu'au lundi
+  lastMonday.setHours(0, 0, 0, 0);
+
+  const nextSunday = new Date(lastMonday);
+  nextSunday.setDate(lastMonday.getDate() + 6);
+  nextSunday.setHours(23, 59, 59, 999);
 
   // --- 2. Récupérer les présences depuis la base de données ---
 
@@ -26,6 +31,7 @@ const AttendanceChartContainer = async () => {
         is: {
           date: {
             gte: lastMonday,
+            lte: nextSunday,
           },
           isDeleted: false,
         },
@@ -53,13 +59,13 @@ const AttendanceChartContainer = async () => {
   // Structure pour stocker le nombre de présents / absents par jour
   const attendanceMap: Record<
     string,
-    { present: number; absent: number; late: number }
+    { absent: number; late: number }
   > = {
-    Lun: { present: 0, absent: 0, late: 0 },
-    Mar: { present: 0, absent: 0, late: 0 },
-    Mer: { present: 0, absent: 0, late: 0 },
-    Jeu: { present: 0, absent: 0, late: 0 },
-    Ven: { present: 0, absent: 0, late: 0 },
+    Lun: { absent: 0, late: 0 },
+    Mar: { absent: 0, late: 0 },
+    Mer: { absent: 0, late: 0 },
+    Jeu: { absent: 0, late: 0 },
+    Ven: { absent: 0, late: 0 },
   };
 
   //   console.log(attendanceMap);
@@ -77,10 +83,6 @@ const AttendanceChartContainer = async () => {
 
       // Ajout dans le compteur selon présence ou absence
       switch (item.status) {
-        case "PRESENT":
-          attendanceMap[dayName].present += 1;
-          break;
-
         case "ABSENT":
           attendanceMap[dayName].absent += 1;
           break;
@@ -95,7 +97,6 @@ const AttendanceChartContainer = async () => {
   // --- 5. Préparer les données finales pour le graphique ---
   const data = daysOfWeek.map((day) => ({
     name: day,
-    present: attendanceMap[day].present,
     absent: attendanceMap[day].absent,
     late: attendanceMap[day].late,
   }));

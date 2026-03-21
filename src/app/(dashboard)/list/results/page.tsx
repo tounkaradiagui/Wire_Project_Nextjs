@@ -332,7 +332,7 @@ const ResultListPage = async ({
           <TableSearch />
           <div className="flex items-center gap-4 self-end">
             <ResetFiltersButton />
-            <ActiveFilters />
+            <ActiveFilters classes={classes} teachers={teachers} />
             <ResultFiltersModal classes={classes} teachers={teachers} />
             <TableActions />
             {(role === "admin" || role === "teacher") && (

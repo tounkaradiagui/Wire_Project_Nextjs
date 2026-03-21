@@ -18,6 +18,7 @@ const LessonFiltersModal = ({
     const [teacherId, setTeacherId] = useState(searchParams.get("teacherId") || "");
     const [subjectId, setSubjectId] = useState(searchParams.get("subjectId") || "");
     const [date, setDate] = useState(searchParams.get("date") || "");
+    const [status, setStatus] = useState(searchParams.get("status") || "");
 
     const applyFilters = () => {
         const params = new URLSearchParams(searchParams.toString());
@@ -33,6 +34,9 @@ const LessonFiltersModal = ({
 
         if (date) params.set("date", date)
         else params.delete("date");
+
+        if (status) params.set("status", status)
+        else params.delete("status");
 
         params.set("page", "1");
 
@@ -82,7 +86,7 @@ const LessonFiltersModal = ({
                         >
                             <option value="">Toutes les matières</option>
                             {subjects.map((s: any) => (
-                                <option key={s.id} value={s.id}>{s.name} {s.surname}</option>
+                                <option key={s.id} value={s.id}>{s.name}</option>
                             ))}
                         </select>
 
@@ -94,8 +98,20 @@ const LessonFiltersModal = ({
                         >
                             <option value="">Tous les enseignants</option>
                             {teachers.map((t: any) => (
-                                <option key={t.id} value={t.id}>{t.name}</option>
+                                <option key={t.id} value={t.id}>{t.name}  {t.surname}</option>
                             ))}
+                        </select>
+
+                        {/* Statut */}
+                        <select
+                            value={status}
+                            onChange={(e) => setStatus(e.target.value)}
+                            className="w-full border p-2 rounded"
+                        >
+                            <option value="">Tous les statuts</option>
+                            <option value="active">Actif</option>
+                            <option value="finished">Cours terminé</option>
+                            <option value="upcoming">À venir</option>
                         </select>
 
                         {/* Date */}

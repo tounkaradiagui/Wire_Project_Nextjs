@@ -64,7 +64,7 @@ const AttendanceForm = ({
         type === "create" ? createAttendance : updateAttendance,
         { success: false, error: null as string | null, }
     );
-    
+
     const [serverError, setServerError] = useState<string | null>(null);
 
     const onSubmit = handleSubmit((data) => {
@@ -137,8 +137,6 @@ const AttendanceForm = ({
                                 <option key={session.id} value={session.id}>
                                     {session.lesson.name} • {session.class.name}
                                     {" — "}
-                                    {new Date(session.date).toLocaleDateString()}
-                                    {" à "}
                                     {new Date(session.startTime).toLocaleTimeString([], {
                                         hour: "2-digit",
                                         minute: "2-digit",
@@ -193,7 +191,6 @@ const AttendanceForm = ({
                             defaultValue={data?.status}
                             className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm"
                         >
-                            <option value="PRESENT">Présent</option>
                             <option value="ABSENT">Absent</option>
                             <option value="LATE">En retard</option>
                         </select>

@@ -202,7 +202,7 @@ const StudentListPage = async ({
           <TableSearch />
           <div className="flex items-center gap-4 self-end">
             <ResetFiltersButton />
-            <ActiveFilters />
+            <ActiveFilters classes={classes} grades={grades} />
             <StudentFiltersModal classes={classes} grades={grades} />
             <TableActions />
             {role === "admin" && <FormContainer table="student" type="create" />}

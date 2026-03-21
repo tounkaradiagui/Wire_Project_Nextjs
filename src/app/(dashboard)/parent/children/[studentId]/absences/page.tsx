@@ -1,4 +1,5 @@
 import { getStudentAttendancesForParent } from "@/lib/actions";
+import Link from "next/link";
 
 const AttendanceBadge = ({ status }: { status: string }) => {
     const styles = {
@@ -8,6 +9,14 @@ const AttendanceBadge = ({ status }: { status: string }) => {
     };
 
     return (
+        // <div className="flex gap-2">
+        //     <Link href={`?status=ABSENT`} className="px-2 py-1 bg-red-100 rounded text-xs">
+        //         Absents
+        //     </Link>
+        //     <Link href={`?status=LATE`} className="px-2 py-1 bg-yellow-100 rounded text-xs">
+        //         Retards
+        //     </Link>
+        // </div>
         <span
             className={`px-2 py-1 text-xs rounded ${styles[status as keyof typeof styles]
                 }`}
@@ -20,9 +29,10 @@ const AttendanceBadge = ({ status }: { status: string }) => {
 const AbsencesPage = async ({
     params,
 }: {
-    params: { studentId: string };
+    params: Promise<{ studentId: string }>;
 }) => {
-    const result = await getStudentAttendancesForParent(params.studentId);
+    const { studentId } = await params;
+    const result = await getStudentAttendancesForParent(studentId);
 
     if (!result.success) {
         return (
@@ -52,23 +62,27 @@ const AbsencesPage = async ({
                     <tbody>
                         {attendances.map((attendance: any) => {
                             const session = attendance.session;
-                            // const student = attendance.student;
                             return (
                                 <tr key={attendance.id} className="border-b">
-                                    {/* <h1>
-                                        Absences de {student.name} {student.surname}
-                                    </h1> */}
                                     <td className="p-3">
                                         {session
-                                            ? new Date(session.date).toLocaleDateString()
+                                            ?
+                                            new Intl.DateTimeFormat("fr-FR", {
+                                                day: "2-digit",
+                                                month: "short",
+                                                year: "numeric",
+                                            }).format(new Date(session.date))
                                             : "-"}
+
                                     </td>
 
                                     <td className="p-3">
-                                        {session?.lesson?.name ?? "-"}{" "}
-                                        {session?.class?.name
-                                            ? `(${session.class.name})`
-                                            : ""}
+                                        {session?.lesson?.name ?? "-"}
+                                        {session?.class?.name && (
+                                            <span className="text-xs text-gray-500 ml-1">
+                                                ({session.class.name})
+                                            </span>
+                                        )}
                                     </td>
 
                                     <td className="p-3">
@@ -79,11 +93,7 @@ const AbsencesPage = async ({
                                             hour: "2-digit",
                                             minute: "2-digit",
                                         })}
-                                        {/* -
-                                        {new Date(session.endTime).toLocaleTimeString([], {
-                                            hour: "2-digit",
-                                            minute: "2-digit",
-                                        })} */}
+
                                     </td>
 
                                     <td className="p-3 text-gray-600">
@@ -108,11 +118,10 @@ const AbsencesPage = async ({
                         })}
                     </tbody>
                 </table>
-
                 {attendances.length === 0 && (
-                    <p className="p-4 text-center text-gray-500">
-                        Aucune absence enregistrée
-                    </p>
+                    <div className="p-6 text-center text-gray-500">
+                        📭 Aucune absence enregistrée pour cet élève
+                    </div>
                 )}
             </div>
         </div>

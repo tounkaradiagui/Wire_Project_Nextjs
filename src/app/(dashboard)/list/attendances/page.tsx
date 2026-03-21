@@ -239,6 +239,11 @@ const AttendanceListPage = async ({
           break;
         }
 
+        case "sessionId": {
+          query.sessionId = value;
+          break;
+        }
+
         case "classId": {
           query.session = {
             ...(query.session as any),
@@ -340,7 +345,9 @@ const AttendanceListPage = async ({
       {/* TOP */}
       <div className="flex items-center justify-between">
         <h1 className="hidden md:block text-lg font-semibold">
-          Gestion des absences
+          {queryParams.sessionId
+            ? "Absences de la séance"
+            : "Gestion des absences"}
         </h1>
 
         <div className="flex flex-col md:flex-row gap-4 items-center">
@@ -356,7 +363,7 @@ const AttendanceListPage = async ({
               </>
             )}
             <ResetFiltersButton />
-            <ActiveFilters />
+            <ActiveFilters classes={classes} teachers={teachers} />
             <AttendanceFiltersModal classes={classes} teachers={teachers} />
             <TableActions />
             {(role === "admin" || role === "teacher" || role === "parent") && (

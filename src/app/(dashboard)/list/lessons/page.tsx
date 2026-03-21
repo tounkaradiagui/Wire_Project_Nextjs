@@ -8,10 +8,6 @@ import { Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { auth } from "@clerk/nextjs/server";
-import {
-  Filter,
-  ArrowUpDown
-} from "lucide-react";
 import Link from "next/link";
 import { CalendarDays } from "lucide-react";
 import TableActions from "@/lib/helpers/TableActions";
@@ -55,50 +51,82 @@ const LessonListPage = async ({
     { header: "Enseignant", accessor: "teacher", className: "hidden md:table-cell " },
     { header: "Date de début", accessor: "startDate", className: "hidden md:table-cell " },
     { header: "Date de fin", accessor: "dueDate", className: "hidden md:table-cell " },
+    { header: "Statut", accessor: "status", className: "hidden md:table-cell " },
     ...(role === "admin" || role === "teacher" ? [{ header: "Actions", accessor: "actions" }] : []),
   ];
 
-  const renderRow = (item: LessonList) => (
-    <tr
-      key={item.id}
-      className="border-b hover:bg-blue-200 even:bg-slate-50 border-t border-gray-200 border-l border-r"
-    >
-      <td className="flex items-center gap-4 p-4">
-        <div className="flex flex-col">
-          <h3 className="font-semibold">{item.subject.name}</h3>
-        </div>
-      </td>
-      <td>{item.name}</td>
-      <td>{item.class.name}</td>
-      <td className="hidden md:table-cell ">
-        {item.teacher.name + " " + item.teacher.surname}
-      </td>
-      <td className="hidden md:table-cell">
-        {item.startDate && new Intl.DateTimeFormat("fr-FR").format(item.startDate)}
-      </td>
-      <td className="hidden md:table-cell">
-        {item.dueDate && new Intl.DateTimeFormat("fr-FR").format(item.dueDate)}
-      </td>
-      <td>
-        <div className="flex items-center gap-2">
+  const getLessonStatus = (item: LessonList) => {
+    const today = new Date();
 
-          <Link
-            href={`/list/sessions?lessonId=${item.id}`}
-            className="px-3 py-1 text-xs font-medium rounded-md bg-blue-500 text-white hover:bg-blue-600"
-          >
-            <CalendarDays size={14} />
-            {/* Séances */}
-          </Link>
-          {role === "admin" || role === "teacher" && (
-            <>
+    if (item.dueDate && new Date(item.dueDate) < today) {
+      return "finished";
+    }
+
+    if (item.startDate && new Date(item.startDate) > today) {
+      return "upcoming";
+    }
+
+    return "active";
+  };
+
+  const renderRow = (item: LessonList) => {
+
+    const status = getLessonStatus(item);
+
+    return (
+      <tr
+        key={item.id}
+        className="border-b hover:bg-blue-200 even:bg-slate-50 border-t border-gray-200 border-l border-r"
+      >
+        <td className="flex items-center gap-4 p-4">
+          <div className="flex flex-col">
+            <h3 className="font-semibold">{item.subject.name}</h3>
+          </div>
+        </td>
+        <td>{item.name}</td>
+        <td>{item.class.name}</td>
+        <td className="hidden md:table-cell ">
+          {item.teacher.name + " " + item.teacher.surname}
+        </td>
+        <td className="hidden md:table-cell">
+          {item.startDate && new Intl.DateTimeFormat("fr-FR").format(item.startDate)}
+        </td>
+        <td className="hidden md:table-cell">
+          {item.dueDate && new Intl.DateTimeFormat("fr-FR").format(item.dueDate)}
+        </td>
+        <td>
+          {status === "finished" ? (
+            <span className="bg-red-100 text-red-700 px-2 py-1 text-xs rounded">
+              Cours terminé
+            </span>
+          ) : status === "upcoming" ? (
+            <span className="bg-yellow-100 text-yellow-700 px-2 py-1 text-xs rounded">
+              À venir
+            </span>
+          ) : (
+            <span className="bg-green-100 text-green-700 px-2 py-1 text-xs rounded">
+              Actif
+            </span>
+          )}
+        </td>
+        {(role === "admin" || role === "teacher") && (
+          <td>
+            <div className="flex items-center gap-2">
+              <Link
+                href={`/list/sessions?lessonId=${item.id}`}
+                className="px-3 py-1 text-xs font-medium rounded-md bg-blue-500 text-white hover:bg-blue-600"
+              >
+                <CalendarDays size={14} />
+              </Link>
+
               <FormContainer table="lesson" type="update" data={item} />
               <FormContainer table="lesson" type="delete" id={item.id} />
-            </>
-          )}
-        </div>
-      </td>
-    </tr >
-  );
+            </div>
+          </td>
+        )}
+      </tr >
+    );
+  };
 
 
   // URL PARAMS CONDITION
@@ -126,6 +154,26 @@ const LessonListPage = async ({
         case "subjectId":
           query.subjectId = parseInt(value);
           break;
+
+        case "status": {
+          const today = new Date();
+
+          if (value === "finished") {
+            query.dueDate = { lt: today };
+          }
+
+          if (value === "active") {
+            query.AND = [
+              { startDate: { lte: today } },
+              { OR: [{ dueDate: null }, { dueDate: { gte: today } }] },
+            ];
+          }
+
+          if (value === "upcoming") {
+            query.startDate = { gt: today };
+          }
+          break;
+        }
 
         case "date":
           query.startDate = {
@@ -197,20 +245,24 @@ const LessonListPage = async ({
       {/* TOP SECTION */}
       <div className="flex items-center justify-between">
         <h1 className="hidden md:block text-lg font-semibold">
-          Liste des leçons
+          Liste de cours
         </h1>
+
         <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto items-center">
           <TableSearch />
           <div className="flex items-center gap-4 self-end">
             <ResetFiltersButton />
-            <ActiveFilters />
+            <ActiveFilters
+              classes={classes}
+              teachers={teachers}
+              subjects={subjects} />
             <LessonFiltersModal
               classes={classes}
               teachers={teachers}
               subjects={subjects}
             />
             <TableActions />
-            {role === "admin" && <FormContainer table="lesson" type="create" />}
+            {(role === "admin" || role === "teacher") && (<FormContainer table="lesson" type="create" />)}
           </div>
         </div>
       </div>

@@ -36,7 +36,6 @@ const AnnouncementForm = ({
     }
   );
 
-  // const [serverError, setServerError] = useState<string | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
   const onSubmit = handleSubmit((data) => {
     startTransition(() => {

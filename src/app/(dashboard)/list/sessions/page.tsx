@@ -7,10 +7,13 @@ import TableSearch from "@/components/TableSearch";
 import { Prisma } from "@prisma/client";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import prisma from "@/lib/prisma";
-import { Filter, ArrowUpDown } from "lucide-react";
 import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
 import { ClipboardCheck } from "lucide-react";
+import SessionFiltersModal from "@/lib/filters/SessionFiltersModal";
+import ActiveFilters from "@/lib/filters/ActiveFilters";
+import ResetFiltersButton from "@/lib/filters/ResetFiltersButton";
+import TableActions from "@/lib/helpers/TableActions";
 
 /* ================= TYPE ================= */
 
@@ -82,30 +85,18 @@ const SessionListPage = async ({
       {(role === "admin" || role === "super_admin" || role === "teacher") && (
         <td>
           <div className="flex gap-2 items-center">
-
-            {/* <Link
-              href={`/list/sessions/${item.id}/attendance`}
-
-              className="flex items-center gap-1 px-3 py-1 text-xs rounded-md bg-green-600 text-white hover:bg-green-700"
-            >
-              <ClipboardCheck size={14} />
-              Présences
-            </Link> */}
             <Link
-              href=""
-
+              href={`/list/attendances?sessionId=${item.id}`}
               className="flex items-center gap-1 px-3 py-1 text-xs rounded-md bg-green-600 text-white hover:bg-green-700"
             >
               <ClipboardCheck size={16} />
               {/* Présences */}
             </Link>
 
-            {(role === "admin" || role === "super_admin" || role === "teacher") && (
-              <>
-                <FormContainer table="session" type="update" data={item} />
-                <FormContainer table="session" type="delete" id={item.id} />
-              </>
-            )}
+            <>
+              <FormContainer table="session" type="update" data={item} />
+              <FormContainer table="session" type="delete" id={item.id} />
+            </>
 
           </div>
         </td>
@@ -119,66 +110,133 @@ const SessionListPage = async ({
     isDeleted: false,
   };
 
+  // ----------------
+  // FILTER lessonId (déjà présent)
+  // ----------------
   if (lessonId) {
     query.lessonId = parseInt(lessonId);
   }
 
-  // 🔐 RBAC
+  // ----------------
+  // RBAC
+  // ----------------
   if (role === "teacher") {
-    query.lesson = {
-      teacherId: userId!,
-    };
+    query.teacherId = userId!;
   }
 
-  /* ================= DATA ================= */
+  // ----------------
+  // FILTERS
+  // ----------------
+  if (queryParams) {
+    for (const [key, value] of Object.entries(queryParams)) {
+      if (!value) continue;
 
-  const [data, count] = await prisma.$transaction([
-    prisma.session.findMany({
-      // where: query,
-      where: {
-        isDeleted: false
-      },
-      include: {
-        lesson: {
-          include: {
-            class: true,
-            teacher: true,
+      switch (key) {
+        case "classId":
+          query.classId = parseInt(value);
+          break;
+
+        case "teacherId":
+          query.teacherId = value;
+          break;
+
+        case "lessonId":
+          query.lessonId = parseInt(value);
+          break;
+
+        case "date":
+          query.date = {
+            gte: new Date(value),
+            lt: new Date(new Date(value).setHours(23, 59, 59)),
+          };
+          break;
+
+        case "search":
+          query.lesson = {
+            name: {
+              contains: value,
+              mode: "insensitive",
+            },
+          };
+          break;
+      }
+    }
+  }
+
+  // Tri dynamique
+  const allowedSortFields = ["date", "startTime", "endTime"];
+
+  const sortBy = allowedSortFields.includes(queryParams.sortBy || "")
+    ? queryParams.sortBy
+    : "date";
+
+  const sortOrder =
+    queryParams.sortOrder === "asc" ? "asc" : "desc";
+
+  const orderBy: Prisma.SessionOrderByWithRelationInput = {
+    [sortBy!]: sortOrder,
+  };
+
+
+  /* ================= DATA ================= */
+  const [data, count, classes, teachers, lessons] =
+    await prisma.$transaction([
+
+      prisma.session.findMany({
+        where: query,
+        include: {
+          lesson: {
+            include: {
+              class: true,
+              teacher: true,
+            },
           },
         },
-      },
-      take: ITEM_PER_PAGE,
-      skip: ITEM_PER_PAGE * (p - 1),
-      orderBy: {
-        date: "desc",
-      },
-    }),
+        take: ITEM_PER_PAGE,
+        skip: ITEM_PER_PAGE * (p - 1),
+        orderBy,
+      }),
 
-    prisma.session.count({
-      where: query,
-    }),
-  ]);
+      prisma.session.count({ where: query }),
+
+      prisma.class.findMany({
+        select: { id: true, name: true },
+      }),
+
+      prisma.teacher.findMany({
+        select: { id: true, name: true, surname: true },
+      }),
+
+      prisma.lesson.findMany({
+        select: { id: true, name: true },
+      }),
+    ]);
 
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
       {/* TOP */}
       <div className="flex items-center justify-between">
         <h1 className="hidden md:block text-lg font-semibold">
-          Gestion des séances
+          {lessonId
+            ? "Cours de la séance"
+            : "Gestion des séances"}
         </h1>
 
         <div className="flex flex-col md:flex-row gap-4 items-center">
-          <TableSearch />
-
           <div className="flex gap-3">
-            <button className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700 transition">
-              <Filter size={16} />
-              <span className="text-sm">Filtrer</span>
-            </button>
 
-            <button className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700 transition">
-              <ArrowUpDown size={16} />
-              <span className="text-sm">Trier</span>
-            </button>
+            <TableSearch />
+            <ResetFiltersButton />
+            <ActiveFilters
+              classes={classes}
+              teachers={teachers}
+              lessons={lessons} />
+            <SessionFiltersModal
+              classes={classes}
+              teachers={teachers}
+              lessons={lessons}
+            />
+            <TableActions />
 
             {(role === "admin" || role === "super_admin") && (
               <FormContainer table="session" type="create" />

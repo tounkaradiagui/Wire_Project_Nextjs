@@ -8,9 +8,10 @@ type TableProps<T> = {
   columns: Column<T>[];
   data: T[];
   renderRow: (item: T) => React.ReactNode;
+  emptyMessage?: string;
 };
 
-const Table = <T,>({ columns, data, renderRow }: TableProps<T>) => {
+const Table = <T,>({ columns, data, renderRow, emptyMessage = "Aucune donnée disponible", }: TableProps<T>) => {
   return (
     <div className="overflow-x-auto mt-4 rounded-md border border-gray-200">
       <table className="w-full text-left border-collapse">
@@ -28,7 +29,19 @@ const Table = <T,>({ columns, data, renderRow }: TableProps<T>) => {
         </thead>
 
         <tbody className="text-sm text-gray-700">
-          {data.map(renderRow)}
+          {data.length === 0 ? (
+            <tr>
+              <td
+                colSpan={columns.length}
+                className="text-center py-10 text-gray-400"
+              >
+                {emptyMessage}
+              </td>
+            </tr>
+          ) : (
+            data.map((item) => renderRow(item))
+          )}
+          {/* {data.map(renderRow)} */}
         </tbody>
       </table>
     </div>

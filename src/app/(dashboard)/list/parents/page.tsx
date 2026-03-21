@@ -188,7 +188,7 @@ const ParentListPage = async ({
           <TableSearch />
           <div className="flex items-center gap-4 self-end">
             <ResetFiltersButton />
-            <ActiveFilters />
+            <ActiveFilters classes={classes} />
             <ParentFiltersModal classes={classes} />
             <TableActions />
             {role === "admin" && <FormContainer table="parent" type="create" />}
