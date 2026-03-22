@@ -1499,10 +1499,10 @@ export const deleteLesson = async (
         // DELETE 
         await prisma.lesson.delete({
             where: { id },
-            data: {
-                isDeleted: true,
-                deletedAt: new Date(),
-            },
+            // data: {
+            //     isDeleted: true,
+            //     deletedAt: new Date(),
+            // },
         })
 
         // LOG audit
@@ -1524,7 +1524,7 @@ export const deleteLesson = async (
                 reason: "manual_delete",
             },
 
-            isSoftDelete: true, 
+            isSoftDelete: true,
         })
 
         return { success: true, error: null }
@@ -2427,7 +2427,7 @@ export const deleteResult = async (
 export const createAttendance = async (
     _currentState: { success: boolean; error: string | null },
     data: AttendanceSchemaInput
-    ) => {
+) => {
     try {
         const { userId } = await auth()
 
@@ -2628,99 +2628,99 @@ export const updateAttendance = async (
 
 // Delete attendance
 export const deleteAttendance = async (
-  currentState: currentState,
-  data: FormData
+    currentState: currentState,
+    data: FormData
 ) => {
-  const id = Number(data.get("id"))
+    const id = Number(data.get("id"))
 
-  if (!id) {
-    return { success: false, error: "ID invalide" }
-  }
-
-  const { userId } = await auth()
-
-  try {
-    const userProfile = await prisma.userProfile.findUnique({
-      where: { clerkId: userId! },
-    })
-
-    if (!userProfile) throw new Error("UserProfile introuvable")
-
-    const role = userProfile.role
-
-    const attendance = await prisma.attendance.findUnique({
-      where: { id },
-      include: {
-        session: {
-          include: {
-            lesson: { select: { teacherId: true } },
-          },
-        },
-      },
-    })
-
-    if (!attendance) {
-      return { success: false, error: "Absence introuvable" }
+    if (!id) {
+        return { success: false, error: "ID invalide" }
     }
 
-    if (
-      role === "TEACHER" &&
-      attendance.session?.lesson.teacherId !== userId
-    ) {
-      return {
-        success: false,
-        error: "Vous n'avez pas le droit",
-      }
+    const { userId } = await auth()
+
+    try {
+        const userProfile = await prisma.userProfile.findUnique({
+            where: { clerkId: userId! },
+        })
+
+        if (!userProfile) throw new Error("UserProfile introuvable")
+
+        const role = userProfile.role
+
+        const attendance = await prisma.attendance.findUnique({
+            where: { id },
+            include: {
+                session: {
+                    include: {
+                        lesson: { select: { teacherId: true } },
+                    },
+                },
+            },
+        })
+
+        if (!attendance) {
+            return { success: false, error: "Absence introuvable" }
+        }
+
+        if (
+            role === "TEACHER" &&
+            attendance.session?.lesson.teacherId !== userId
+        ) {
+            return {
+                success: false,
+                error: "Vous n'avez pas le droit",
+            }
+        }
+
+        if (role === "PARENT" || role === "STUDENT") {
+            return { success: false, error: "Action non autorisée" }
+        }
+
+        const before = {
+            status: attendance.status,
+            studentId: attendance.studentId,
+            sessionId: attendance.sessionId,
+        }
+
+        await prisma.attendance.update({
+            where: { id },
+            data: {
+                isDeleted: true,
+                deletedAt: new Date(),
+            },
+        })
+
+        await logAction({
+            action: AuditAction.DELETE_ATTENDANCE,
+            entityType: "Attendance",
+            entityId: id.toString(),
+
+            performedById: userProfile.id,
+            role: userProfile.role,
+
+            description: `Présence supprimée (${attendance.status})`,
+
+            before,
+            after: null,
+
+            metadata: {
+                source: "deleteAttendance",
+                studentId: attendance.studentId,
+                sessionId: attendance.sessionId,
+            },
+
+            isSoftDelete: true,
+        })
+
+        return { success: true, error: null }
+    } catch (error) {
+        console.log(error)
+        return {
+            success: false,
+            error: "Erreur serveur lors de la suppression",
+        }
     }
-
-    if (role === "PARENT" || role === "STUDENT") {
-      return { success: false, error: "Action non autorisée" }
-    }
-
-    const before = {
-      status: attendance.status,
-      studentId: attendance.studentId,
-      sessionId: attendance.sessionId,
-    }
-
-    await prisma.attendance.update({
-      where: { id },
-      data: {
-        isDeleted: true,
-        deletedAt: new Date(),
-      },
-    })
-
-    await logAction({
-      action: AuditAction.DELETE_ATTENDANCE,
-      entityType: "Attendance",
-      entityId: id.toString(),
-
-      performedById: userProfile.id,
-      role: userProfile.role,
-
-      description: `Présence supprimée (${attendance.status})`,
-
-      before,
-      after: null,
-
-      metadata: {
-        source: "deleteAttendance",
-        studentId: attendance.studentId,
-        sessionId: attendance.sessionId,
-      },
-
-      isSoftDelete: true,
-    })
-
-    return { success: true, error: null }
-  } catch (error) {
-    console.log(error)
-    return {
-      success: false,
-      error: "Erreur serveur lors de la suppression",
-    }
-  }
 }
 
 // Fetch parent students
