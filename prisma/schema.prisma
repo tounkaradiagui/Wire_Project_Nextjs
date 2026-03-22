@@ -16,10 +16,11 @@ model UserProfile {
   lastName  String
   image     String?
 
-  teacher Teacher?
-  parent  Parent?
-  student Student?
-  admin   Admin?
+  teacher   Teacher?
+  parent    Parent?
+  student   Student?
+  admin     Admin?
+  auditLogs AuditLog[]
 
   isActive  Boolean   @default(true)
   isBanned  Boolean   @default(false)
@@ -108,7 +109,7 @@ model Teacher {
   lessons        Lesson[]
   subjects       TeacherSubject[]
   teacherClasses TeacherClass[]
-  sessions       Session[] 
+  sessions       Session[]
 
   userProfileId String      @unique
   userProfile   UserProfile @relation(fields: [userProfileId], references: [id])
@@ -137,7 +138,7 @@ model Class {
   lessons        Lesson[]
   students       Student[]
   teacherClasses TeacherClass[]
-  sessions Session[]
+  sessions       Session[]
 }
 
 model Subject {
@@ -146,6 +147,12 @@ model Subject {
   name     String           @unique
   lessons  Lesson[]
   teachers TeacherSubject[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  deletedAt DateTime?
+  isDeleted Boolean   @default(false)
 }
 
 model TeacherSubject {
@@ -168,23 +175,28 @@ model TeacherClass {
 }
 
 model Lesson {
-  id          Int          @id @default(autoincrement())
-  name        String
-  startDate   DateTime?
-  dueDate     DateTime?
+  id        Int       @id @default(autoincrement())
+  name      String
+  startDate DateTime?
+  dueDate   DateTime?
 
-  subjectId   Int
-  classId     Int
-  teacherId   String
+  subjectId Int
+  classId   Int
+  teacherId String
 
-  class       Class        @relation(fields: [classId], references: [id])
-  subject     Subject      @relation(fields: [subjectId], references: [id])
-  teacher     Teacher      @relation(fields: [teacherId], references: [id])
+  class   Class   @relation(fields: [classId], references: [id])
+  subject Subject @relation(fields: [subjectId], references: [id])
+  teacher Teacher @relation(fields: [teacherId], references: [id])
 
   assignments Assignment[]
   exams       Exam[]
-  
-  sessions Session[]
+  sessions    Session[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  deletedAt DateTime?
+  isDeleted Boolean   @default(false)
 }
 
 model Exam {
@@ -195,6 +207,12 @@ model Exam {
   lessonId  Int
   lesson    Lesson   @relation(fields: [lessonId], references: [id])
   results   Result[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  deletedAt DateTime?
+  isDeleted Boolean   @default(false)
 }
 
 model Assignment {
@@ -205,6 +223,12 @@ model Assignment {
   lessonId  Int
   lesson    Lesson   @relation(fields: [lessonId], references: [id])
   results   Result[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  deletedAt DateTime?
+  isDeleted Boolean   @default(false)
 }
 
 model Result {
@@ -216,6 +240,12 @@ model Result {
   assignment   Assignment? @relation(fields: [assignmentId], references: [id])
   exam         Exam?       @relation(fields: [examId], references: [id])
   student      Student     @relation(fields: [studentId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  deletedAt DateTime?
+  isDeleted Boolean   @default(false)
 }
 
 model Session {
@@ -225,13 +255,13 @@ model Session {
   endTime   DateTime
   room      String?
 
-  lessonId Int
+  lessonId  Int
   teacherId String
-  classId Int
+  classId   Int
 
-  lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  teacher   Teacher @relation(fields: [teacherId], references: [id])
-  class Class @relation(fields:[classId], references:[id])
+  lesson  Lesson  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  teacher Teacher @relation(fields: [teacherId], references: [id])
+  class   Class   @relation(fields: [classId], references: [id])
 
   attendances Attendance[]
 
@@ -240,7 +270,6 @@ model Session {
 
   deletedAt DateTime?
   isDeleted Boolean   @default(false)
-
 }
 
 model Attendance {
@@ -282,6 +311,115 @@ model Announcement {
   description String?
   classId     Int?
   class       Class?   @relation(fields: [classId], references: [id])
+}
+
+model AuditLog {
+  id String @id @default(cuid())
+
+  // 🔥 Action principale
+  action AuditAction
+
+  // 🔍 Cible de l'action
+  entityType String
+  entityId   String?
+
+  // 👤 Qui a fait l'action
+  performedById String?
+  performedBy   UserProfile? @relation(fields: [performedById], references: [id])
+
+  role Role?
+
+  // 🌐 Contexte technique (IMPORTANT)
+  ipAddress String?
+  userAgent String?
+  requestId String?
+
+  // 🧠 Description lisible
+  description String?
+
+  // 📊 Données structurées
+  metadata Json?
+
+  // 🔄 Diff avant / après (CRUCIAL)
+  before Json?
+  after  Json?
+
+  // 🗑 Soft delete tracking
+  isSoftDelete Boolean @default(false)
+
+  // ⏱ Timestamp
+  createdAt DateTime @default(now())
+
+  // ⚡ Index pour performance
+  @@index([createdAt])
+  @@index([action])
+  @@index([entityType])
+  @@index([entityId])
+  @@index([performedById])
+  @@index([role])
+}
+
+enum AuditAction {
+  // USER
+  CREATE_USER
+  UPDATE_USER
+  DELETE_USER
+  BAN_USER
+  UNBAN_USER
+
+  // STUDENT
+  CREATE_STUDENT
+  UPDATE_STUDENT
+  DELETE_STUDENT
+
+  // TEACHER
+  CREATE_TEACHER
+  UPDATE_TEACHER
+  DELETE_TEACHER
+
+  // PARENT
+  CREATE_PARENT
+  UPDATE_PARENT
+  DELETE_PARENT
+
+  // SUBJECT
+  CREATE_SUBJECT
+  UPDATE_SUBJECT
+  DELETE_SUBJECT
+
+  // LESSON
+  CREATE_LESSON
+  UPDATE_LESSON
+  DELETE_LESSON
+
+  // ASSIGNMENT
+  CREATE_ASSIGNMENT
+  UPDATE_ASSIGNMENT
+  DELETE_ASSIGNMENT
+
+  // EXAM
+  CREATE_EXAM
+  UPDATE_EXAM
+  DELETE_EXAM
+
+  // RESULT
+  CREATE_RESULT
+  UPDATE_RESULT
+  DELETE_RESULT
+
+  // SESSION
+  CREATE_SESSION
+  UPDATE_SESSION
+  DELETE_SESSION
+
+  // ATTENDANCE
+  CREATE_ATTENDANCE
+  UPDATE_ATTENDANCE
+  DELETE_ATTENDANCE
+
+  // SOFT DELETE
+  SOFT_DELETE
+  RESTORE
 }
 
 enum Day {

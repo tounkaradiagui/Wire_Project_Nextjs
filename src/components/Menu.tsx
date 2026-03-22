@@ -70,7 +70,7 @@ const menuItems = [
         icon: BookOpen,
         label: "Matières",
         href: "/list/subjects",
-        visible: ["admin", "super_admin"],
+        visible: ["admin", "super_admin", "teacher"],
       },
       {
         icon: ClipboardList,

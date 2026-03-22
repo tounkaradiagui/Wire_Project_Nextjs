@@ -238,7 +238,7 @@ const SessionListPage = async ({
             />
             <TableActions />
 
-            {(role === "admin" || role === "super_admin") && (
+            {(role === "admin" || role === "super_admin" || role === "teacher") && (
               <FormContainer table="session" type="create" />
             )}
           </div>

@@ -4,6 +4,8 @@ import prisma from '@/lib/prisma';
 import { createClerkClient } from "@clerk/nextjs/server";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
+import { logAction } from "@/lib/logs/audit"
+import { Role, AuditAction } from "@prisma/client"
 
 
 type currentState = { success: boolean; error: string | null; };
@@ -1201,51 +1203,59 @@ export const deleteParent = async (
     }
 };
 
+
+// helper
+function isValidRole(role: any): role is Role {
+    return ["SUPER_ADMIN", "ADMIN", "TEACHER", "PARENT", "STUDENT"].includes(role)
+}
+
 // Create Lesson Action
 export const createLesson = async (
     _currentState: { success: boolean; error: string | null },
     data: LessonSchemaInput
 ) => {
-    const { userId, sessionClaims } = await auth();
-    const role = (sessionClaims?.metadata as { role?: string })?.role;
+    const { userId, sessionClaims } = await auth()
+
+    const rawRole = (sessionClaims?.metadata as { role?: string })?.role
+    const role = isValidRole(rawRole) ? rawRole : undefined
 
     try {
         if (!userId) {
-            return { success: false, error: "Utilisateur non authentifié." };
+            return { success: false, error: "Utilisateur non authentifié." }
         }
 
-        const teacherId = role === "teacher" ? userId : data.teacherId;
+        const teacherId = role === "TEACHER" ? userId : data.teacherId
 
         if (!teacherId) {
-            return { success: false, error: "Aucun enseignant spécifié." };
+            return { success: false, error: "Aucun enseignant spécifié." }
         }
 
-        const startDate = new Date(data.startDate);
-        const dueDate = new Date(data.dueDate);
+        const startDate = new Date(data.startDate)
+        const dueDate = new Date(data.dueDate)
 
         if (startDate >= dueDate) {
             return {
                 success: false,
                 error: "La date de fin doit être après la date de début.",
-            };
+            }
         }
 
-        // vérifier assignation prof-classe
         const isAssigned = await prisma.teacherClass.findFirst({
             where: {
                 teacherId,
                 classId: data.classId,
             },
-        });
+        })
 
         if (!isAssigned) {
             return {
                 success: false,
                 error: "Cet enseignant n’est pas assigné à cette classe.",
-            };
+            }
         }
 
-        await prisma.lesson.create({
+        // récupérer le cours
+        const lesson = await prisma.lesson.create({
             data: {
                 name: data.name,
                 startDate,
@@ -1256,81 +1266,118 @@ export const createLesson = async (
             },
         });
 
-        return { success: true, error: null };
+
+        const userProfile = await prisma.userProfile.findUnique({
+            where: { clerkId: userId },
+        })
+
+        if (!userProfile) {
+            throw new Error("UserProfile introuvable")
+        }
+
+        // ✅ LOG propre
+        await logAction({
+            action: AuditAction.CREATE_LESSON,
+            entityType: "Lesson",
+            entityId: lesson.id.toString(),
+
+            performedById: userProfile.id,
+            role: userProfile.role,
+
+            description: `Le cours ${lesson.name} a été créé avec succès`,
+
+            before: null,
+
+            after: {
+                name: lesson.name,
+                subjectId: lesson.subjectId,
+                classId: lesson.classId,
+            },
+
+            metadata: {
+                source: "createLesson",
+            },
+        })
+
+        return { success: true, error: null }
     } catch (error) {
-        console.log(error);
+        console.log(error)
         return {
             success: false,
             error: "Une erreur est survenue lors de la création du cours.",
-        };
+        }
     }
-};
+}
 
 // Update Lesson
 export const updateLesson = async (
     _currentState: { success: boolean; error: string | null },
     data: LessonSchemaInput
 ) => {
-    const { userId, sessionClaims } = await auth();
-    const role = (sessionClaims?.metadata as { role?: string })?.role;
+    const { userId, sessionClaims } = await auth()
+
+    const rawRole = (sessionClaims?.metadata as { role?: string })?.role
+    const role = isValidRole(rawRole) ? rawRole : undefined
 
     try {
         if (!userId) {
-            return { success: false, error: "Utilisateur non authentifié." };
+            return { success: false, error: "Utilisateur non authentifié." }
         }
 
         if (!data.id) {
-            return { success: false, error: "ID du cours manquant." };
+            return { success: false, error: "ID du cours manquant." }
         }
 
-        const teacherId = role === "teacher" ? userId : data.teacherId;
+        const teacherId = role === "TEACHER" ? userId : data.teacherId
 
         if (!teacherId) {
-            return { success: false, error: "Aucun enseignant spécifié." };
+            return { success: false, error: "Aucun enseignant spécifié." }
         }
 
-        if (role === "teacher") {
-            const lesson = await prisma.lesson.findUnique({
-                where: { id: data.id },
-            });
+        // 🔥 1️⃣ récupérer ancien lesson (IMPORTANT)
+        const oldLesson = await prisma.lesson.findUnique({
+            where: { id: data.id },
+        })
 
-            if (lesson?.teacherId !== userId) {
-                return {
-                    success: false,
-                    error: "Vous ne pouvez modifier que vos propres cours.",
-                };
+        if (!oldLesson) {
+            return { success: false, error: "Cours introuvable." }
+        }
+
+        // 🔒 sécurité teacher
+        if (role === "TEACHER" && oldLesson.teacherId !== userId) {
+            return {
+                success: false,
+                error: "Vous ne pouvez modifier que vos propres cours.",
             }
         }
 
-        const startDate = new Date(data.startDate);
-        const dueDate = new Date(data.dueDate);
+        const startDate = new Date(data.startDate)
+        const dueDate = new Date(data.dueDate)
 
         if (startDate >= dueDate) {
             return {
                 success: false,
                 error: "La date de fin doit être après la date de début.",
-            };
+            }
         }
 
-        // 🔒 Vérifier assignation prof-classe
         const isAssigned = await prisma.teacherClass.findFirst({
             where: {
                 teacherId,
                 classId: data.classId,
             },
-        });
+        })
 
         if (!isAssigned) {
             return {
                 success: false,
                 error: "Cet enseignant n’est pas assigné à cette classe.",
-            };
+            }
         }
 
-        await prisma.lesson.update({
-            where: {
-                id: data.id,
-            },
+        // 🔥 2️⃣ update
+        const updatedLesson = await prisma.lesson.update({
+            where: { id: data.id },
             data: {
                 name: data.name,
                 startDate,
@@ -1339,58 +1386,156 @@ export const updateLesson = async (
                 classId: data.classId,
                 teacherId,
             },
-        });
+        })
 
-        return { success: true, error: null };
+        // 🔥 3️⃣ récupérer userProfile
+        const userProfile = await prisma.userProfile.findUnique({
+            where: { clerkId: userId },
+        })
+
+        if (!userProfile) {
+            throw new Error("UserProfile introuvable")
+        }
+
+        // 🔥 4️⃣ construire diff (ULTRA IMPORTANT)
+        const before = {
+            name: oldLesson.name,
+            startDate: oldLesson.startDate,
+            dueDate: oldLesson.dueDate,
+            subjectId: oldLesson.subjectId,
+            classId: oldLesson.classId,
+            teacherId: oldLesson.teacherId,
+        }
+
+        const after = {
+            name: updatedLesson.name,
+            startDate: updatedLesson.startDate,
+            dueDate: updatedLesson.dueDate,
+            subjectId: updatedLesson.subjectId,
+            classId: updatedLesson.classId,
+            teacherId: updatedLesson.teacherId,
+        }
+
+        // 🔥 5️⃣ log audit
+        await logAction({
+            action: AuditAction.UPDATE_LESSON,
+            entityType: "Lesson",
+            entityId: updatedLesson.id.toString(),
+
+            performedById: userProfile.id,
+            role: userProfile.role,
+
+            description: `Le cours ${updatedLesson.name} a été mis à jour`,
+
+            before,
+            after,
+
+            metadata: {
+                source: "updateLesson",
+            },
+        })
+
+        return { success: true, error: null }
     } catch (error) {
-        console.log(error);
+        console.log(error)
         return {
             success: false,
             error: "Une erreur est survenue lors de la mise à jour du cours.",
-        };
+        }
     }
-};
+}
 
+// Delete Lesson Action
 export const deleteLesson = async (
     _currentState: { success: boolean; error: string | null },
     data: FormData
 ) => {
-    const { userId, sessionClaims } = await auth();
-    const role = (sessionClaims?.metadata as { role?: string })?.role;
+    const { userId, sessionClaims } = await auth()
 
-    const id = parseInt(data.get("id") as string);
+    const rawRole = (sessionClaims?.metadata as { role?: string })?.role
+    const role = isValidRole(rawRole) ? rawRole : undefined
+
+    const id = parseInt(data.get("id") as string)
 
     try {
         if (!userId) {
-            return { success: false, error: "Utilisateur non authentifié." };
+            return { success: false, error: "Utilisateur non authentifié." }
         }
 
+        // récupérer le lesson AVANT suppression
         const lesson = await prisma.lesson.findUnique({
             where: { id },
-        });
+        })
 
         if (!lesson) {
-            return { success: false, error: "Cours introuvable." };
+            return { success: false, error: "Cours introuvable." }
         }
 
-        // 🔐 Teacher ne peut supprimer que ses cours
-        if (role === "teacher" && lesson.teacherId !== userId) {
-            return { success: false, error: "Action non autorisée." };
+        // sécurité teacher
+        if (role === "TEACHER" && lesson.teacherId !== userId) {
+            return { success: false, error: "Action non autorisée." }
         }
 
+        // Récupérer userProfile
+        const userProfile = await prisma.userProfile.findUnique({
+            where: { clerkId: userId },
+        })
+
+        if (!userProfile) {
+            throw new Error("UserProfile introuvable")
+        }
+
+        // Snapshot BEFORE
+        const before = {
+            id: lesson.id,
+            name: lesson.name,
+            startDate: lesson.startDate,
+            dueDate: lesson.dueDate,
+            subjectId: lesson.subjectId,
+            classId: lesson.classId,
+            teacherId: lesson.teacherId,
+        }
+
+        // DELETE 
         await prisma.lesson.delete({
             where: { id },
-        });
+            data: {
+                isDeleted: true,
+                deletedAt: new Date(),
+            },
+        })
 
-        return { success: true, error: null };
+        // LOG audit
+        await logAction({
+            action: AuditAction.DELETE_LESSON,
+            entityType: "Lesson",
+            entityId: id.toString(),
+
+            performedById: userProfile.id,
+            role: userProfile.role,
+
+            description: `Le cours ${lesson.name} a été supprimé`,
+
+            before,       // ✅ snapshot complet
+            after: null,  // ✅ logique pour delete
+
+            metadata: {
+                source: "deleteLesson",
+                reason: "manual_delete",
+            },
+
+            isSoftDelete: true, 
+        })
+
+        return { success: true, error: null }
     } catch (error) {
-        // console.error(error);
+        console.log(error)
         return {
             success: false,
             error: "Une erreur est survenue lors de la suppression du cours.",
-        };
+        }
     }
-};
+}
 
 // Create Session Action
 export const createSession = async (
@@ -1514,7 +1659,7 @@ export const createSession = async (
         // ✅ Création
         const createdSession = await prisma.session.create({
             data: {
-                date: baseDate, // ✅ FIX IMPORTANT
+                date: baseDate,
                 startTime,
                 endTime,
                 room: data.room ?? null,
@@ -1523,7 +1668,42 @@ export const createSession = async (
                 classId: lesson.classId,
                 isDeleted: false,
             },
-        });
+        })
+
+        // 🔥 récupérer userProfile
+        const userProfile = await prisma.userProfile.findUnique({
+            where: { clerkId: userId },
+        })
+
+        if (!userProfile) throw new Error("UserProfile introuvable")
+
+        // 🔥 AUDIT
+        await logAction({
+            action: AuditAction.CREATE_SESSION,
+            entityType: "Session",
+            entityId: createdSession.id,
+
+            performedById: userProfile.id,
+            role: userProfile.role,
+
+            description: `Séance créée (${createdSession.startTime.toISOString()})`,
+
+            before: null,
+
+            after: {
+                date: createdSession.date,
+                startTime: createdSession.startTime,
+                endTime: createdSession.endTime,
+                room: createdSession.room,
+                lessonId: createdSession.lessonId,
+                classId: createdSession.classId,
+            },
+
+            metadata: {
+                source: "createSession",
+                teacherId: createdSession.teacherId,
+            },
+        })
 
         // console.log("Session créée :", createdSession.id);
 
@@ -1658,8 +1838,23 @@ export const updateSession = async (
             };
         }
 
-        // ✅ Update
-        await prisma.session.update({
+        // 🔥 récupérer userProfile
+        const userProfile = await prisma.userProfile.findUnique({
+            where: { clerkId: userId },
+        })
+
+        if (!userProfile) throw new Error("UserProfile introuvable")
+
+        // 🔥 BEFORE
+        const before = {
+            date: session.date,
+            startTime: session.startTime,
+            endTime: session.endTime,
+            room: session.room,
+        }
+
+        // ✅ update
+        const updatedSession = await prisma.session.update({
             where: { id: data.id },
             data: {
                 date: baseDate,
@@ -1667,7 +1862,35 @@ export const updateSession = async (
                 endTime,
                 room: data.room ?? null,
             },
-        });
+        })
+
+        // 🔥 AFTER
+        const after = {
+            date: updatedSession.date,
+            startTime: updatedSession.startTime,
+            endTime: updatedSession.endTime,
+            room: updatedSession.room,
+        }
+
+        // 🔥 AUDIT
+        await logAction({
+            action: AuditAction.UPDATE_SESSION,
+            entityType: "Session",
+            entityId: updatedSession.id,
+
+            performedById: userProfile.id,
+            role: userProfile.role,
+
+            description: `Séance modifiée`,
+
+            before,
+            after,
+
+            metadata: {
+                source: "updateSession",
+                teacherId: updatedSession.teacherId,
+            },
+        })
 
         return { success: true, error: null };
     } catch (error) {
@@ -1675,6 +1898,7 @@ export const updateSession = async (
         return { success: false, error: "Erreur serveur." };
     }
 };
+
 // Delete Session Action
 export const deleteSession = async (
     currentState: currentState,
@@ -1721,14 +1945,53 @@ export const deleteSession = async (
             };
         }
 
-        // ✅ Soft delete
+        // 🔥 récupérer userProfile
+        const userProfile = await prisma.userProfile.findUnique({
+            where: { clerkId: userId },
+        })
+
+        if (!userProfile) throw new Error("UserProfile introuvable")
+
+        // 🔥 BEFORE
+        const before = {
+            date: session.date,
+            startTime: session.startTime,
+            endTime: session.endTime,
+            room: session.room,
+            lessonId: session.lessonId,
+            classId: session.classId,
+        }
+
+        // ✅ soft delete
         await prisma.session.update({
             where: { id },
             data: {
                 isDeleted: true,
                 deletedAt: new Date(),
             },
-        });
+        })
+
+        // 🔥 AUDIT
+        await logAction({
+            action: AuditAction.DELETE_SESSION,
+            entityType: "Session",
+            entityId: id,
+
+            performedById: userProfile.id,
+            role: userProfile.role,
+
+            description: `Séance supprimée`,
+
+            before,
+            after: null,
+
+            metadata: {
+                source: "deleteSession",
+                teacherId: session.teacherId,
+            },
+
+            isSoftDelete: true,
+        })
 
         return { success: true, error: null };
     } catch (error) {
@@ -1889,283 +2152,331 @@ export const createResult = async (
     currentState: currentState,
     data: ResultSchemaInput
 ) => {
-    const { userId, sessionClaims } = await auth();
-    const role = (sessionClaims?.metadata as { role?: string })?.role;
-
-    // 🔒 Sécurité : seul l'enseignant peut enregister un note
-    if (!userId || role !== "teacher") {
-        return {
-            success: false,
-            error: "Seul un enseignant peut enregistrer une note",
-        };
-    }
-
-    // Vérifier que la leçon appartient bien à l’enseignant
-    const lesson = await prisma.lesson.findFirst({
-        where: {
-            teacherId: userId!,
-            OR: [
-                { exams: { some: { id: data.examId ?? undefined } } },
-                { assignments: { some: { id: data.assignmentId ?? undefined } } },
-            ],
-        },
-    });
-
-    if (!lesson) {
-        return {
-            success: false,
-            error: "Accès refusé à cette leçon",
-        };
-    }
-
-    if (data.examId) {
-        const examExists = await prisma.exam.findUnique({
-            where: { id: data.examId },
-        });
-
-        if (!examExists) {
-            return { success: false, error: "Examen introuvable" };
-        }
-    }
-
-    if (!data.examId && !data.assignmentId) {
-        return { success: false, error: "Examen ou devoir requis" };
-    }
-
-    if (data.examId && data.assignmentId) {
-        return { success: false, error: "Impossible d’avoir examen et devoir en même temps" };
-    }
+    const { userId } = await auth()
 
     try {
+        if (!userId) {
+            return {
+                success: false,
+                error: "Utilisateur non authentifié",
+            }
+        }
 
-        await prisma.result.create({
+        const userProfile = await prisma.userProfile.findUnique({
+            where: { clerkId: userId },
+        })
+
+        if (!userProfile || userProfile.role !== "TEACHER") {
+            return {
+                success: false,
+                error: "Seul un enseignant peut enregistrer une note",
+            }
+        }
+
+        const lesson = await prisma.lesson.findFirst({
+            where: {
+                teacherId: userId,
+                OR: [
+                    { exams: { some: { id: data.examId ?? undefined } } },
+                    { assignments: { some: { id: data.assignmentId ?? undefined } } },
+                ],
+            },
+        })
+
+        if (!lesson) {
+            return { success: false, error: "Accès refusé à cette leçon" }
+        }
+
+        const result = await prisma.result.create({
             data: {
                 score: data.score,
                 studentId: data.studentId,
                 examId: data.examId ? Number(data.examId) : null,
                 assignmentId: data.assignmentId ? Number(data.assignmentId) : null,
             },
-        });
+        })
 
-        return { success: true, error: null };
+        // 🔥 LOG
+        await logAction({
+            action: AuditAction.CREATE_RESULT,
+            entityType: "Result",
+            entityId: result.id.toString(),
+
+            performedById: userProfile.id,
+            role: userProfile.role,
+
+            description: `Note ajoutée (${result.score})`,
+
+            before: null,
+
+            after: {
+                score: result.score,
+                studentId: result.studentId,
+                examId: result.examId,
+                assignmentId: result.assignmentId,
+            },
+
+            metadata: {
+                source: "createResult",
+            },
+        })
+
+        return { success: true, error: null }
     } catch (error) {
-        console.error(error);
+        console.error(error)
         return {
             success: false,
             error: "Erreur lors de l'enregistrement de la note",
-        };
+        }
     }
-};
+}
 
 // Update Result Action
 export const updateResult = async (
     _currentState: { success: boolean; error: string | null },
     data: ResultSchemaInput
 ) => {
-    const { userId, sessionClaims } = await auth();
-    const role = (sessionClaims?.metadata as { role?: string })?.role;
-
-    if (!userId || role !== "teacher") {
-        return {
-            success: false,
-            error: "Seul un enseignant peut modifier une note",
-        };
-    }
-
-    if (!data.id) {
-        return { success: false, error: "ID manquant" };
-    }
-
-    const existingResult = await prisma.result.findUnique({
-        where: { id: data.id },
-        include: {
-            exam: { include: { lesson: true } },
-            assignment: { include: { lesson: true } },
-        },
-    });
-
-    if (!existingResult) {
-        return { success: false, error: "Note introuvable" };
-    }
-
-    const lesson =
-        existingResult.exam?.lesson ||
-        existingResult.assignment?.lesson;
-
-    if (!lesson || lesson.teacherId !== userId) {
-        return { success: false, error: "Accès refusé" };
-    }
+    const { userId } = await auth()
 
     try {
-        await prisma.result.update({
+        if (!userId) {
+            return {
+                success: false,
+                error: "Utilisateur non authentifié",
+            }
+        }
+
+        const userProfile = await prisma.userProfile.findUnique({
+            where: { clerkId: userId },
+        })
+
+        if (!userProfile || userProfile.role !== "TEACHER") {
+            return {
+                success: false,
+                error: "Seul un enseignant peut modifier une note",
+            }
+        }
+
+        if (!data.id) {
+            return { success: false, error: "ID manquant" }
+        }
+
+        const existingResult = await prisma.result.findUnique({
+            where: { id: data.id },
+            include: {
+                exam: { include: { lesson: true } },
+                assignment: { include: { lesson: true } },
+            },
+        })
+
+        if (!existingResult) {
+            return { success: false, error: "Note introuvable" }
+        }
+
+        const lesson =
+            existingResult.exam?.lesson ||
+            existingResult.assignment?.lesson
+
+        if (!lesson || lesson.teacherId !== userId) {
+            return { success: false, error: "Accès refusé" }
+        }
+
+        // 🔥 BEFORE
+        const before = {
+            score: existingResult.score,
+        }
+
+        const updatedResult = await prisma.result.update({
             where: { id: data.id },
             data: {
                 score: data.score,
             },
-        });
+        })
 
-        return { success: true, error: null };
+        // 🔥 AFTER
+        const after = {
+            score: updatedResult.score,
+        }
+
+        await logAction({
+            action: AuditAction.UPDATE_RESULT,
+            entityType: "Result",
+            entityId: updatedResult.id.toString(),
+
+            performedById: userProfile.id,
+            role: userProfile.role,
+
+            description: `Note modifiée (${updatedResult.score})`,
+
+            before,
+            after,
+
+            metadata: {
+                source: "updateResult",
+            },
+        })
+
+        return { success: true, error: null }
     } catch (error) {
-        console.error(error);
+        console.error(error)
         return {
             success: false,
             error: "Erreur lors de la modification",
-        };
+        }
     }
-};
+}
 
 // Delete Result Action
 export const deleteResult = async (
     currentState: currentState,
     formData: FormData
 ) => {
-    const { userId, sessionClaims } = await auth();
-    const role = (sessionClaims?.metadata as { role?: string })?.role;
+    const { userId } = await auth()
 
-    if (!userId || role !== "teacher") {
+    try {
+        if (!userId) {
+            return {
+                success: false,
+                error: "Utilisateur non authentifié",
+            }
+        }
+
+        const userProfile = await prisma.userProfile.findUnique({
+            where: { clerkId: userId },
+        })
+
+        if (!userProfile || userProfile.role !== "TEACHER") {
+            return {
+                success: false,
+                error: "Seul un enseignant peut supprimer une note",
+            }
+        }
+
+        const id = Number(formData.get("id"))
+
+        if (!id) {
+            return { success: false, error: "ID invalide" }
+        }
+
+        const existingResult = await prisma.result.findUnique({
+            where: { id },
+            include: {
+                exam: { include: { lesson: true } },
+                assignment: { include: { lesson: true } },
+            },
+        })
+
+        if (!existingResult) {
+            return { success: false, error: "Note introuvable" }
+        }
+
+        const lesson =
+            existingResult.exam?.lesson ||
+            existingResult.assignment?.lesson
+
+        if (!lesson || lesson.teacherId !== userId) {
+            return { success: false, error: "Accès refusé" }
+        }
+
+        // 🔥 BEFORE snapshot
+        const before = {
+            score: existingResult.score,
+            studentId: existingResult.studentId,
+            examId: existingResult.examId,
+            assignmentId: existingResult.assignmentId,
+        }
+
+        await prisma.result.delete({
+            where: { id },
+        })
+
+        await logAction({
+            action: AuditAction.DELETE_RESULT,
+            entityType: "Result",
+            entityId: id.toString(),
+
+            performedById: userProfile.id,
+            role: userProfile.role,
+
+            description: `Note supprimée (${existingResult.score})`,
+
+            before,
+            after: null,
+
+            metadata: {
+                source: "deleteResult",
+                studentId: existingResult.studentId,
+                examId: existingResult.examId,
+                assignmentId: existingResult.assignmentId,
+            },
+
+            isSoftDelete: false,
+        })
+
+        return { success: true, error: null }
+    } catch (error) {
+        console.error(error)
         return {
             success: false,
-            error: "Seul un enseignant peut supprimer une note",
-        };
+            error: "Erreur lors de la suppression",
+        }
     }
-
-    const id = Number(formData.get("id"));
-
-    if (!id) {
-        return { success: false, error: "ID invalide" };
-    }
-
-    const existingResult = await prisma.result.findUnique({
-        where: { id },
-        include: {
-            exam: { include: { lesson: true } },
-            assignment: { include: { lesson: true } },
-        },
-    });
-
-    if (!existingResult) {
-        return { success: false, error: "Note introuvable" };
-    }
-
-    const lesson =
-        existingResult.exam?.lesson ||
-        existingResult.assignment?.lesson;
-
-    if (!lesson || lesson.teacherId !== userId) {
-        return { success: false, error: "Accès refusé" };
-    }
-
-    await prisma.result.delete({
-        where: { id },
-    });
-
-    return { success: true, error: null };
-};
+}
 
 // Create attendance
 export const createAttendance = async (
     _currentState: { success: boolean; error: string | null },
     data: AttendanceSchemaInput
-) => {
-
+    ) => {
     try {
+        const { userId } = await auth()
 
-        const { userId, sessionClaims } = await auth();
-        const role = (sessionClaims?.metadata as { role?: string })?.role;
-
-        if (!userId || !role) {
-            return { success: false, error: "Non autorisé" };
+        if (!userId) {
+            return { success: false, error: "Non autorisé" }
         }
 
-        if (!["teacher", "admin", "super_admin"].includes(role)) {
-            return { success: false, error: "Rôle interdit" };
+        const userProfile = await prisma.userProfile.findUnique({
+            where: { clerkId: userId },
+        })
+
+        if (!userProfile) {
+            throw new Error("UserProfile introuvable")
         }
 
-        const sessionId = data.sessionId;
-        console.log("sessionId:", data.sessionId);
+        const role = userProfile.role
+
+        if (!["TEACHER", "ADMIN", "SUPER_ADMIN"].includes(role)) {
+            return { success: false, error: "Rôle interdit" }
+        }
 
         const session = await prisma.session.findUnique({
-            where: { id: sessionId },
+            where: { id: data.sessionId },
             include: {
-                lesson: {
-                    include: { class: true }
-                },
-                attendances: true,
-            }
-        });
+                lesson: { include: { class: true } },
+            },
+        })
 
         if (!session) {
-            return { success: false, error: "Séance introuvable" };
+            return { success: false, error: "Séance introuvable" }
         }
 
-        // 👨‍🏫 ownership teacher
-        if (role === "teacher" && session.teacherId !== userId) {
-            return { success: false, error: "Cette séance ne vous appartient pas" };
-        }
-
-        if (role === "admin") {
-            // admin peut tout faire → pas de restriction
+        if (role === "TEACHER" && session.teacherId !== userId) {
+            return { success: false, error: "Cette séance ne vous appartient pas" }
         }
 
         const student = await prisma.student.findUnique({
-            where: { id: data.studentId }
-        });
+            where: { id: data.studentId },
+        })
 
         if (!student) {
-            return { success: false, error: "Élève introuvable" };
+            return { success: false, error: "Élève introuvable" }
         }
 
         if (student.classId !== session.lesson.classId) {
-            return { success: false, error: "Élève non inscrit dans cette classe" };
+            return { success: false, error: "Élève non inscrit dans cette classe" }
         }
 
-        // 🔒 Parent → seulement ses enfants
-        if (role === "parent" && student.parentId !== userId) {
-            return { success: false, error: "Accès interdit" };
-        }
-
-        if (role === "parent") {
-            if (data.status !== "ABSENT") {
-                return {
-                    success: false,
-                    error: "Un parent peut uniquement signaler une absence.",
-                };
-            }
-
-            if (!data.comment && !data.proofUrl) {
-                return {
-                    success: false,
-                    error: "Une justification est obligatoire.",
-                };
-            }
-        }
-
-        if (data.proofUrl && !data.proofUrl.includes("res.cloudinary.com")) {
-            return {
-                success: false,
-                error: "Fichier invalide",
-            };
-        }
-
-        // Vérifie si une absence existe déjà
-        const existingAttendance = await prisma.attendance.findUnique({
-            where: {
-                studentId_sessionId: {
-                    studentId: data.studentId,
-                    sessionId: data.sessionId,
-                },
-            },
-        });
-
-        if (existingAttendance) {
-            return {
-                success: false,
-                error: "Une absence existe déjà pour cet élève dans cette séance.",
-            };
-        }
-
-        // Création
-        await prisma.attendance.create({
+        const attendance = await prisma.attendance.create({
             data: {
                 studentId: data.studentId,
                 sessionId: data.sessionId,
@@ -2173,213 +2484,244 @@ export const createAttendance = async (
                 comment: data.comment ?? null,
                 proofUrl: data.proofUrl ?? null,
                 createdBy:
-                    role === "parent"
+                    role === "PARENT"
                         ? "PARENT"
-                        : role === "teacher"
+                        : role === "TEACHER"
                             ? "TEACHER"
                             : "ADMIN",
             },
-        });
+        })
 
-        console.log("sessionId envoyé :", data.sessionId);
-        return { success: true, error: null };
+        // 🔥 AUDIT
+        await logAction({
+            action: AuditAction.CREATE_ATTENDANCE,
+            entityType: "Attendance",
+            entityId: attendance.id.toString(),
 
+            performedById: userProfile.id,
+            role: userProfile.role,
+
+            description: `Absence enregistrée (${attendance.status})`,
+
+            before: null,
+
+            after: {
+                studentId: attendance.studentId,
+                sessionId: attendance.sessionId,
+                status: attendance.status,
+            },
+
+            metadata: {
+                source: "createAttendance",
+                studentId: attendance.studentId,
+                sessionId: attendance.sessionId,
+            },
+        })
+
+        return { success: true, error: null }
     } catch (error) {
-
-        console.log("saveSessionAttendances error", error);
-
-        return {
-            success: false,
-            error: "Erreur serveur"
-        };
-
+        console.log(error)
+        return { success: false, error: "Erreur serveur" }
     }
-
-};
+}
 
 // Update attendance
 export const updateAttendance = async (
     currentState: currentState,
     data: AttendanceSchemaInput
 ): Promise<currentState> => {
+    const { userId } = await auth()
 
-    const { userId, sessionClaims } = await auth();
-    const role = (sessionClaims?.metadata as { role?: string })?.role;
-
-    if (!userId || !role || !data.id) {
-        return { success: false, error: "Non autorisé." };
+    if (!userId || !data.id) {
+        return { success: false, error: "Non autorisé." }
     }
 
     try {
+        const userProfile = await prisma.userProfile.findUnique({
+            where: { clerkId: userId },
+        })
+
+        if (!userProfile) throw new Error("UserProfile introuvable")
+
+        const role = userProfile.role
 
         const attendance = await prisma.attendance.findUnique({
             where: { id: data.id },
             include: {
                 session: {
                     include: {
-                        lesson: {
-                            select: {
-                                teacherId: true,
-                                classId: true
-                            }
-                        }
-                    }
-                },
-                student: true
-            }
-        });
-
-        if (!attendance) {
-            return {
-                success: false,
-                error: "Présence introuvable."
-            };
-        }
-
-        if (attendance.isDeleted) {
-            return {
-                success: false,
-                error: "Cette absence est supprimée."
-            };
-        }
-
-        /** 🚫 Parent ne peut pas modifier */
-        if (role === "parent") {
-            return {
-                success: false,
-                error: "Un parent ne peut pas modifier une présence."
-            };
-        }
-
-        /** 🔐 Enseignant → seulement ses séances */
-        if (
-            role === "teacher" &&
-            attendance.session?.lesson.teacherId !== userId
-        ) {
-            return {
-                success: false,
-                error: "Accès refusé."
-            };
-        }
-
-        const newStatus = data.status ?? attendance.status;
-
-        /** justification obligatoire pour absence */
-        if (
-            newStatus === "ABSENT" &&
-            !data.comment &&
-            !data.proofUrl
-        ) {
-            return {
-                success: false,
-                error: "Justification obligatoire pour une absence."
-            };
-        }
-
-        /** validation fichier */
-        if (
-            data.proofUrl &&
-            !data.proofUrl.includes("res.cloudinary.com")
-        ) {
-            return {
-                success: false,
-                error: "Fichier invalide"
-            };
-        }
-
-        await prisma.attendance.update({
-            where: { id: data.id },
-            data: {
-                status: newStatus,
-                comment: data.comment ?? null,
-                proofUrl: data.proofUrl ?? null,
-                updatedAt: new Date()
-            }
-        });
-
-        return { success: true, error: null };
-
-    } catch (error) {
-
-        console.log("updateAttendance error", error);
-
-        return {
-            success: false,
-            error: "Erreur serveur."
-        };
-
-    }
-};
-
-
-export const deleteAttendance = async (
-    currentState: currentState,
-    data: FormData
-) => {
-    const id = Number(data.get("id"));
-
-    if (!id) {
-        return { success: false, error: "ID invalide" };
-    }
-
-    const { userId, sessionClaims } = await auth();
-    const role = (sessionClaims?.metadata as { role?: string })?.role;
-
-    try {
-        // 1️⃣ Fetch attendance with session → lesson → teacher
-        const attendance = await prisma.attendance.findUnique({
-            where: { id },
-            include: {
-                session: {
-                    include: {
-                        lesson: {
-                            select: { teacherId: true },
-                        },
+                        lesson: { select: { teacherId: true } },
                     },
                 },
             },
-        });
+        })
 
         if (!attendance) {
-            return { success: false, error: "Absence introuvable" };
+            return { success: false, error: "Présence introuvable." }
         }
 
-        // 2️⃣ Permission check
+        if (attendance.isDeleted) {
+            return { success: false, error: "Cette absence est supprimée." }
+        }
+
+        if (role === "PARENT") {
+            return {
+                success: false,
+                error: "Un parent ne peut pas modifier une présence.",
+            }
+        }
+
         if (
-            role === "teacher" &&
+            role === "TEACHER" &&
             attendance.session?.lesson.teacherId !== userId
         ) {
-            return {
-                success: false,
-                error: "Vous n'avez pas le droit de supprimer cette absence",
-            };
+            return { success: false, error: "Accès refusé." }
         }
 
-        // 3️⃣ Restriction parent / student
-        if (role === "parent" || role === "student") {
-            return {
-                success: false,
-                error: "Action non autorisée",
-            };
+        const before = {
+            status: attendance.status,
+            comment: attendance.comment,
+            proofUrl: attendance.proofUrl,
         }
 
-        // 4️⃣ Soft delete
-        await prisma.attendance.update({
-            where: { id },
+        const updated = await prisma.attendance.update({
+            where: { id: data.id },
             data: {
-                isDeleted: true,
-                deletedAt: new Date(),
+                status: data.status ?? attendance.status,
+                comment: data.comment ?? null,
+                proofUrl: data.proofUrl ?? null,
             },
-        });
+        })
 
-        return { success: true, error: null };
+        const after = {
+            status: updated.status,
+            comment: updated.comment,
+            proofUrl: updated.proofUrl,
+        }
+
+        await logAction({
+            action: AuditAction.UPDATE_ATTENDANCE,
+            entityType: "Attendance",
+            entityId: updated.id.toString(),
+
+            performedById: userProfile.id,
+            role: userProfile.role,
+
+            description: `Présence modifiée (${updated.status})`,
+
+            before,
+            after,
+
+            metadata: {
+                source: "updateAttendance",
+                studentId: updated.studentId,
+                sessionId: updated.sessionId,
+            },
+        })
+
+        return { success: true, error: null }
     } catch (error) {
-        return {
-            success: false,
-            error: "Erreur serveur lors de la suppression",
-        };
+        console.log(error)
+        return { success: false, error: "Erreur serveur." }
     }
-};
+}
+
+// Delete attendance
+export const deleteAttendance = async (
+  currentState: currentState,
+  data: FormData
+) => {
+  const id = Number(data.get("id"))
+
+  if (!id) {
+    return { success: false, error: "ID invalide" }
+  }
+
+  const { userId } = await auth()
+
+  try {
+    const userProfile = await prisma.userProfile.findUnique({
+      where: { clerkId: userId! },
+    })
+
+    if (!userProfile) throw new Error("UserProfile introuvable")
+
+    const role = userProfile.role
+
+    const attendance = await prisma.attendance.findUnique({
+      where: { id },
+      include: {
+        session: {
+          include: {
+            lesson: { select: { teacherId: true } },
+          },
+        },
+      },
+    })
+
+    if (!attendance) {
+      return { success: false, error: "Absence introuvable" }
+    }
+
+    if (
+      role === "TEACHER" &&
+      attendance.session?.lesson.teacherId !== userId
+    ) {
+      return {
+        success: false,
+        error: "Vous n'avez pas le droit",
+      }
+    }
+
+    if (role === "PARENT" || role === "STUDENT") {
+      return { success: false, error: "Action non autorisée" }
+    }
+
+    const before = {
+      status: attendance.status,
+      studentId: attendance.studentId,
+      sessionId: attendance.sessionId,
+    }
+
+    await prisma.attendance.update({
+      where: { id },
+      data: {
+        isDeleted: true,
+        deletedAt: new Date(),
+      },
+    })
+
+    await logAction({
+      action: AuditAction.DELETE_ATTENDANCE,
+      entityType: "Attendance",
+      entityId: id.toString(),
+
+      performedById: userProfile.id,
+      role: userProfile.role,
+
+      description: `Présence supprimée (${attendance.status})`,
+
+      before,
+      after: null,
+
+      metadata: {
+        source: "deleteAttendance",
+        studentId: attendance.studentId,
+        sessionId: attendance.sessionId,
+      },
+
+      isSoftDelete: true,
+    })
+
+    return { success: true, error: null }
+  } catch (error) {
+    console.log(error)
+    return {
+      success: false,
+      error: "Erreur serveur lors de la suppression",
+    }
+  }
+}
 
 // Fetch parent students
 export const getParentStudents = async () => {
@@ -2429,7 +2771,7 @@ export const getStudentAttendancesForParent = async (studentId: string) => {
         };
     }
 
-    console.log("studentId reçu:", studentId);
+    // console.log("studentId reçu:", studentId);
 
     const attendances = await prisma.attendance.findMany({
         where: {
@@ -2787,3 +3129,5 @@ export const deleteEvent = async (
         };
     }
 };
+
+

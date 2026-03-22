@@ -5,6 +5,7 @@ import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import { Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
+import { auth } from "@clerk/nextjs/server";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import FormContainer from "@/components/FormContainer";
 import TableActions from "@/lib/helpers/TableActions";
@@ -34,6 +35,9 @@ const SubjectListPage = async ({
   const page = params.page ? Math.max(1, parseInt(params.page, 10) || 1) : 1;
   const search = (params.search || "").trim();
 
+   const { userId, sessionClaims } = await auth();
+  const role = (sessionClaims?.metadata as { role?: string })?.role;
+
   const columns = [
     { header: "Nom de la matière", accessor: "info" },
     {
@@ -41,7 +45,9 @@ const SubjectListPage = async ({
       accessor: "teachers",
       className: "hidden md:table-cell ",
     },
-    { header: "Actions", accessor: "actions" },
+    ...(role === "admin" ? 
+      [{ header: "Actions", accessor: "actions" }]
+      : [])
   ];
 
   const renderRow = (item: SubjectList) => (
@@ -60,14 +66,16 @@ const SubjectListPage = async ({
           ? item.teachers.map((t) => t.teacher.name).join(", ")
           : "—"}
       </td>
-      <td>
-        <div className="flex items-center gap-2">
-          <>
-            <FormContainer table="subject" type="update" data={item} />
-            <FormContainer table="subject" type="delete" id={item.id} />
-          </>
-        </div>
-      </td>
+      {role ==="admin" && (
+        <td>
+          <div className="flex items-center gap-2">
+            <>
+              <FormContainer table="subject" type="update" data={item} />
+              <FormContainer table="subject" type="delete" id={item.id} />
+            </>
+          </div>
+        </td>
+      )}
     </tr>
   );
 
@@ -133,7 +141,7 @@ const SubjectListPage = async ({
     prisma.subject.count({ where: query }),
 
     prisma.teacher.findMany({
-      select: { id: true, name: true },
+      select: { id: true, name: true, surname: true },
     }),
   ]);
 
@@ -151,7 +159,9 @@ const SubjectListPage = async ({
             <ActiveFilters teachers={teachers} />
             <SubjectFiltersModal teachers={teachers} />
             <TableActions />
-            <FormContainer table="subject" type="create" />
+            {role === "admin" && (
+              <FormContainer table="subject" type="create" />
+            )}
           </div>
         </div>
       </div>

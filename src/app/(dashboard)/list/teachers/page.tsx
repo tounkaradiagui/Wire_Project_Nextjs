@@ -150,7 +150,7 @@ const TeacherListPage = async ({
               <Eye size={16} />
             </button>
           </Link>
-          {role === "admin" || role === "super_admin" && (
+          {(role === "admin" || role === "super_admin") && (
             <>
               <FormContainer table="teacher" type="update" data={item} />
               <FormContainer table="teacher" type="delete" id={item.id} />
