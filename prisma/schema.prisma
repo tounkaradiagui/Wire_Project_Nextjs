@@ -142,11 +142,12 @@ model Class {
 }
 
 model Subject {
-  id       Int              @id @default(autoincrement())
-  code     String?
-  name     String           @unique
-  lessons  Lesson[]
-  teachers TeacherSubject[]
+  id          Int              @id @default(autoincrement())
+  code        String?
+  coefficient String?
+  name        String           @unique
+  lessons     Lesson[]
+  teachers    TeacherSubject[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
@@ -177,6 +178,8 @@ model TeacherClass {
 model Lesson {
   id        Int       @id @default(autoincrement())
   name      String
+  // duration  String?
+  // description  String?
   startDate DateTime?
   dueDate   DateTime?
 
@@ -329,7 +332,7 @@ model AuditLog {
 
   role Role?
 
-  // 🌐 Contexte technique (IMPORTANT)
+  // 🌐 Contexte technique
   ipAddress String?
   userAgent String?
   requestId String?
@@ -340,7 +343,7 @@ model AuditLog {
   // 📊 Données structurées
   metadata Json?
 
-  // 🔄 Diff avant / après (CRUCIAL)
+  // 🔄 Diff avant / après
   before Json?
   after  Json?
 

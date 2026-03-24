@@ -96,11 +96,51 @@ const SubjectForm = ({
       </div>
 
       {/* Form fields */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-        <div className="md:col-span-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="flex flex-col gap-1">
           <InputField
-            label="Nom de la matière"
+            label="Code"
+            name="code"
+            placeholder="MATH101"
+            defaultValue={data?.code}
+            register={register}
+            error={errors?.code}
+            inputClassName="text-sm py-2"
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <InputField
+            label="Coefficient"
+            name="coefficient"
+            placeholder="3"
+            defaultValue={data?.coefficient}
+            register={register}
+            error={errors?.coefficient}
+            inputClassName="text-sm py-2"
+          />
+        </div>
+      </div>
+
+
+      {data && (
+        <InputField
+          label="ID"
+          name="id"
+          placeholder="id"
+          defaultValue={data?.id}
+          register={register}
+          error={errors?.id}
+          hidden
+        />
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Matieres */}
+        <div className="flex flex-col gap-1">
+          <InputField
+            label="Matière"
             name="name"
+            placeholder= "Nom de la matière"
             defaultValue={data?.name}
             register={register}
             error={errors?.name}
@@ -108,18 +148,7 @@ const SubjectForm = ({
           />
         </div>
 
-        {data && (
-          <InputField
-            label="ID"
-            name="id"
-            defaultValue={data?.id}
-            register={register}
-            error={errors?.id}
-            hidden
-          />
-        )}
-
-        {/* Teachers */}
+        {/* Enseignants */}
         <div className="md:col-span-2 flex flex-col gap-1">
           <label className="flex items-center gap-1 text-xs font-medium text-gray-600">
             <Users className="w-3.5 h-3.5" />
@@ -150,11 +179,13 @@ const SubjectForm = ({
       </div>
 
       {/* Server error */}
-      {state.error && (
-        <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">
-          ❌ Une erreur est survenue. Veuillez réessayer.
-        </div>
-      )}
+      {
+        state.error && (
+          <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">
+            ❌ Une erreur est survenue. Veuillez réessayer.
+          </div>
+        )
+      }
 
       {/* Actions */}
       <div className="flex justify-end gap-2 pt-4">
@@ -185,7 +216,7 @@ const SubjectForm = ({
           {type === "create" ? "Enregistrer" : "Mettre à jour"}
         </button>
       </div>
-    </form>
+    </form >
   );
 };
 

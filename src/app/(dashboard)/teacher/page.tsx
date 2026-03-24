@@ -17,6 +17,8 @@ const TeacherPage = async () => {
       </div>
       {/* Right */}
       <div className="w-full xl:w-1/3 flex flex-col gap-8">
+        {/* Event Calendar */}
+        <EventCalendar events={[]} />
         {/* Announcements */}
         <Announcements />
       </div>
