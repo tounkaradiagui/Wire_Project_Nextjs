@@ -35,7 +35,7 @@ const SubjectListPage = async ({
   const page = params.page ? Math.max(1, parseInt(params.page, 10) || 1) : 1;
   const search = (params.search || "").trim();
 
-   const { userId, sessionClaims } = await auth();
+  const { userId, sessionClaims } = await auth();
   const role = (sessionClaims?.metadata as { role?: string })?.role;
 
   const columns = [
@@ -45,7 +45,7 @@ const SubjectListPage = async ({
       accessor: "teachers",
       className: "hidden md:table-cell ",
     },
-    ...(role === "admin" ? 
+    ...(role === "admin" ?
       [{ header: "Actions", accessor: "actions" }]
       : [])
   ];
@@ -63,10 +63,10 @@ const SubjectListPage = async ({
       </td>
       <td className="hidden md:table-cell">
         {item.teachers.length > 0
-          ? item.teachers.map((t) => t.teacher.name).join(", ")
+          ? item.teachers.map((t) => `${t.teacher.name} ${t.teacher.surname}`).join(", ")
           : "—"}
       </td>
-      {role ==="admin" && (
+      {role === "admin" && (
         <td>
           <div className="flex items-center gap-2">
             <>
@@ -80,7 +80,9 @@ const SubjectListPage = async ({
   );
 
   // BASE QUERY
-  const query: Prisma.SubjectWhereInput = {};
+  const query: Prisma.SubjectWhereInput = {
+    isDeleted: false
+  };
 
   if (params) {
     for (const [key, value] of Object.entries(params)) {

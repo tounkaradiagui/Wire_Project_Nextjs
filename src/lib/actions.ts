@@ -253,86 +253,269 @@ export async function requireActiveUser() {
 }
 
 // Create Subject Action
-export const createSubject = async (currentState: currentState, data: SubjectSchemaInput) => {
-    try {
-        await prisma.subject.create({
-            data: {
-                name: data.name,
-                ...(data.teachers?.length && {
-                    teachers: {
-                        create: data.teachers.map((teacherId: string) => ({
-                            teacher: {
-                                connect: { id: teacherId },
-                            },
-                        })),
-                    },
-                }),
-            },
-        });
+export const createSubject = async (
+    currentState: currentState,
+    data: SubjectSchemaInput
+) => {
+    const { userId } = await auth()
 
-        return { success: true, error: null };
+    try {
+        // 🔍 vérifier la matière existante (même supprimée)
+        const existing = await prisma.subject.findFirst({
+            where: {
+                name: data.name,
+            },
+        })
+
+        let subject
+
+        if (existing) {
+            if (existing.isDeleted) {
+                // ♻️ RESTORE
+                subject = await prisma.subject.update({
+                    where: { id: existing.id },
+                    data: {
+                        isDeleted: false,
+                        deletedAt: null,
+                    },
+                })
+            } else {
+                return {
+                    success: false,
+                    error: "Cette matière existe déjà.",
+                }
+            }
+        } else {
+            // ✅ CREATE
+            subject = await prisma.subject.create({
+                data: {
+                    coefficient: data.coefficient,
+                    code: data.code,
+                    name: data.name,
+                },
+            })
+        }
+
+        // 🔗 relations teachers
+        if (data.teachers?.length) {
+            await prisma.teacherSubject.createMany({
+                data: data.teachers.map((teacherId: string) => ({
+                    teacherId,
+                    subjectId: subject.id,
+                })),
+                skipDuplicates: true,
+            })
+        }
+
+        // 🔥 LOG
+        const actor = await prisma.userProfile.findUnique({
+            where: { clerkId: userId! },
+        })
+
+        if (!actor) throw new Error("UserProfile introuvable")
+
+        await logAction({
+            action: AuditAction.CREATE_SUBJECT,
+            entityType: "Subject",
+            entityId: subject.id.toString(),
+
+            performedById: actor.id,
+            role: actor.role,
+
+            description: `Matière ${subject.name} créée`,
+
+            before: null,
+            after: {
+                name: subject.name,
+                teachers: data.teachers ?? [],
+            },
+
+            metadata: {
+                source: "createSubject",
+            },
+        })
+
+        return { success: true, error: null }
 
     } catch (error) {
-        // console.log(error)
-        return { success: false, error: "Une erreur est survenue lors de la création de la matière" };
+        console.log(error)
+        return {
+            success: false,
+            error: "Une erreur est survenue lors de la création de la matière",
+        }
     }
-};
+}
 
+// Update Subject Action with secure query construction
 export const updateSubject = async (
     currentState: currentState,
     data: SubjectSchemaInput
 ) => {
+    const { userId } = await auth()
+
     try {
         if (!data.id) {
-            return { success: false, error: "ID de la matière manquant" };
+            return { success: false, error: "ID de la matière manquant" }
         }
 
-        await prisma.$transaction(async (tx) => {
-            // Update subject name
-            await tx.subject.update({
-                where: { id: data.id },
-                data: { name: data.name },
-            });
+        const existing = await prisma.subject.findUnique({
+            where: { id: data.id },
+            include: { teachers: true },
+        })
 
-            // Remove old teacher relations
-            await tx.teacherSubject.deleteMany({
-                where: { subjectId: data.id },
-            });
-
-            // Recreate relations
-            if (data.teachers?.length) {
-                await tx.teacherSubject.createMany({
-                    data: data.teachers.map((teacherId: string) => ({
-                        teacherId,
-                        subjectId: data.id!,
-                    })),
-                });
+        if (!existing || existing.isDeleted) {
+            return {
+                success: false,
+                error: "Matière introuvable ou supprimée",
             }
-        });
+        }
 
-        return { success: true, error: null };
-    } catch (error) {
-        // console.error(error);
-        return {
-            success: false,
-            error: "Une erreur est survenue lors de la mise à jour de la matière",
-        };
-    }
-};
+        const before = {
+            name: existing.name,
+            teachers: existing.teachers.map(t => t.teacherId),
+        }
 
-export const deleteSubject = async (currentState: currentState, data: FormData) => {
-    const id = data.get("id") as string;
-    try {
-        await prisma.subject.delete({
-            where: {
-                id: parseInt(id)
-            }
-        });
+        // ✏️ update
+        await prisma.subject.update({
+            where: { id: data.id },
+            data: {
+                coefficient: data.coefficient,
+                code: data.code,
+                name: data.name,
+            },
+        })
+
+        // 🔄 reset relations
+        await prisma.teacherSubject.deleteMany({
+            where: { subjectId: data.id },
+        })
+
+        if (data.teachers?.length) {
+            await prisma.teacherSubject.createMany({
+                data: data.teachers.map((teacherId: string) => ({
+                    teacherId,
+                    subjectId: data.id!,
+                })),
+                skipDuplicates: true,
+            })
+        }
+
+        const actor = await prisma.userProfile.findUnique({
+            where: { clerkId: userId! },
+        })
+
+        if (!actor) throw new Error("UserProfile introuvable")
+
+        const after = {
+            name: data.name,
+            teachers: data.teachers ?? [],
+        }
+
+        // 🔥 LOG
+        await logAction({
+            action: AuditAction.UPDATE_SUBJECT,
+            entityType: "Subject",
+            entityId: data.id.toString(),
+
+            performedById: actor.id,
+            role: actor.role,
+
+            description: `Matière ${data.name} mise à jour`,
+
+            before,
+            after,
+
+            metadata: {
+                source: "updateSubject",
+            },
+        })
+
         return { success: true, error: null }
 
     } catch (error) {
-        // console.log(error)
-        return { success: false, error: "Erreur de suppression de la matière" };
+        console.log(error)
+        return {
+            success: false,
+            error: "Une erreur est survenue lors de la mise à jour de la matière",
+        }
+    }
+}
+
+// Delete Subject
+export const deleteSubject = async (
+    currentState: currentState,
+    data: FormData
+) => {
+    const id = Number(data.get("id"))
+
+    if (!id) {
+        return { success: false, error: "ID invalide" }
+    }
+
+    const { userId } = await auth()
+
+    try {
+        const subject = await prisma.subject.findUnique({
+            where: { id },
+            include: {
+                teachers: true,
+            },
+        })
+
+        if (!subject) {
+            return { success: false, error: "Matière introuvable" }
+        }
+
+        const before = {
+            coefficient: subject.coefficient,
+            code: subject.code,
+            name: subject.name,
+            teachers: subject.teachers.map(t => t.teacherId),
+        }
+
+        // ✅ soft delete
+        await prisma.subject.update({
+            where: { id },
+            data: {
+                isDeleted: true,
+                deletedAt: new Date(),
+            },
+        })
+
+        const actor = await prisma.userProfile.findUnique({
+            where: { clerkId: userId! },
+        })
+
+        if (!actor) throw new Error("UserProfile introuvable")
+
+        await logAction({
+            action: AuditAction.DELETE_SUBJECT,
+            entityType: "Subject",
+            entityId: id.toString(),
+
+            performedById: actor.id,
+            role: actor.role,
+
+            description: `Matière ${subject.name} supprimée`,
+
+            before,
+            after: null,
+
+            metadata: {
+                source: "deleteSubject",
+            },
+
+            isSoftDelete: true,
+        })
+
+        return { success: true, error: null }
+
+    } catch (error) {
+        console.log(error)
+        return {
+            success: false,
+            error: "Erreur de suppression de la matière",
+        }
     }
 }
 
@@ -403,14 +586,16 @@ export const createTeacher = async (
     currentState: { success: boolean; error: string | null },
     data: TeacherSchemaInput
 ) => {
-    let userId: string | null = null;
+    let userId: string | null = null
+
+    const { userId: actorClerkId } = await auth()
 
     const clerk = createClerkClient({
         secretKey: process.env.CLERK_SECRET_KEY!,
-    });
+    })
 
     try {
-        // Créer user Clerk
+        // 🔥 Clerk user
         const user = await clerk.users.createUser({
             username: data.username,
             password: data.password,
@@ -420,277 +605,364 @@ export const createTeacher = async (
                 role: "teacher",
                 status: "active",
             },
-        });
+        })
 
-        userId = user.id;
+        userId = user.id
 
-        // Transaction DB
-        await prisma.$transaction(async (tx) => {
-            // Créer UserProfile
-            const profile = await tx.userProfile.create({
-                data: {
-                    clerkId: user.id,
-                    role: "TEACHER",
-                    username: data.username,
-                    firstName: data.name,
-                    lastName: data.surname,
-                    isActive: true,
-                    isBanned: false,
-                },
-            });
+        let createdTeacher: any = null
 
-            // Créer Teacher
-            await tx.teacher.create({
-                data: {
-                    id: user.id,
-                    username: data.username,
-                    name: data.name,
-                    surname: data.surname,
-                    email: data.email || null,
-                    phone: data.phone || null,
-                    address: data.address,
-                    image: data.image || null,
-                    bloodType: data.bloodType,
-                    sex: data.sex,
-                    birthday: data.birthday ?? null,
-                    userProfileId: profile.id, // Liaison du profil utilisateur
-                },
-            });
 
-            // Relations subjects
-            if (data.subjects && data.subjects.length > 0) {
-                const subjects = await tx.subject.findMany({
-                    where: { name: { in: data.subjects } },
-                    select: { id: true },
-                });
+        const profile = await prisma.userProfile.create({
+            data: {
+                clerkId: user.id,
+                role: "TEACHER",
+                username: data.username,
+                firstName: data.name,
+                lastName: data.surname,
+                isActive: true,
+                isBanned: false,
+            },
+        })
 
-                await tx.teacherSubject.createMany({
-                    data: subjects.map((s) => ({
-                        teacherId: user.id!,
-                        subjectId: s.id,
-                    })),
-                });
-            }
+        createdTeacher = await prisma.teacher.create({
+            data: {
+                id: user.id,
+                username: data.username,
+                name: data.name,
+                surname: data.surname,
+                email: data.email || null,
+                phone: data.phone || null,
+                address: data.address,
+                image: data.image || null,
+                bloodType: data.bloodType,
+                sex: data.sex,
+                birthday: data.birthday ?? null,
+                userProfileId: profile.id,
+            },
+        })
 
-            // Relations classes
-            if (data.classes && data.classes.length > 0) {
-                const classes = await tx.class.findMany({
-                    where: { id: { in: data.classes } },
-                    select: { id: true },
-                });
+        // subjects
+        if (data.subjects?.length) {
+            const subjects = await prisma.subject.findMany({
+                where: { name: { in: data.subjects } },
+            })
 
-                await tx.teacherClass.createMany({
-                    data: classes.map((c) => ({
-                        teacherId: user.id!,
-                        classId: c.id,
-                    })),
-                });
-            }
-        });
-
-        return { success: true, error: null };
-
-    } catch (error) {
-        // rollback Clerk si erreur DB
-        if (userId) {
-            await clerk.users.deleteUser(userId);
+            await prisma.teacherSubject.createMany({
+                data: subjects.map((s) => ({
+                    teacherId: user.id!,
+                    subjectId: s.id,
+                })),
+            })
         }
 
-        // console.error("CREATE TEACHER ERROR 👉", error);
+        // classes
+        if (data.classes?.length) {
+            await prisma.teacherClass.createMany({
+                data: data.classes.map((classId) => ({
+                    teacherId: user.id!,
+                    classId,
+                })),
+            })
+        }
+
+
+        // 🔍 Actor
+        const actor = await prisma.userProfile.findUnique({
+            where: { clerkId: actorClerkId! },
+        })
+
+        if (!actor) throw new Error("UserProfile introuvable")
+
+        // 🧾 AUDIT
+        await logAction({
+            action: AuditAction.CREATE_TEACHER,
+            entityType: "Teacher",
+            entityId: createdTeacher.id,
+
+            performedById: actor.id,
+            role: actor.role,
+
+            description: `Professeur ${createdTeacher.name} créé`,
+
+            before: null,
+            after: {
+                username: createdTeacher.username,
+                name: createdTeacher.name,
+                surname: createdTeacher.surname,
+            },
+
+            metadata: {
+                source: "createTeacher",
+            },
+        })
+
+        return { success: true, error: null }
+
+    } catch (error) {
+        if (userId) {
+            await clerk.users.deleteUser(userId)
+        }
 
         return {
             success: false,
             error: "Une erreur est survenue lors de la création du professeur.",
-        };
+        }
     }
-};
+}
 
 // Update Teacher Action
 export const updateTeacher = async (
     _currentState: { success: boolean; error: string | null },
     data: TeacherSchemaInput
 ) => {
-    const { sessionClaims } = await auth();
-    const role = (sessionClaims?.metadata as { role?: string })?.role;
-
-    if (role !== "admin" && role !== "super_admin") {
-        return { success: false, error: "Action non autorisée." };
-    }
+    const { userId } = await auth()
 
     if (!data.id) {
-        return { success: false, error: "ID manquant" };
+        return { success: false, error: "ID manquant" }
     }
 
     const clerk = createClerkClient({
         secretKey: process.env.CLERK_SECRET_KEY!,
-    });
+    })
 
     try {
-        // Update Clerk
+        // 🔍 BEFORE
+        const existingTeacher = await prisma.teacher.findUnique({
+            where: { id: data.id },
+        })
+
+        if (!existingTeacher) {
+            return { success: false, error: "Teacher introuvable" }
+        }
+
+        const before = {
+            username: existingTeacher.username,
+            name: existingTeacher.name,
+            surname: existingTeacher.surname,
+        }
+
+        // 🔐 Clerk
         await clerk.users.updateUser(data.id, {
             username: data.username,
             ...(data.password && { password: data.password }),
             firstName: data.name,
             lastName: data.surname,
-            publicMetadata: { role: "teacher" },
-        });
+        })
 
-        // Transaction Prisma
-        await prisma.$transaction(async (tx) => {
+        let updatedTeacher: any = null
 
-            // Récupérer le teacher avec son profile
-            const teacher = await tx.teacher.findUnique({
-                where: { id: data.id },
-                select: { userProfileId: true },
-            });
 
-            if (!teacher) {
-                throw new Error("Teacher introuvable");
-            }
+        const teacher = await prisma.teacher.findUnique({
+            where: { id: data.id },
+            select: { userProfileId: true },
+        })
 
-            // Update UserProfile
-            await tx.userProfile.update({
-                where: { id: teacher.userProfileId },
-                data: {
-                    username: data.username,
-                    firstName: data.name,
-                    lastName: data.surname,
-                },
-            });
+        if (!teacher) throw new Error("Teacher introuvable")
 
-            // Update Teacher
-            await tx.teacher.update({
-                where: { id: data.id },
-                data: {
-                    username: data.username,
-                    name: data.name,
-                    surname: data.surname,
-                    email: data.email ?? null,
-                    phone: data.phone ?? null,
-                    address: data.address,
-                    image: data.image ?? null,
-                    bloodType: data.bloodType,
-                    sex: data.sex,
-                    birthday: data.birthday ?? null,
-                },
-            });
+        await prisma.userProfile.update({
+            where: { id: teacher.userProfileId },
+            data: {
+                username: data.username,
+                firstName: data.name,
+                lastName: data.surname,
+            },
+        })
 
-            // Update relations subjects
-            await tx.teacherSubject.deleteMany({
-                where: { teacherId: data.id },
-            });
+        updatedTeacher = await prisma.teacher.update({
+            where: { id: data.id },
+            data: {
+                username: data.username,
+                name: data.name,
+                surname: data.surname,
+                email: data.email ?? null,
+                phone: data.phone ?? null,
+                address: data.address,
+                image: data.image ?? null,
+                bloodType: data.bloodType,
+                sex: data.sex,
+                birthday: data.birthday ?? null,
+            },
+        })
 
-            if (data.subjects?.length) {
-                const subjects = await tx.subject.findMany({
-                    where: { name: { in: data.subjects } },
-                    select: { id: true },
-                });
+        await prisma.teacherSubject.deleteMany({
+            where: { teacherId: data.id },
+        })
 
-                await tx.teacherSubject.createMany({
-                    data: subjects.map((s) => ({
-                        teacherId: data.id!,
-                        subjectId: s.id,
-                    })),
-                });
-            }
+        if (data.subjects?.length) {
+            const subjects = await prisma.subject.findMany({
+                where: { name: { in: data.subjects } },
+            })
 
-            // Update relations classes
-            await tx.teacherClass.deleteMany({
-                where: { teacherId: data.id },
-            });
+            await prisma.teacherSubject.createMany({
+                data: subjects.map((s) => ({
+                    teacherId: data.id!,
+                    subjectId: s.id,
+                })),
+            })
+        }
 
-            if (data.classes?.length) {
-                await tx.teacherClass.createMany({
-                    data: data.classes.map((classId) => ({
-                        teacherId: data.id!,
-                        classId,
-                    })),
-                });
-            }
-        });
+        await prisma.teacherClass.deleteMany({
+            where: { teacherId: data.id },
+        })
 
-        return { success: true, error: null };
+        if (data.classes?.length) {
+            await prisma.teacherClass.createMany({
+                data: data.classes.map((classId) => ({
+                    teacherId: data.id!,
+                    classId,
+                })),
+            })
+        }
+
+
+        // 🔍 Actor
+        const actor = await prisma.userProfile.findUnique({
+            where: { clerkId: userId! },
+        })
+
+        if (!actor) throw new Error("UserProfile introuvable")
+
+        const after = {
+            username: updatedTeacher.username,
+            name: updatedTeacher.name,
+            surname: updatedTeacher.surname,
+        }
+
+        await logAction({
+            action: AuditAction.UPDATE_TEACHER,
+            entityType: "Teacher",
+            entityId: data.id,
+
+            performedById: actor.id,
+            role: actor.role,
+
+            description: `Professeur ${updatedTeacher.name} mis à jour`,
+
+            before,
+            after,
+
+            metadata: {
+                source: "updateTeacher",
+            },
+        })
+
+        return { success: true, error: null }
 
     } catch (error) {
-        // console.error("UPDATE TEACHER ERROR 👉", error);
         return {
             success: false,
             error: "Erreur lors de la mise à jour.",
-        };
+        }
     }
-};
+}
 
-// Delete Teacher Action if Super Admin but deactivate if admin
-export const deleteTeacher = async (currentState: currentState, data: FormData
+// Delete Teacher Action
+export const deleteTeacher = async (
+    currentState: currentState,
+    data: FormData
 ) => {
-    const id = data.get("id") as string;
+    const id = data.get("id") as string
+
+    const { userId } = await auth()
 
     if (!id) {
-        return { success: false, error: true };
-    }
-
-    const { sessionClaims } = await auth();
-    const role = (sessionClaims?.metadata as { role?: string })?.role;
-
-    if (role !== "admin") {
-        return { success: false, error: "Non autorisé" };
+        return { success: false, error: "ID invalide" }
     }
 
     try {
+        const teacher = await prisma.teacher.findUnique({
+            where: { id },
+        })
+
+        if (!teacher) {
+            return { success: false, error: "Teacher introuvable" }
+        }
+
+        const before = {
+            username: teacher.username,
+            name: teacher.name,
+            surname: teacher.surname,
+        }
+
+        // ✅ soft delete
         await prisma.teacher.update({
             where: { id },
             data: {
+                isDeleted: true,
                 deletedAt: new Date(),
             },
-        });
+        })
 
-        return { success: true, error: null };
+        const actor = await prisma.userProfile.findUnique({
+            where: { clerkId: userId! },
+        })
+
+        if (!actor) throw new Error("UserProfile introuvable")
+
+        await logAction({
+            action: AuditAction.DELETE_TEACHER,
+            entityType: "Teacher",
+            entityId: id,
+
+            performedById: actor.id,
+            role: actor.role,
+
+            description: `Professeur supprimé`,
+
+            before,
+            after: null,
+
+            metadata: {
+                source: "deleteTeacher",
+            },
+
+            isSoftDelete: true,
+        })
+
+        return { success: true, error: null }
+
     } catch (error) {
-        // console.error(error);
-        return { success: false, error: "Erreur de suppression" };
+        return {
+            success: false,
+            error: "Erreur de suppression",
+        }
     }
-};
+}
+
 
 // Create Student Action
 export const createStudent = async (
     _currentState: { success: boolean; error: string | null },
     data: StudentSchemaInput
 ) => {
-    const { sessionClaims } = await auth();
-    const role = (sessionClaims?.metadata as { role?: string })?.role;
+    const { userId } = await auth()
 
-    if (role !== "admin" && role !== "super_admin") {
-        return { success: false, error: "Action non autorisée." };
-    }
-
-    let userId: string | null = null;
+    let createdUserId: string | null = null
 
     const clerk = createClerkClient({
         secretKey: process.env.CLERK_SECRET_KEY!,
-    });
+    })
 
     try {
-        const { parentId, classId, gradeId } = data;
+        const { parentId, classId, gradeId } = data
 
-        if (!parentId) throw new Error("Parent is required");
-        if (!classId) throw new Error("Class is required");
-        if (!gradeId) throw new Error("Grade is required");
+        if (!parentId) throw new Error("Parent is required")
+        if (!classId) throw new Error("Class is required")
+        if (!gradeId) throw new Error("Grade is required")
 
-        // Vérifier capacité classe
         const classItem = await prisma.class.findUnique({
             where: { id: classId },
             include: { _count: { select: { students: true } } },
-        });
+        })
 
         if (!classItem) {
-            return { success: false, error: "Classe introuvable." };
+            return { success: false, error: "Classe introuvable." }
         }
 
         if (classItem.capacity === classItem._count.students) {
-            return { success: false, error: "La classe est pleine." };
+            return { success: false, error: "La classe est pleine." }
         }
 
-        // Create Clerk user
         const user = await clerk.users.createUser({
             username: data.username,
             password: data.password,
@@ -700,214 +972,346 @@ export const createStudent = async (
                 role: "student",
                 status: "active",
             },
-        });
+        })
 
-        userId = user.id;
+        createdUserId = user.id
 
-        // Transaction Prisma
-        await prisma.$transaction(async (tx) => {
-            // Créer UserProfile d'abord
-            const profile = await tx.userProfile.create({
-                data: {
-                    clerkId: user.id,
-                    role: "STUDENT",
-                    username: data.username,
-                    firstName: data.name,
-                    lastName: data.surname,
-                    isActive: true,
-                    isBanned: false,
+        // 1. Create profile
+        const profile = await prisma.userProfile.create({
+            data: {
+                clerkId: user.id,
+                role: "STUDENT",
+                username: data.username,
+                firstName: data.name,
+                lastName: data.surname,
+                isActive: true,
+                isBanned: false,
+            },
+        })
+
+        // 2. Create student
+        const student = await prisma.student.create({
+            data: {
+                id: user.id,
+                username: data.username,
+                name: data.name,
+                surname: data.surname,
+                email: data.email || null,
+                phone: data.phone || null,
+                address: data.address,
+                image: data.image || null,
+                bloodType: data.bloodType,
+                sex: data.sex,
+                birthday: data.birthday ?? null,
+                userProfile: {
+                    connect: { id: profile.id },
                 },
-            });
+                parent: { connect: { id: parentId } },
+                class: { connect: { id: classId } },
+                grade: { connect: { id: gradeId } },
+            },
+        })
 
-            // Ensuite créer Student
-            await tx.student.create({
-                data: {
-                    id: user.id,
-                    username: data.username,
-                    name: data.name,
-                    surname: data.surname,
-                    email: data.email || null,
-                    phone: data.phone || null,
-                    address: data.address,
-                    image: data.image || null,
-                    bloodType: data.bloodType,
-                    sex: data.sex,
-                    birthday: data.birthday ?? null,
-                    userProfile: {
-                        connect: { id: profile.id }, // Liaison du profil utilisateur
-                    },
-                    parent: { connect: { id: parentId } },
-                    class: { connect: { id: classId } },
-                    grade: { connect: { id: gradeId } },
-                },
-            });
-        });
+        const actor = await prisma.userProfile.findUnique({
+            where: { clerkId: userId! },
+        })
 
-        return { success: true, error: null };
+        if (!actor) throw new Error("UserProfile introuvable")
+
+        await logAction({
+            action: AuditAction.CREATE_STUDENT,
+            entityType: "Student",
+            entityId: student.id,
+
+            performedById: actor.id,
+            role: actor.role,
+
+            description: `Élève ${student.name} créé`,
+
+            before: null,
+
+            after: {
+                username: student.username,
+                classId,
+                gradeId,
+                parentId,
+            },
+
+            metadata: {
+                source: "createStudent",
+            },
+        })
+
+        return { success: true, error: null }
     } catch (error) {
-        if (userId) {
-            await clerk.users.deleteUser(userId);
+        if (createdUserId) {
+            await clerk.users.deleteUser(createdUserId)
         }
 
         return {
             success: false,
             error: "Une erreur est survenue lors de la création de l'élève.",
-        };
+        }
     }
-};
+}
 
 // Update Student Action
 export const updateStudent = async (
     _currentState: { success: boolean; error: string | null },
     data: StudentSchemaInput
 ) => {
-    const { sessionClaims } = await auth();
-    const role = (sessionClaims?.metadata as { role?: string })?.role;
+    const { userId } = await auth()
 
-    if (role !== "admin" && role !== "super_admin") {
-        return { success: false, error: "Action non autorisée." };
+    if (!userId) {
+        return { success: false, error: "Utilisateur non authentifié" }
     }
 
     if (!data.id) {
-        return { success: false, error: "Student ID is required" };
+        return { success: false, error: "Student ID is required" }
     }
 
     const clerk = createClerkClient({
         secretKey: process.env.CLERK_SECRET_KEY!,
-    });
+    })
 
     try {
-        const { parentId, classId, gradeId } = data;
+        const { parentId, classId, gradeId } = data
 
-        if (!parentId) throw new Error("Parent is required");
-        if (!classId) throw new Error("Class is required");
-        if (!gradeId) throw new Error("Grade is required");
-
+        // 🔍 Student existant
         const existingStudent = await prisma.student.findUnique({
             where: { id: data.id },
-            select: { classId: true, userProfileId: true },
-        });
+        })
 
         if (!existingStudent) {
-            return { success: false, error: "Élève introuvable." };
+            return { success: false, error: "Élève introuvable." }
         }
 
-        const classItem = await prisma.class.findUnique({
-            where: { id: classId },
-            include: { _count: { select: { students: true } } },
-        });
+        // ✅ Vérifier parent
+        if (parentId) {
+            const parentExists = await prisma.parent.findUnique({
+                where: { id: parentId },
+            })
 
-        if (
-            existingStudent.classId !== classId &&
-            classItem &&
-            classItem.capacity === classItem._count.students
-        ) {
-            return { success: false, error: "La classe est pleine" };
+            if (!parentExists) {
+                return {
+                    success: false,
+                    error: "Parent introuvable.",
+                }
+            }
         }
 
-        // Transaction
-        await prisma.$transaction(async (tx) => {
-            // Update Clerk
-            await clerk.users.updateUser(data.id!, {
+        // ✅ Vérifier classe
+        if (classId) {
+            const classExists = await prisma.class.findUnique({
+                where: { id: classId },
+            })
+
+            if (!classExists) {
+                return {
+                    success: false,
+                    error: "Classe introuvable.",
+                }
+            }
+        }
+
+        // ✅ Vérifier grade
+        if (gradeId) {
+            const gradeExists = await prisma.grade.findUnique({
+                where: { id: gradeId },
+            })
+
+            if (!gradeExists) {
+                return {
+                    success: false,
+                    error: "Niveau introuvable.",
+                }
+            }
+        }
+
+        // 🔥 BEFORE (audit)
+        const before = {
+            username: existingStudent.username,
+            name: existingStudent.name,
+            surname: existingStudent.surname,
+            classId: existingStudent.classId,
+            gradeId: existingStudent.gradeId,
+            parentId: existingStudent.parentId,
+        }
+
+        // 🔐 Clerk update
+        await clerk.users.updateUser(data.id!, {
+            username: data.username,
+            ...(data.password && { password: data.password }),
+            firstName: data.name,
+            lastName: data.surname,
+        })
+
+        // 🔐 UserProfile update
+        await prisma.userProfile.update({
+            where: { id: existingStudent.userProfileId },
+            data: {
                 username: data.username,
-                ...(data.password && { password: data.password }),
                 firstName: data.name,
                 lastName: data.surname,
-            });
+            },
+        })
 
-            // Update UserProfile
-            await tx.userProfile.update({
-                where: { id: existingStudent.userProfileId },
-                data: {
-                    username: data.username,
-                    firstName: data.name,
-                    lastName: data.surname,
-                },
-            });
+        // 🔥 Student update (SAFE CONNECT)
+        const student = await prisma.student.update({
+            where: { id: data.id },
+            data: {
+                username: data.username,
+                name: data.name,
+                surname: data.surname,
+                email: data.email || null,
+                phone: data.phone || null,
+                address: data.address,
+                image: data.image || null,
+                bloodType: data.bloodType,
+                sex: data.sex,
+                birthday: data.birthday ?? null,
 
-            // Update Student
-            await tx.student.update({
-                where: { id: data.id },
-                data: {
-                    username: data.username,
-                    name: data.name,
-                    surname: data.surname,
-                    email: data.email || null,
-                    phone: data.phone || null,
-                    address: data.address,
-                    image: data.image || null,
-                    bloodType: data.bloodType,
-                    sex: data.sex,
-                    birthday: data.birthday ?? null,
+                ...(parentId && {
                     parent: { connect: { id: parentId } },
-                    class: { connect: { id: classId } },
-                    grade: { connect: { id: gradeId } },
-                },
-            });
-        });
+                }),
 
-        return { success: true, error: null };
+                ...(classId && {
+                    class: { connect: { id: classId } },
+                }),
+
+                ...(gradeId && {
+                    grade: { connect: { id: gradeId } },
+                }),
+            },
+        })
+
+        // 🔍 Actor (audit)
+        const actor = await prisma.userProfile.findUnique({
+            where: { clerkId: userId },
+        })
+
+        if (!actor) throw new Error("UserProfile introuvable")
+
+        // 🔥 AFTER (audit)
+        const after = {
+            username: student.username,
+            name: student.name,
+            surname: student.surname,
+            classId: student.classId,
+            gradeId: student.gradeId,
+            parentId: student.parentId,
+        }
+
+        // 🧾 AUDIT LOG
+        await logAction({
+            action: AuditAction.UPDATE_STUDENT,
+            entityType: "Student",
+            entityId: data.id,
+
+            performedById: actor.id,
+            role: actor.role,
+
+            description: `Élève ${student.name} mis à jour`,
+
+            before,
+            after,
+
+            metadata: {
+                source: "updateStudent",
+            },
+        })
+
+        return { success: true, error: null }
+
     } catch (error) {
-        console.log(error, "Erreur de serveur")
+        // console.log("updateStudent error:", error)
+
         return {
             success: false,
             error: "Une erreur est survenue lors de la mise à jour de l'élève.",
-        };
+        }
     }
-};
+}
+
+
 
 // Delete Student Action
 export const deleteStudent = async (
     _currentState: currentState,
     data: FormData
 ) => {
-    const { sessionClaims } = await auth();
-    const role = (sessionClaims?.metadata as { role?: string })?.role;
+    const { userId } = await auth()
 
-    if (role !== "admin" && role !== "super_admin") {
-        return { success: false, error: "Action non autorisée." };
-    }
-
-    const id = data.get("id") as string;
+    const id = data.get("id") as string
 
     try {
         const student = await prisma.student.findUnique({
             where: { id },
-            select: { userProfileId: true },
-        });
+        })
 
         if (!student) {
-            return { success: false, error: "Élève introuvable." };
+            return { success: false, error: "Élève introuvable." }
+        }
+
+        const before = {
+            username: student.username,
+            classId: student.classId,
+            gradeId: student.gradeId,
+            parentId: student.parentId,
         }
 
         await prisma.$transaction(async (tx) => {
-            // Soft delete Student
             await tx.student.update({
                 where: { id },
                 data: {
                     isDeleted: true,
                     deletedAt: new Date(),
                 },
-            });
+            })
 
-            // Désactiver le profil
             await tx.userProfile.update({
                 where: { id: student.userProfileId },
                 data: {
                     isActive: false,
                     isBanned: true,
                 },
-            });
-        });
+            })
+        })
 
-        return { success: true, error: null };
+        const actor = await prisma.userProfile.findUnique({
+            where: { clerkId: userId! },
+        })
+
+        if (!actor) throw new Error("UserProfile introuvable")
+
+        await logAction({
+            action: AuditAction.DELETE_STUDENT,
+            entityType: "Student",
+            entityId: id,
+
+            performedById: actor.id,
+            role: actor.role,
+
+            description: `Élève supprimé`,
+
+            before,
+            after: null,
+
+            metadata: {
+                source: "deleteStudent",
+            },
+
+            isSoftDelete: true,
+        })
+
+        return { success: true, error: null }
     } catch {
         return {
             success: false,
             error: "Erreur lors de la suppression.",
-        };
+        }
     }
-};
+}
 
 // Create Exam Action
 export const createExam = async (currentState: currentState, data: ExamSchemaInput) => {
@@ -1007,18 +1411,13 @@ export const createParent = async (
     _currentState: { success: boolean; error: string | null },
     data: ParentSchemaInput
 ) => {
-    const { sessionClaims } = await auth();
-    const role = (sessionClaims?.metadata as { role?: string })?.role;
+    const { userId } = await auth()
 
-    if (role !== "admin" && role !== "super_admin") {
-        return { success: false, error: "Action non autorisée." };
-    }
-
-    let userId: string | null = null;
+    let userIdCreated: string | null = null
 
     const clerk = createClerkClient({
         secretKey: process.env.CLERK_SECRET_KEY!,
-    });
+    })
 
     try {
         const user = await clerk.users.createUser({
@@ -1030,11 +1429,11 @@ export const createParent = async (
                 role: "parent",
                 status: "active",
             },
-        });
+        })
 
-        userId = user.id;
+        userIdCreated = user.id
 
-        await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx) => {
             const profile = await tx.userProfile.create({
                 data: {
                     clerkId: user.id,
@@ -1045,9 +1444,9 @@ export const createParent = async (
                     isActive: true,
                     isBanned: false,
                 },
-            });
+            })
 
-            await tx.parent.create({
+            const parent = await tx.parent.create({
                 data: {
                     id: user.id,
                     username: data.username,
@@ -1059,55 +1458,89 @@ export const createParent = async (
                     image: data.image || null,
                     sex: data.sex,
                     birthday: data.birthday ?? null,
-
                     userProfile: {
                         connect: { id: profile.id },
                     },
                 },
-            });
-        });
+            })
 
-        return { success: true, error: null };
+            return { parent, profile }
+        })
+
+        // 🔥 récupérer userProfile (admin qui crée)
+        const actor = await prisma.userProfile.findUnique({
+            where: { clerkId: userId! },
+        })
+
+        if (!actor) throw new Error("UserProfile introuvable")
+
+        // ✅ AUDIT
+        await logAction({
+            action: AuditAction.CREATE_PARENT,
+            entityType: "Parent",
+            entityId: result.parent.id,
+
+            performedById: actor.id,
+            role: actor.role,
+
+            description: `Parent ${result.parent.name} créé`,
+
+            before: null,
+
+            after: {
+                username: result.parent.username,
+                email: result.parent.email,
+                phone: result.parent.phone,
+            },
+
+            metadata: {
+                source: "createParent",
+            },
+        })
+
+        return { success: true, error: null }
     } catch (error) {
-        if (userId) {
-            await clerk.users.deleteUser(userId);
+        if (userIdCreated) {
+            await clerk.users.deleteUser(userIdCreated)
         }
 
         return {
             success: false,
             error: "Une erreur est survenue lors de la création du parent.",
-        };
+        }
     }
-};
+}
 
 // Update Parent Action
 export const updateParent = async (
     _currentState: { success: boolean; error: string | null },
     data: ParentSchemaInput
 ) => {
-    const { sessionClaims } = await auth();
-    const role = (sessionClaims?.metadata as { role?: string })?.role;
-
-    if (role !== "admin" && role !== "super_admin") {
-        return { success: false, error: "Action non autorisée." };
-    }
+    const { userId } = await auth()
 
     if (!data.id) {
-        return { success: false, error: "ID manquant" };
+        return { success: false, error: "ID manquant" }
     }
 
     const clerk = createClerkClient({
         secretKey: process.env.CLERK_SECRET_KEY!,
-    });
+    })
 
     try {
         const existingParent = await prisma.parent.findUnique({
             where: { id: data.id },
-            select: { userProfileId: true },
-        });
+        })
 
         if (!existingParent) {
-            return { success: false, error: "Parent introuvable." };
+            return { success: false, error: "Parent introuvable." }
+        }
+
+        const before = {
+            username: existingParent.username,
+            name: existingParent.name,
+            surname: existingParent.surname,
+            email: existingParent.email,
+            phone: existingParent.phone,
         }
 
         await prisma.$transaction(async (tx) => {
@@ -1116,7 +1549,7 @@ export const updateParent = async (
                 ...(data.password && { password: data.password }),
                 firstName: data.name,
                 lastName: data.surname,
-            });
+            })
 
             await tx.userProfile.update({
                 where: { id: existingParent.userProfileId },
@@ -1125,7 +1558,7 @@ export const updateParent = async (
                     firstName: data.name,
                     lastName: data.surname,
                 },
-            });
+            })
 
             await tx.parent.update({
                 where: { id: data.id },
@@ -1140,40 +1573,72 @@ export const updateParent = async (
                     sex: data.sex,
                     birthday: data.birthday ?? null,
                 },
-            });
-        });
+            })
+        })
 
-        return { success: true, error: null };
+        const actor = await prisma.userProfile.findUnique({
+            where: { clerkId: userId! },
+        })
+
+        if (!actor) throw new Error("UserProfile introuvable")
+
+        const after = {
+            username: data.username,
+            name: data.name,
+            surname: data.surname,
+            email: data.email,
+            phone: data.phone,
+        }
+
+        await logAction({
+            action: AuditAction.UPDATE_PARENT,
+            entityType: "Parent",
+            entityId: data.id,
+
+            performedById: actor.id,
+            role: actor.role,
+
+            description: `Parent ${data.name} mis à jour`,
+
+            before,
+            after,
+
+            metadata: {
+                source: "updateParent",
+            },
+        })
+
+        return { success: true, error: null }
     } catch {
         return {
             success: false,
             error: "Une erreur est survenue lors de la mise à jour du parent.",
-        };
+        }
     }
-};
+}
 
 // Delete Parent Action
 export const deleteParent = async (
     _currentState: currentState,
     data: FormData
 ) => {
-    const { sessionClaims } = await auth();
-    const role = (sessionClaims?.metadata as { role?: string })?.role;
+    const { userId } = await auth()
 
-    if (role !== "admin" && role !== "super_admin") {
-        return { success: false, error: "Action non autorisée." };
-    }
-
-    const id = data.get("id") as string;
+    const id = data.get("id") as string
 
     try {
         const parent = await prisma.parent.findUnique({
             where: { id },
-            select: { userProfileId: true },
-        });
+        })
 
         if (!parent) {
-            return { success: false, error: "Parent introuvable." };
+            return { success: false, error: "Parent introuvable." }
+        }
+
+        const before = {
+            username: parent.username,
+            email: parent.email,
+            phone: parent.phone,
         }
 
         await prisma.$transaction(async (tx) => {
@@ -1183,7 +1648,7 @@ export const deleteParent = async (
                     isDeleted: true,
                     deletedAt: new Date(),
                 },
-            });
+            })
 
             await tx.userProfile.update({
                 where: { id: parent.userProfileId },
@@ -1191,18 +1656,43 @@ export const deleteParent = async (
                     isActive: false,
                     isBanned: true,
                 },
-            });
-        });
+            })
+        })
 
-        return { success: true, error: null };
+        const actor = await prisma.userProfile.findUnique({
+            where: { clerkId: userId! },
+        })
+
+        if (!actor) throw new Error("UserProfile introuvable")
+
+        await logAction({
+            action: AuditAction.DELETE_PARENT,
+            entityType: "Parent",
+            entityId: id,
+
+            performedById: actor.id,
+            role: actor.role,
+
+            description: `Parent supprimé`,
+
+            before,
+            after: null,
+
+            metadata: {
+                source: "deleteParent",
+            },
+
+            isSoftDelete: true,
+        })
+
+        return { success: true, error: null }
     } catch {
         return {
             success: false,
             error: "Une erreur est survenue lors de la suppression du parent.",
-        };
+        }
     }
-};
-
+}
 
 // helper
 function isValidRole(role: any): role is Role {
@@ -1902,11 +2392,17 @@ export const updateSession = async (
 // Delete Session Action
 export const deleteSession = async (
     currentState: currentState,
-    id: string
+    formData: FormData
 ): Promise<currentState> => {
     try {
         const { userId, sessionClaims } = await auth();
         const role = (sessionClaims?.metadata as { role?: string })?.role;
+
+        const id = formData.get("id") as string
+
+        if (!id) {
+            return { success: false, error: "ID invalide" }
+        }
 
         if (!userId || !role) {
             return { success: false, error: "Non autorisé." };
@@ -1920,8 +2416,16 @@ export const deleteSession = async (
             where: { id },
             include: {
                 lesson: true,
-                attendances: true,
-            },
+                attendances: {
+                    where: {
+                        isDeleted: false,
+                    },
+                },
+            }
+            // include: {
+            //     lesson: true,
+            //     attendances: true,
+            // },
         });
 
         if (!session || session.isDeleted) {
@@ -2057,6 +2561,7 @@ export const createAssignment = async (
     }
 };
 
+// Update Assignment Action
 export const updateAssignment = async (
     currentState: currentState,
     data: AssignmentSchemaInput
@@ -2121,7 +2626,7 @@ export const updateAssignment = async (
     }
 };
 
-
+// Delete Assignment Action
 export const deleteAssignment = async (currentState: currentState, data: FormData) => {
     const id = data.get("id") as string;
 

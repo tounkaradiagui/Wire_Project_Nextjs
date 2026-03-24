@@ -186,7 +186,7 @@ const AttendanceListPage = async ({
 
   /* ================= QUERY ================= */
   const query: Prisma.AttendanceWhereInput = {
-    status: AttendanceStatus.ABSENT,
+    // status: AttendanceStatus.ABSENT,
     isDeleted: false,
   };
 

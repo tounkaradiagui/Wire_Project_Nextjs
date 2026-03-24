@@ -50,6 +50,8 @@ export type UserSchemaInput = z.infer<typeof userSchema>;
 // Subject Schema
 export const subjectSchema = z.object({
   id: z.coerce.number().optional(),
+  code: z.string().optional(),
+  coefficient: z.string().optional(),
   name: z
     .string()
     .min(1, {

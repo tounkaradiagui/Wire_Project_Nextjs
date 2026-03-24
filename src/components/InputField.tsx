@@ -6,6 +6,7 @@ type InputFieldProps = {
   label: string;
   type?: string;
   register: any;
+  placeholder?: string;
   name: string;
   defaultValue?: string;
   error?: RHFError;
@@ -18,6 +19,7 @@ const InputField = ({
   label,
   type = "text",
   register,
+  placeholder,
   name,
   defaultValue,
   error,
@@ -33,6 +35,7 @@ const InputField = ({
       <label htmlFor="">{label}</label>
       <input
         type={type}
+        placeholder={placeholder}
         {...register(name)}
         className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
         {...inputProps}
