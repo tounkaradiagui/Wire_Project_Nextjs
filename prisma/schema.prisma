@@ -66,26 +66,29 @@ model Parent {
 }
 
 model Student {
-  id          String       @id
-  username    String       @unique
-  name        String
-  surname     String
-  email       String?      @unique
-  phone       String?      @unique
-  address     String
-  image       String?
-  bloodType   String
-  sex         UserSex
-  birthday    DateTime?
-  createdAt   DateTime     @default(now())
-  parentId    String
-  gradeId     Int
-  classId     Int
-  attendances Attendance[]
-  results     Result[]
-  class       Class        @relation(fields: [classId], references: [id])
-  grade       Grade        @relation(fields: [gradeId], references: [id])
-  parent      Parent       @relation(fields: [parentId], references: [id])
+  id                String       @id
+  username          String       @unique
+  name              String
+  surname           String
+  email             String?      @unique
+  phone             String?      @unique
+  verificationToken String       @unique @default(cuid())
+  cardExpiresAt     DateTime     @default(now())
+  cardNumber        String       @unique @db.VarChar(7)
+  address           String
+  image             String?
+  bloodType         String
+  sex               UserSex
+  birthday          DateTime?
+  createdAt         DateTime     @default(now())
+  parentId          String
+  gradeId           Int
+  classId           Int
+  attendances       Attendance[]
+  results           Result[]
+  class             Class        @relation(fields: [classId], references: [id])
+  grade             Grade        @relation(fields: [gradeId], references: [id])
+  parent            Parent       @relation(fields: [parentId], references: [id])
 
   userProfileId String      @unique
   userProfile   UserProfile @relation(fields: [userProfileId], references: [id])
@@ -176,12 +179,12 @@ model TeacherClass {
 }
 
 model Lesson {
-  id        Int       @id @default(autoincrement())
-  name      String
-  // duration  String?
-  // description  String?
-  startDate DateTime?
-  dueDate   DateTime?
+  id          Int       @id @default(autoincrement())
+  name        String
+  duration    String?
+  description String?
+  startDate   DateTime?
+  dueDate     DateTime?
 
   subjectId Int
   classId   Int

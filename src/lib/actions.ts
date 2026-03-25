@@ -6,6 +6,7 @@ import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { logAction } from "@/lib/logs/audit"
 import { Role, AuditAction } from "@prisma/client"
+import { randomUUID } from "crypto";
 
 
 type currentState = { success: boolean; error: string | null; };
@@ -52,6 +53,40 @@ async function generateUniqueUsername(
     }
 
     throw new Error("Impossible de générer username unique");
+}
+
+// generate student card token
+function generateCardData() {
+    const token = randomUUID();
+
+    // 📅 fin année scolaire (ex: 30 juin 2027)
+    const schoolEnd = new Date("2027-06-30");
+
+    // ⏳ +7 jours
+    const expiresAt = new Date(schoolEnd);
+    expiresAt.setDate(expiresAt.getDate() + 7);
+
+    return { token, expiresAt };
+}
+
+// Generate a random 7-digit card number    
+async function generateUniqueCardNumber() {
+    let isUnique = false;
+    let cardNumber = "";
+
+    while (!isUnique) {
+        cardNumber = Math.floor(1000000 + Math.random() * 9000000).toString();
+
+        const existing = await prisma.student.findUnique({
+            where: { cardNumber },
+        });
+
+        if (!existing) {
+            isUnique = true;
+        }
+    }
+
+    return cardNumber;
 }
 
 // Create clerk user Action
@@ -989,6 +1024,9 @@ export const createStudent = async (
             },
         })
 
+        const cardNumber = await generateUniqueCardNumber();
+        const { token, expiresAt } = generateCardData();
+
         // 2. Create student
         const student = await prisma.student.create({
             data: {
@@ -996,6 +1034,9 @@ export const createStudent = async (
                 username: data.username,
                 name: data.name,
                 surname: data.surname,
+                verificationToken: token,
+                cardExpiresAt: expiresAt,
+                cardNumber,
                 email: data.email || null,
                 phone: data.phone || null,
                 address: data.address,
@@ -1156,6 +1197,9 @@ export const updateStudent = async (
             },
         })
 
+        const { token, expiresAt } = generateCardData();
+        const cardNumber = await generateUniqueCardNumber();
+
         // 🔥 Student update (SAFE CONNECT)
         const student = await prisma.student.update({
             where: { id: data.id },
@@ -1163,6 +1207,9 @@ export const updateStudent = async (
                 username: data.username,
                 name: data.name,
                 surname: data.surname,
+                verificationToken: token,
+                cardExpiresAt: expiresAt,
+                cardNumber,
                 email: data.email || null,
                 phone: data.phone || null,
                 address: data.address,

@@ -20,6 +20,7 @@ export const routeAccessMap: RouteAccessMap = {
   "/list/sessions(.*)": ["admin", "super_admin", "teacher"],
   // page prendre les présences
   "/list/sessions/(.*)/attendance": ["admin", "teacher", "super_admin"],
+  "/list/students/(.*)/card": ["admin", "teacher", "super_admin"],
 
   "/list/exams(.*)": ["admin", "teacher", "student", "parent", "super_admin"],
   "/list/assignments(.*)": ["admin", "teacher", "student", "parent", "super_admin"],
