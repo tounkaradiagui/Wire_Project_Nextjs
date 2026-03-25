@@ -94,7 +94,7 @@ const StudentDetailPage = async (props: {
           {/* Small card */}
           <div className="flex-1 flex flex-wrap gap-4 justify-between">
             {/* Présence */}
-            <div className="flex items-center gap-4 bg-blue-500 text-white p-5 rounded-2xl shadow-md flex-1 min-w-[180px] transition-transform hover:scale-105">
+            <div className="flex items-center gap-4 bg-blue-500 text-white p-5 rounded-2xl shadow-md flex-1 min-w-45 transition-transform hover:scale-105">
               <div className="bg-white/20 p-3 rounded-xl">
                 <Image
                   src="/singleAttendance.png"
@@ -110,7 +110,7 @@ const StudentDetailPage = async (props: {
             </div>
 
             {/* Matières */}
-            <div className="flex items-center gap-4 bg-yellow-400 text-white p-5 rounded-2xl shadow-md flex-1 min-w-[180px] transition-transform hover:scale-105">
+            <div className="flex items-center gap-4 bg-yellow-400 text-white p-5 rounded-2xl shadow-md flex-1 min-w-45 transition-transform hover:scale-105">
               <div className="bg-white/20 p-3 rounded-xl">
                 <Image
                   src="/singleBranch.png"
@@ -127,7 +127,7 @@ const StudentDetailPage = async (props: {
             </div>
 
             {/* Leçons */}
-            <div className="flex items-center gap-4 bg-purple-500 text-white p-5 rounded-2xl shadow-md flex-1 min-w-[180px] transition-transform hover:scale-105">
+            <div className="flex items-center gap-4 bg-purple-500 text-white p-5 rounded-2xl shadow-md flex-1 min-w-45 transition-transform hover:scale-105">
               <div className="bg-white/20 p-3 rounded-xl">
                 <Image
                   src="/singleLesson.png"
@@ -144,7 +144,7 @@ const StudentDetailPage = async (props: {
             </div>
 
             {/* Classes */}
-            <div className="flex items-center gap-4 bg-green-500 text-white p-5 rounded-2xl shadow-md flex-1 min-w-[180px] transition-transform hover:scale-105">
+            <div className="flex items-center gap-4 bg-green-500 text-white p-5 rounded-2xl shadow-md flex-1 min-w-45 transition-transform hover:scale-105">
               <div className="bg-white/20 p-3 rounded-xl">
                 <Image
                   src="/singleClass.png"
@@ -162,7 +162,7 @@ const StudentDetailPage = async (props: {
           </div>
         </div>
         {/* Bottom */}
-        <div className="mt-4 bg-white p-4 rounded-md shadow-md h-[800px] teacher-calendar-container">
+        <div className="mt-4 bg-white p-4 rounded-md shadow-md h-200 teacher-calendar-container">
           <h1>Emploi du temps</h1>
           <BigCalendarContainer type="classId" id={student.class.id} />
         </div>

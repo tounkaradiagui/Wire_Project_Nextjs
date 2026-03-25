@@ -91,21 +91,26 @@ const StudentListPage = async ({
       <td className="hidden md:table-cell">{item.class.name}</td>
       <td className="hidden md:table-cell">{item.phone}</td>
       <td className="hidden lg:table-cell">{item.address}</td>
-      <td>
-        <div className="flex items-center gap-2">
-          <Link href={`/list/students/${item.id}`}>
-            <button className="bg-blue-500 hover:bg-blue-600 p-2 cursor-pointer rounded text-white">
-              <Eye size={16} />
-            </button>
-          </Link>
-          {role === "admin" && (
+      {role === "admin" && (
+        <td>
+          <div className="flex items-center gap-2">
+            <Link href={`/list/students/${item.id}`}>
+              <button className="bg-blue-500 hover:bg-blue-600 p-2 cursor-pointer rounded text-white">
+                <Eye size={16} />
+              </button>
+            </Link>
+            <Link href={`/list/students/${item.id}/card`}>
+              <button className="bg-blue-500 hover:bg-blue-600 p-2 cursor-pointer rounded text-white">
+                <Eye size={16} />
+              </button>
+            </Link>
             <>
               {/* <FormContainer table="student" type="update" data={item} /> */}
               <FormContainer table="student" type="delete" id={item.id} />
             </>
-          )}
-        </div>
-      </td>
+          </div>
+        </td>
+      )}
     </tr>
   );
 

@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useUser } from "@clerk/nextjs";
 
 import {
   Home,
@@ -18,7 +21,6 @@ import {
   FileCheck2,
   NotebookPen,
 } from "lucide-react";
-import { currentUser } from "@clerk/nextjs/server";
 
 const menuItems = [
   {
@@ -54,12 +56,6 @@ const menuItems = [
         href: "/list/students",
         visible: ["admin", "super_admin"],
       },
-      // {
-      //   icon: "👨‍👩‍👧",
-      //   label: "Mes enfants",
-      //   href: "/parent/children",
-      //   visible: ["parent"],
-      // },
       {
         icon: Users,
         label: "Parents",
@@ -149,61 +145,55 @@ const menuItems = [
         href: "/settings",
         visible: ["admin", "teacher", "student", "parent", "super_admin"],
       },
-      // {
-      //   icon: LogOut,
-      //   label: "Déconnexion",
-      //   href: "/logout",
-      //   visible: ["admin", "teacher", "student", "parent"],
-      // },
     ],
   },
 ];
 
-const Menu = async () => {
-  let user;
+type MenuProps = {
+  isMobileOpen?: boolean;
+};
 
-  try {
-    user = await currentUser();
-  } catch (error) {
-    // console.error("Clerk error (maybe offline):", error);
-    return null; // avoid crash when offline
-  }
-
-  // No user → no menu
+const Menu = ({ isMobileOpen = false }: MenuProps) => {
+  const { user } = useUser();
   if (!user) return null;
-
   const role = user.publicMetadata?.role as string;
 
   return (
-    <div className="text-sm p-2">
-      {menuItems.map((i) => (
-        <div className="flex flex-col gap-2" key={i.title}>
-          <span className="hidden lg:block my-4 font-light text-white">
-            {i.title}
+    <div className="flex-1 px-2 py-4">
+      {menuItems.map((group) => (
+        <div className="flex flex-col gap-2" key={group.title}>
+          <span className={`hidden lg:block my-4 font-light text-white`}>
+            {group.title}
           </span>
 
-          {i.items.map((item) => {
+          {group.items.map((item) => {
             if (role && item.visible.includes(role)) {
               const Icon = item.icon;
               return (
                 <Link
                   href={item.href}
                   key={item.label}
-                  className="flex items-center justify-center lg:justify-start gap-4 mt-2 text-gray-700 transition-all duration-200"
+                  className={`
+                    flex items-center gap-4 mt-2 text-gray-700 transition-all duration-200
+                    ${isMobileOpen ? "justify-start px-4 py-2" : "justify-center lg:justify-start"}
+                  `}
                 >
-                  <Icon size={25} color="#1E5CC5" />
-                  <span className="hidden lg:block text-white">
-                    {item.label}
-                  </span>
+                  {/* Afficher l’icône uniquement sur desktop OU si on n’est pas en mobile open */}
+                  {!isMobileOpen && <Icon size={25} color="#1E5CC5" />}
+                  <span className="hidden lg:block text-white">{item.label}</span>
+                  {/* Sur mobile open, on montre le label comme bouton plein */}
+                  {isMobileOpen && (
+                    <span className="text-white">{item.label}</span>
+                  )}
                 </Link>
               );
             }
+            return null;
           })}
         </div>
       ))}
     </div>
   );
 };
-
 
 export default Menu;

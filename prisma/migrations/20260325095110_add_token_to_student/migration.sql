@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Student" ALTER COLUMN "cardExpiresAt" SET DEFAULT CURRENT_TIMESTAMP;
