@@ -11,7 +11,7 @@ import Link from "next/link";
 import prisma from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import { studentRoleFilter } from '@/lib/roleFilters';
-import { Eye } from "lucide-react";
+import { Eye, IdCard } from "lucide-react";
 import TableActions from "@/lib/helpers/TableActions";
 import StudentFiltersModal from "@/lib/filters/StudentFiltersModal";
 import ActiveFilters from "@/lib/filters/ActiveFilters";
@@ -95,19 +95,22 @@ const StudentListPage = async ({
         <td>
           <div className="flex items-center gap-2">
             <Link href={`/list/students/${item.id}`}>
-              <button className="bg-blue-500 hover:bg-blue-600 p-2 cursor-pointer rounded text-white">
+              <button title="Voir le profil" className="bg-blue-500 hover:bg-blue-600 p-2 cursor-pointer rounded text-white">
                 <Eye size={16} />
               </button>
             </Link>
             <Link href={`/list/students/${item.id}/card`}>
-              <button className="bg-blue-500 hover:bg-blue-600 p-2 cursor-pointer rounded text-white">
-                <Eye size={16} />
+              <button
+                title="Voir la carte d'identité"
+                className="bg-purple-500 hover:bg-purple-600 p-2 cursor-pointer rounded text-white transition"
+              >
+                <IdCard size={16} />
               </button>
             </Link>
-            <>
+            <div title="Supprimer l'élève">
               {/* <FormContainer table="student" type="update" data={item} /> */}
               <FormContainer table="student" type="delete" id={item.id} />
-            </>
+            </div>
           </div>
         </td>
       )}
@@ -197,7 +200,7 @@ const StudentListPage = async ({
   ]);
 
   return (
-    <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
+    <div className="bg-white p-4 rounded-md flex-1 m-4 mt-6">
       {/* TOP SECTION */}
       <div className="flex items-center justify-between">
         <h1 className="hidden md:block text-lg font-semibold">

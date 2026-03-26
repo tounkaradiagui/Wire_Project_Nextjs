@@ -13,7 +13,7 @@ export default function Navbar({
   const { user } = useUser();
 
   const role = (user?.publicMetadata as { role?: string })?.role;
-  const roleLabel = ROLE_LABELS[role ?? ""] ?? "Super Admin";
+  const roleLabel = ROLE_LABELS[role ?? ""] ?? " ";
 
   return (
     <div className="flex items-center justify-between p-4 bg-white shadow-sm">
