@@ -64,7 +64,7 @@ const StudentDetailPage = async (props: {
                 />)}
               </div>
               <p className="text-sm text-gray-500">
-                Élève en 11ème classe au lycée, avec un taux de présence de 86%.
+                Élève en {student.class.name}, avec un taux de présence de 86%.
               </p>
               <div className="flex items-center justify-between gap-2 flex-wrap text-xs font-medium">
                 <div className="w-full md:w-1/3 lg:w-full 2xl:w-1/3 flex items-center gap-2">
@@ -139,7 +139,7 @@ const StudentDetailPage = async (props: {
               </div>
               <div>
                 <h1 className="text-2xl font-semibold">{student.class._count.lessons}</h1>
-                <span className="text-sm opacity-90">Leçons</span>
+                <span className="text-sm opacity-90">Cours</span>
               </div>
             </div>
 
@@ -155,7 +155,7 @@ const StudentDetailPage = async (props: {
                 />
               </div>
               <div>
-                <h1 className="text-2xl font-semibold">{student.class.name}ème</h1>
+                <h1 className="text-2xl font-semibold">{student.class.name}</h1>
                 <span className="text-sm opacity-90">Classe</span>
               </div>
             </div>
@@ -173,25 +173,25 @@ const StudentDetailPage = async (props: {
           {/* Shortcuts */}
           <h2 className="text-xl font-semibold mb-4">Raccourcis</h2>
           <div className="mt-4 gap-4 flex flex-wrap text-xs text-gray-700">
-            <Link href={`/list/lessons?classId=${student.class.id}`} className="p-3 rounded-md bg-amber-200">
+            <Link href={`/list/lessons?classId=${student.class.id}`} className="hover:scale-105 transition-transform p-3 rounded-md bg-amber-200">
               Leçons
             </Link>
-            <Link href={`/list/subjects?classId=${student.class.id}`} className="p-3 rounded-md bg-lime-200">
+            <Link href={`/list/subjects?classId=${student.class.id}`} className="hover:scale-105 transition-transform p-3 rounded-md bg-lime-200">
               Matières
             </Link>
             <Link
               href={`/list/teachers?classId=${student.class.id}`}
-              className="p-3 rounded-md bg-cyan-200"
+              className="p-3 rounded-md bg-cyan-200 hover:scale-105 transition-transform"
             >
               Enseignants
             </Link>
-            <Link href={`/list/results?studentId=${student.id}`} className="p-3 rounded-md bg-violet-200">
-              Résultats
-            </Link>
-            <Link href={`/list/assignments?classId=${student.class.id}`} className="p-3 rounded-md bg-rose-200">
+            <Link href={`/list/assignments?classId=${student.class.id}`} className="hover:scale-105 transition-transform p-3 rounded-md bg-rose-200">
               Devoirs
             </Link>
-            <Link href={`/list/exams?classId=${student.class.id}`} className="p-3 rounded-md bg-rose-200">
+            <Link href={`/list/results?studentId=${student.id}`} className="hover:scale-105 transition-transform p-3 rounded-md bg-violet-200">
+              Résultats
+            </Link>
+            <Link href={`/list/exams?classId=${student.class.id}`} className="hover:scale-105 transition-transformp-3 p-3 rounded-md bg-rose-200">
               Examens
             </Link>
           </div>

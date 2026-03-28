@@ -151,6 +151,18 @@ const LessonListPage = async ({
           query.teacherId = value;
           break;
 
+        case "studentId": {
+          const student = await prisma.student.findUnique({
+            where: { id: value },
+            select: { classId: true },
+          });
+
+          if (student) {
+            query.classId = student.classId;
+          }
+          break;
+        }
+
         case "subjectId":
           query.subjectId = parseInt(value);
           break;

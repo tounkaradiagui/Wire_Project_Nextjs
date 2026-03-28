@@ -4,13 +4,16 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Filter } from "lucide-react";
 
-const SubjectFiltersModal = ({ teachers }: any) => {
+const SubjectFiltersModal = ({ teachers, classes }: any) => {
     const router = useRouter();
     const searchParams = useSearchParams();
 
     const [open, setOpen] = useState(false);
     const [teacherId, setTeacherId] = useState(
         searchParams.get("teacherId") || ""
+    );
+    const [classId, setClassId] = useState(
+        searchParams.get("classId") || ""
     );
 
     const applyFilters = () => {
@@ -19,6 +22,9 @@ const SubjectFiltersModal = ({ teachers }: any) => {
         if (teacherId)
             params.set("teacherId", teacherId);
         else params.delete("teacherId");
+        if (classId)
+            params.set("classId", classId);
+        else params.delete("classId");
 
         params.set("page", "1");
 
@@ -47,7 +53,7 @@ const SubjectFiltersModal = ({ teachers }: any) => {
                     <div className="bg-white p-6 rounded-xl w-75 space-y-4">
 
                         <h2 className="font-semibold">Filtres matières</h2>
-
+                        {/* Enseignant */}
                         <select
                             value={teacherId}
                             onChange={(e) => setTeacherId(e.target.value)}
@@ -56,10 +62,26 @@ const SubjectFiltersModal = ({ teachers }: any) => {
                             <option value="">Tous les enseignants</option>
                             {teachers.map((t: any) => (
                                 <option key={t.id} value={t.id}>
-                                    {t.name}
+                                    {t.name} {t.surname}
                                 </option>
                             ))}
                         </select>
+
+                        {/* Classe */}
+                        <select
+  value={classId}
+  onChange={(e) => setClassId(e.target.value)}
+  className="w-full border p-2 rounded"
+>
+  <option value="">Toutes les classes</option>
+
+  {classes?.map((c: any) => (
+    <option key={c.id} value={c.id}>
+      {c.name}
+    </option>
+  ))}
+</select>
+
 
                         <div className="flex justify-between">
                             <button onClick={resetFilters} className="text-red-500 cursor-pointer text-sm">

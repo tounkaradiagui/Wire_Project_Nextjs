@@ -104,6 +104,14 @@ const SubjectListPage = async ({
           };
           break;
 
+        case "classId":
+          query.lessons = {
+            some: {
+              classId: parseInt(value),
+            },
+          };
+          break;
+
         default:
           break;
       }
@@ -125,7 +133,7 @@ const SubjectListPage = async ({
   };
 
   // Role basé sur les filtres d'accès (ex: un enseignant ne voit que ses matières) 
-  const [data, count, teachers] = await prisma.$transaction([
+  const [data, count, teachers, classes] = await prisma.$transaction([
     prisma.subject.findMany({
       where: query,
       include: {
@@ -145,6 +153,10 @@ const SubjectListPage = async ({
     prisma.teacher.findMany({
       select: { id: true, name: true, surname: true },
     }),
+
+    prisma.class.findMany({
+      select: { id: true, name: true },
+    }),
   ]);
 
   return (
@@ -158,8 +170,8 @@ const SubjectListPage = async ({
           <TableSearch />
           <div className="flex items-center gap-4 self-end">
             <ResetFiltersButton />
-            <ActiveFilters teachers={teachers} />
-            <SubjectFiltersModal teachers={teachers} />
+            <ActiveFilters teachers={teachers} classes={classes} />
+            <SubjectFiltersModal teachers={teachers} classes={classes} />
             <TableActions />
             {role === "admin" && (
               <FormContainer table="subject" type="create" />

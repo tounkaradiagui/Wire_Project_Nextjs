@@ -373,7 +373,7 @@ export const createSubject = async (
         return { success: true, error: null }
 
     } catch (error) {
-        console.log(error)
+        // console.log(error)
         return {
             success: false,
             error: "Une erreur est survenue lors de la création de la matière",
