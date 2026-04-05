@@ -235,7 +235,7 @@ const AttendanceForm = ({
                                     resourceType: "auto",
                                     multiple: false,
                                     folder: "attendance",
-                                    //access_mode: "public", / / ✅ OBLIGATOIRE POUR PDF
+                                    //access_mode: "public",
                                     maxFiles: 1,
                                     maxFileSize: 5_000_000,
                                     clientAllowedFormats: ["jpg", "jpeg", "png", "pdf"],

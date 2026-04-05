@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model UserProfile {
@@ -113,9 +114,9 @@ model Teacher {
   subjects       TeacherSubject[]
   teacherClasses TeacherClass[]
   sessions       Session[]
-
-  userProfileId String      @unique
-  userProfile   UserProfile @relation(fields: [userProfileId], references: [id])
+  results        Result[]
+  userProfileId  String           @unique
+  userProfile    UserProfile      @relation(fields: [userProfileId], references: [id])
 
   createdAt DateTime  @default(now())
   deletedAt DateTime?
@@ -125,7 +126,8 @@ model Teacher {
 model Grade {
   id       Int       @id @default(autoincrement())
   level    Int       @unique
-  name     String?
+  name     String    @unique
+  cycle    CycleEnum
   classes  Class[]
   students Student[]
 }
@@ -142,14 +144,17 @@ model Class {
   students       Student[]
   teacherClasses TeacherClass[]
   sessions       Session[]
+
+  @@unique([name, gradeId])
 }
 
 model Subject {
   id          Int              @id @default(autoincrement())
   code        String?
-  coefficient String?
+  coefficient Float?
   name        String           @unique
   lessons     Lesson[]
+  results     Result[]
   teachers    TeacherSubject[]
 
   createdAt DateTime @default(now())
@@ -172,7 +177,7 @@ model TeacherClass {
   teacherId String
   classId   Int
 
-  teacher Teacher @relation(fields: [teacherId], references: [id])
+  teacher Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   class   Class   @relation(fields: [classId], references: [id])
 
   @@id([teacherId, classId])
@@ -238,20 +243,42 @@ model Assignment {
 }
 
 model Result {
-  id           Int         @id @default(autoincrement())
-  score        Int
+  id Int @id @default(autoincrement())
+
+  // NOTE
+  score Float
+
+  // RELATIONS PRINCIPALES
+  studentId String
+  subjectId Int
+  teacherId String
+  termId    Int
+
+  // CONTEXTE (optionnel)
   examId       Int?
   assignmentId Int?
-  studentId    String
-  assignment   Assignment? @relation(fields: [assignmentId], references: [id])
-  exam         Exam?       @relation(fields: [examId], references: [id])
-  student      Student     @relation(fields: [studentId], references: [id])
+
+  // META
+  appreciation String?
+  rank         Int?
+
+  // RELATIONS
+  term    Term    @relation(fields: [termId], references: [id])
+  student Student @relation(fields: [studentId], references: [id])
+  subject Subject @relation(fields: [subjectId], references: [id])
+  teacher Teacher @relation(fields: [teacherId], references: [id])
+
+  exam       Exam?       @relation(fields: [examId], references: [id])
+  assignment Assignment? @relation(fields: [assignmentId], references: [id])
 
   createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+  updatedAt DateTime @updatedAt
 
-  deletedAt DateTime?
-  isDeleted Boolean   @default(false)
+  deletedAt DateTime @default(now())
+  isDeleted Boolean  @default(false)
+
+  @@unique([studentId, examId])
+  @@unique([studentId, assignmentId])
 }
 
 model Session {
@@ -365,6 +392,33 @@ model AuditLog {
   @@index([role])
 }
 
+model Term {
+  id        Int      @id @default(autoincrement())
+  name      String // "Trimestre 1"
+  order     Int // 1, 2, 3
+  startDate DateTime
+  endDate   DateTime
+  isClosed  Boolean  @default(false)
+
+  schoolYearId Int
+  schoolYear   SchoolYear @relation(fields: [schoolYearId], references: [id])
+
+  results Result[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SchoolYear {
+  id       Int     @id @default(autoincrement())
+  name     String // "2025-2026"
+  isActive Boolean @default(true)
+
+  terms Term[]
+
+  createdAt DateTime @default(now())
+}
+
 enum AuditAction {
   // USER
   CREATE_USER
@@ -462,4 +516,9 @@ enum Role {
   TEACHER
   PARENT
   STUDENT
+}
+
+enum CycleEnum {
+  FIRST
+  SECOND
 }

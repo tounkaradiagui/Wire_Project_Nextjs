@@ -30,6 +30,19 @@ const StudentForm = ({
     formState: { errors },
   } = useForm({
     resolver: zodResolver(studentSchema),
+    defaultValues: {
+      username: data?.username ?? "",
+      email: data?.email ?? "",
+      name: data?.name ?? "",
+      surname: data?.surname ?? "",
+      phone: data?.phone ?? "",
+      address: data?.address ?? "",
+      birthday: data?.birthday ?? "",
+      sex: data?.sex ?? "",
+      gradeId: data?.gradeId ?? undefined,
+      classId: data?.classId ?? undefined,
+      parentId: data?.parentId ?? undefined,
+    },
   });
 
   const [state, formAction, isPending] = useActionState(

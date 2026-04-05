@@ -57,7 +57,7 @@ const ClassListPage = async ({
         </div>
       </td>
       <td>{item.capacity}</td>
-      <td className="hidden md:table-cell">{item.grade?.level ?? "-"}</td>
+      <td className="hidden md:table-cell">{item.grade.cycle === "FIRST" ? "1er Cycle" : "Second Cycle"}</td>
       <td>
         <div className="flex items-center gap-2">
           {role === "admin" && (
@@ -74,9 +74,9 @@ const ClassListPage = async ({
   const teacherId = searchParams.teacherId;
 
   // URL PARAMS CONDITION
-  
+
   const query: Prisma.ClassWhereInput = {};
-  
+
   if (teacherId) {
     query.teacherClasses = {
       some: {
@@ -84,7 +84,7 @@ const ClassListPage = async ({
       },
     };
   }
-  
+
   if (queryParams) {
     for (const [key, value] of Object.entries(queryParams)) {
       if (value !== undefined) {
@@ -112,7 +112,7 @@ const ClassListPage = async ({
   ]);
 
   return (
-    <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
+    <div className="bg-white p-4 rounded-md flex-1 m-4 mt-4">
       {/* TOP SECTION */}
       <div className="flex items-center justify-between">
         <h1 className="hidden md:block text-lg font-semibold">

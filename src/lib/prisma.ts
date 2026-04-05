@@ -4,7 +4,7 @@ import { PrismaClient } from "@prisma/client";
 // Create a singleton instance function
 const prismaClientSingleton = () => {
   return new PrismaClient({
-    log: ["query", "error", "warn"],
+    log: ["error", "warn"],
   });
 };
 

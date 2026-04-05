@@ -26,6 +26,16 @@ const ParentForm = ({
         formState: { errors },
     } = useForm({
         resolver: zodResolver(parentSchema),
+        defaultValues: {
+            username: data?.username ?? "",
+            email: data?.email ?? "",
+            name: data?.name ?? "",
+            surname: data?.surname ?? "",
+            phone: data?.phone ?? "",
+            address: data?.address ?? "",
+            birthday: data?.birthday ?? "",
+            sex: data?.sex ?? "",
+        },
     });
 
     const [state, formAction, isPending] = useActionState(

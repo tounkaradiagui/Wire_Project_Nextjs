@@ -52,8 +52,14 @@ const FormContainer = async ({ table, type, data, id, role }: FormContainerProps
           select: {
             id: true,
             level: true,
+            name: true,
+            cycle: true,
+          },
+          orderBy: {
+            level: "asc",
           },
         });
+
         const classTeachers = await prisma.teacher.findMany({
           select: {
             id: true,
@@ -61,7 +67,12 @@ const FormContainer = async ({ table, type, data, id, role }: FormContainerProps
             surname: true,
           },
         });
-        relatedData = { teachers: classTeachers, grades: classGrades };
+
+        relatedData = {
+          teachers: classTeachers,
+          grades: classGrades,
+        };
+
         break;
       }
 
@@ -269,60 +280,107 @@ const FormContainer = async ({ table, type, data, id, role }: FormContainerProps
         break;
       }
 
-      case "result": {
-        const { userId, sessionClaims } = await auth();
-        const role = (sessionClaims?.metadata as { role?: string })?.role;
+case "result": {
+  const { userId, sessionClaims } = await auth();
+  const role = (sessionClaims?.metadata as { role?: string })?.role;
 
-        // Élèves
-        const students = await prisma.student.findMany({
+  // 🔹 Élèves
+  const students = await prisma.student.findMany({
+    select: {
+      id: true,
+      name: true,
+      surname: true,
+    },
+  });
+
+  // 🔹 Exams (filtrés si teacher)
+  const exams = await prisma.exam.findMany({
+    where: {
+      ...(role === "teacher"
+        ? {
+            lesson: {
+              teacherId: userId!,
+            },
+          }
+        : {}),
+    },
+    select: {
+      id: true,
+      title: true,
+      lesson: {
+        select: {
+          subjectId: true,
+        },
+      },
+    },
+  });
+
+  // 🔹 Assignments (filtrés si teacher)
+  const assignments = await prisma.assignment.findMany({
+    where: {
+      ...(role === "teacher"
+        ? {
+            lesson: {
+              teacherId: userId!,
+            },
+          }
+        : {}),
+    },
+    select: {
+      id: true,
+      title: true,
+      lesson: {
+        select: {
+          subjectId: true,
+        },
+      },
+    },
+  });
+
+  // 🔹 Terms (TRÈS IMPORTANT)
+  const terms = await prisma.term.findMany({
+    orderBy: {
+      order: "asc",
+    },
+    select: {
+      id: true,
+      name: true,
+    },
+  });
+
+  // 🔹 Subjects (optionnel mais recommandé pour UI)
+  const subjects =
+    role === "teacher"
+      ? await prisma.subject.findMany({
+          where: {
+            lessons: {
+              some: {
+                teacherId: userId!,
+              },
+            },
+          },
           select: {
             id: true,
             name: true,
-            surname: true,
           },
-        });
-
-        // Exams (filtrés si teacher)
-        const exams = await prisma.exam.findMany({
-          where: {
-            ...(role === "teacher"
-              ? {
-                lesson: {
-                  teacherId: userId!,
-                },
-              }
-              : {}),
-          },
+        })
+      : await prisma.subject.findMany({
           select: {
             id: true,
-            title: true,
+            name: true,
           },
         });
 
-        // Assignments (filtrés si teacher)
-        const assignments = await prisma.assignment.findMany({
-          where: {
-            ...(role === "teacher"
-              ? {
-                lesson: {
-                  teacherId: userId!,
-                },
-              }
-              : {}),
-          },
-          select: {
-            id: true,
-            title: true,
-          },
-        });
+  relatedData = {
+    students,
+    exams,
+    assignments,
+    terms,      // ✅ NEW
+    subjects,   // ✅ NEW (important pour cohérence UI)
+  };
 
-        relatedData = {
-          students,
-          exams,
-          assignments,
-        };
-        break;
-      }
+  break;
+}
 
       case "session": {
         const { userId, sessionClaims } = await auth();

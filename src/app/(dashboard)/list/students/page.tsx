@@ -87,7 +87,7 @@ const StudentListPage = async ({
       <td className="hidden md:table-cell">
         {item.sex === "MALE" ? "Masculin" : "Féminin"}
       </td>
-      <td className="hidden md:table-cell">{item.grade.level}</td>
+      <td className="hidden md:table-cell">{item.grade.cycle === "FIRST" ? "1er Cycle" : "Second Cycle"}</td>
       <td className="hidden md:table-cell">{item.class.name}</td>
       <td className="hidden md:table-cell">{item.phone}</td>
       <td className="hidden lg:table-cell">{item.address}</td>

@@ -10,23 +10,32 @@ import prisma from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import {
   Filter,
-  ArrowUpDown
+  ArrowUpDown,
+  IdCard
 } from "lucide-react";
 import ResetFiltersButton from "@/lib/filters/ResetFiltersButton";
 import ActiveFilters from "@/lib/filters/ActiveFilters";
 import TableActions from "@/lib/helpers/TableActions";
 import ResultFiltersModal from "@/lib/filters/ResultFiltersModal";
+import Link from "next/link";
 
 
 type ResultList = {
   id: number;
   title: string;
+
   studentName: string;
   studentSurname: string;
+
   teacherName: string;
   teacherSurname: string;
+
+  subjectName: string; // 🔥 NEW
+  termName: string;    // 🔥 NEW
+
   score: number;
   className: string;
+
   date: Date;
   type: "Exam" | "Assignment";
 };
@@ -44,34 +53,38 @@ const ResultListPage = async ({
 
   const { userId, sessionClaims } = await auth();
   const role = (sessionClaims?.metadata as { role?: string })?.role;
-
   const columns = [
     { header: "Titre", accessor: "title" },
-
-    { header: "Elève", accessor: "student" },
+    { header: "Élève", accessor: "student" },
+    { header: "Matière", accessor: "subject" },   // 🔥 NEW
     { header: "Note", accessor: "score" },
+
     {
       header: "Enseignant",
       accessor: "teacher",
-      className: "hidden md:table-cell ",
+      className: "hidden md:table-cell",
     },
+
     {
       header: "Classe",
       accessor: "class",
-      className: "hidden md:table-cell ",
+      className: "hidden md:table-cell",
     },
+
+    { header: "Trimestre", accessor: "term" },   // 🔥 NEW
     { header: "Type", accessor: "type" },
 
     {
       header: "Date",
       accessor: "date",
-      className: "hidden md:table-cell ",
+      className: "hidden md:table-cell",
     },
+
     ...(role === "admin" || role === "teacher"
       ? [{ header: "Actions", accessor: "actions" }]
       : []),
   ];
-
+  
   const renderRow = (item: ResultList) => (
     <tr
       key={item.id}
@@ -83,11 +96,17 @@ const ResultListPage = async ({
         </div>
       </td>
       <td>{item.studentName + " " + item.studentSurname}</td>
+      <td>{item.subjectName}</td>
       <td>{item.score}</td>
       <td className="hidden md:table-cell">
         {item.teacherName + " " + item.teacherSurname}
       </td>
       <td className="hidden md:table-cell">{item.className}</td>
+      <td>
+        <span className="px-2 py-1 text-xs rounded bg-green-100 text-green-700">
+          {item.termName} {/* 🔥 */}
+        </span>
+      </td>
       <td>
         {item.type === "Exam" ? (
           <span className="px-2 py-1 text-xs rounded bg-blue-100 text-blue-700">
@@ -106,6 +125,20 @@ const ResultListPage = async ({
         <div className="flex items-center gap-2">
           {(role === "admin" || role === "teacher") && (
             <>
+              <Link
+                // href={`/api/bulettin/${studentId}`}
+                href=""
+                target="_blank"
+                
+              >
+                <button
+                  title="Voir le bulletin"
+                  className="flex items-center gap-1 px-3 py-1 text-xs rounded-md bg-green-600 text-white hover:bg-green-700"
+                >
+                <IdCard size={16} />
+                </button>
+                {/* Présences */}
+              </Link>
               <FormContainer table="result" type="update" data={item} />
               <FormContainer table="result" type="delete" id={item.id} />
             </>
@@ -261,6 +294,9 @@ const ResultListPage = async ({
         where,
         include: {
           student: { select: { id: true, name: true, surname: true } },
+          subject: { select: { id: true, name: true } }, 
+          term: { select: { id: true, name: true } },   
+
           exam: {
             include: {
               lesson: {
@@ -271,6 +307,7 @@ const ResultListPage = async ({
               },
             },
           },
+
           assignment: {
             include: {
               lesson: {
@@ -298,29 +335,42 @@ const ResultListPage = async ({
 
   // Data
   const data: ResultList[] = dataRes
-    .map((item) => {
-      const assessment = item.exam ?? item.assignment;
-      if (!assessment) return null;
+  .map((item) => {
+    const isExam = !!item.exam;
 
-      const isExam = !!item.exam;
+    const lesson = item.exam?.lesson || item.assignment?.lesson;
 
-      return {
-        id: item.id,
-        title: assessment.title,
-        studentName: item.student.name,
-        studentSurname: item.student.surname,
-        teacherName: assessment.lesson.teacher.name,
-        teacherSurname: assessment.lesson.teacher.surname,
-        score: item.score,
-        className: assessment.lesson.class.name,
-        date: isExam
-          ? item.exam!.startTime
-          : item.assignment!.startDate,
-        type: isExam ? "Exam" : "Assignment",
-      };
-    })
-    .filter((item): item is ResultList => item !== null);
+    if (!lesson) return null;
 
+    return {
+      id: item.id,
+
+      title: isExam
+        ? item.exam!.title
+        : item.assignment!.title,
+
+      studentName: item.student.name,
+      studentSurname: item.student.surname,
+
+      teacherName: lesson.teacher.name,
+      teacherSurname: lesson.teacher.surname,
+
+      subjectName: item.subject.name, // 🔥
+      termName: item.term.name,       // 🔥
+
+      score: item.score,
+
+      className: lesson.class.name,
+
+      date: isExam
+        ? item.exam!.startTime
+        : item.assignment!.startDate,
+
+      type: isExam ? "Exam" : "Assignment",
+    };
+  })
+  .filter((item): item is ResultList => item !== null);
+ 
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
       {/* TOP SECTION */}

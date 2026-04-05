@@ -47,7 +47,7 @@ const ParentPage = async () => {
                       Classe : {student.class.name}
                     </p>
                     <p className="text-sm text-gray-600">
-                      Niveau : {student.grade.level}
+                      Niveau : {student.grade.cycle === "FIRST" ? "1er Cycle" : "Second Cycle"}
                     </p>
 
                     <div className="flex gap-2 mt-3 flex-wrap">

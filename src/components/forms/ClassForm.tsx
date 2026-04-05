@@ -9,6 +9,13 @@ import { Dispatch, SetStateAction, useActionState, useEffect, startTransition, u
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 
+type Grade = {
+  id: number;
+  name?: string;
+  level: number;
+  cycle: "FIRST" | "SECOND";
+};
+
 const ClassForm = ({
   setOpen,
   type,
@@ -48,25 +55,43 @@ const ClassForm = ({
 
   const router = useRouter();
 
-  useEffect(() => {
-    setServerError(state.error)
-    if (state.success) {
-      toast.success(
-        `La classe a été ${type === "create" ? "ajoutée avec succès" : "mise à jour avec succès"
-        }`
-      );
-      setOpen(false);
-      router.refresh();
-    }
+useEffect(() => {
+  if (state.error) {
+    setServerError(state.error);
+    toast.error("Erreur serveur, veuillez réessayer");
+  }
 
-    if (state.error) {
-      toast.error("Erreur serveur, veuillez réessayer");
-    }
-  }, [state.success, state.error, type, setOpen, router]);
-
-  //   const { teachers, grades } = relatedData;
+  if (state.success) {
+    toast.success(
+      `La classe a été ${
+        type === "create"
+          ? "ajoutée avec succès"
+          : "mise à jour avec succès"
+      }`
+    );
+    setOpen(false);
+    router.refresh();
+  }
+}, [state.success, state.error, type, setOpen, router]);
 
   const grades = Array.isArray(relatedData?.grades) ? relatedData.grades : [];
+
+  const cycleLabel = {
+    FIRST: "1er Cycle",
+    SECOND: "2eme Cycle",
+  };
+
+  // Grouper les niveaux
+  const groupedGrades = (grades as Grade[]).reduce<
+    Record<Grade["cycle"], Grade[]>
+  >((acc, grade) => {
+    if (!acc[grade.cycle]) acc[grade.cycle] = [];
+    acc[grade.cycle].push(grade);
+    return acc;
+  }, {
+    FIRST: [],
+    SECOND: [],
+  });
 
   return (
     <div className="max-h-[80vh] overflow-y-auto p-6">
@@ -112,9 +137,7 @@ const ClassForm = ({
 
           {/* Niveau */}
           <div className="flex flex-col gap-1">
-            <label >
-              Niveau
-            </label>
+            <label>Niveau</label>
 
             <select
               {...register("gradeId")}
@@ -122,13 +145,20 @@ const ClassForm = ({
               className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
             >
               <option value="">Sélectionner</option>
-              {grades.map((grade: { id: number; level: number }) => (
-                <option
-                  key={grade.id}
-                  value={grade.id}
+
+              {Object.entries(groupedGrades).map(([cycle, grades]) => (
+                <optgroup
+                  key={cycle}
+                  label={cycleLabel[cycle as keyof typeof cycleLabel]}
                 >
-                  Niveau {grade.level}
-                </option>
+                  {grades
+                    .sort((a, b) => a.level - b.level)
+                    .map((grade) => (
+                      <option key={grade.id} value={grade.id}>
+                        {grade.name ?? `${grade.level}ème Année`}
+                      </option>
+                    ))}
+                </optgroup>
               ))}
             </select>
 
@@ -139,12 +169,14 @@ const ClassForm = ({
             )}
           </div>
 
-        </div>
+        </div >
 
         {/* Global error */}
-        {serverError && (
-          <span className="text-xs text-red-500">{serverError}</span>
-        )}
+        {
+          serverError && (
+            <span className="text-xs text-red-500">{serverError}</span>
+          )
+        }
 
         {/* Actions */}
         <button
@@ -163,8 +195,8 @@ const ClassForm = ({
                 : "Valider"}
           </span>
         </button>
-      </form>
-    </div>
+      </form >
+    </div >
   );
 };
 

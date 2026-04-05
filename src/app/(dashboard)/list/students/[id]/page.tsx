@@ -121,7 +121,7 @@ const StudentDetailPage = async (props: {
                 />
               </div>
               <div>
-                <h1 className="text-2xl font-semibold">{student.grade.level}</h1>
+                <h1 className="text-2xl font-semibold">{student.grade.cycle === "FIRST" ? "1er Cycle" : "Second Cycle"}</h1>
                 <span className="text-sm opacity-90">Niveau</span>
               </div>
             </div>

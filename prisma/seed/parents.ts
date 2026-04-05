@@ -2,7 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import { randomName } from "./utils";
 
 export async function seedParents(prisma: PrismaClient) {
-  for (let i = 1; i <= 167; i++) {
+  for (let i = 1; i <= 7; i++) {
     const sex = i % 2 === 0 ? "FEMALE" : "MALE";
     const { name, surname } = randomName(sex);
 

@@ -11,43 +11,50 @@ import { seedSessions } from "./seed/sessions";
 import { seedExamsAndAssignments } from "./seed/exams-assignments";
 import { seedAttendance } from "./seed/attendance";
 import { seedResults } from "./seed/results";
+import { seedSchoolYears } from "./seed/school-years";
+import { seedTerms } from "./seed/terms";
 
 const prisma = new PrismaClient();
 
 async function main() {
     console.log("🌱 Reset base de données...");
 
-    await prisma.attendance.deleteMany();
-    await prisma.session.deleteMany();
-    await prisma.result.deleteMany();
-    await prisma.exam.deleteMany();
-    await prisma.assignment.deleteMany();
-    await prisma.lesson.deleteMany();
-    await prisma.student.deleteMany();
-    await prisma.parent.deleteMany();
-    await prisma.teacher.deleteMany();
-    await prisma.admin.deleteMany();
-    await prisma.userProfile.deleteMany();
-    await prisma.subject.deleteMany();
+    // await prisma.attendance.deleteMany();
+    // await prisma.session.deleteMany();
+    // await prisma.term.deleteMany();
+    // await prisma.schoolYear.deleteMany();
+    // await prisma.result.deleteMany();
+    // await prisma.exam.deleteMany();
+    // await prisma.assignment.deleteMany();
+    // await prisma.lesson.deleteMany();
+    // await prisma.student.deleteMany();
+    // await prisma.parent.deleteMany();
+    // await prisma.teacher.deleteMany();
+    // await prisma.admin.deleteMany();
+    // await prisma.userProfile.deleteMany();
+    // await prisma.subject.deleteMany();
     await prisma.class.deleteMany();
     await prisma.grade.deleteMany();
 
     console.log("🌱 Seed en cours...");
 
     await seedGradesAndClasses(prisma);
-    await seedAdmins(prisma);
-    await seedSubjects(prisma);
-    await seedTeachers(prisma);
-    await seedParents(prisma);
-    await seedStudents(prisma);
-    await seedLessons(prisma);
+    // await seedAdmins(prisma);
+    // await seedSubjects(prisma);
+    // await seedTeachers(prisma);
+    // await seedParents(prisma);
+    // await seedStudents(prisma);
+    // await seedLessons(prisma);
 
     // important pour calendrier + absences
-    await seedSessions(prisma);
+    // await seedSessions(prisma);
 
-    await seedExamsAndAssignments(prisma);
-    await seedAttendance(prisma);
-    await seedResults(prisma);
+    // await seedExamsAndAssignments(prisma);
+    // await seedAttendance(prisma);
+    // const schoolYear = await seedSchoolYears(prisma);
+    // const terms = await seedTerms(prisma, schoolYear.id);
+
+    // await seedResults(prisma, terms);
 
     console.log("✅ Seed terminé avec succès");
 }

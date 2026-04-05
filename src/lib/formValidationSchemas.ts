@@ -51,7 +51,10 @@ export type UserSchemaInput = z.infer<typeof userSchema>;
 export const subjectSchema = z.object({
   id: z.coerce.number().optional(),
   code: z.string().optional(),
-  coefficient: z.string().optional(),
+  coefficient: z.coerce
+  .number()
+  .min(0, "Le coefficient doit être positif")
+  .optional(),
   name: z
     .string()
     .min(1, {
@@ -336,13 +339,19 @@ export const resultSchema = z
       .min(0, { message: "La note ne peut pas être négative" })
       .max(20, { message: "La note ne peut pas dépasser 20" }),
 
-    // examId: z.coerce.number().optional().nullable(),
-    examId: z.string().optional().transform(val => val ? Number(val) : undefined),
+    examId: z.coerce.number().optional().nullable(),
+
     assignmentId: z.coerce.number().optional().nullable(),
 
     studentId: z.string().min(1, {
-      message: "L'élève est requis",
+      message: "L'élève est requis.",
     }),
+
+    termId: z.coerce.number({
+      message: "Le trimestre est requis",
+    }),
+
+    appreciation: z.string().optional(),
   })
   .refine(
     (data) =>

@@ -324,7 +324,7 @@ export const createSubject = async (
             // ✅ CREATE
             subject = await prisma.subject.create({
                 data: {
-                    coefficient: data.coefficient,
+                    coefficient: data.coefficient ?? null,
                     code: data.code,
                     name: data.name,
                 },
@@ -563,10 +563,32 @@ export const createClass = async (
         // Vérifier le grade
         const grade = await prisma.grade.findUnique({
             where: { id: data.gradeId },
-        })
+            select: {
+                id: true,
+                level: true,
+                cycle: true,
+            },
+        });
+
         if (!grade) {
-            return { success: false, error: "Niveau introuvable" }
+            return { success: false, error: "Niveau introuvable" };
         }
+
+        // Vérifier duplication (important si pas de contrainte unique forte)
+        const existingClass = await prisma.class.findFirst({
+            where: {
+                name: data.name,
+                gradeId: data.gradeId,
+            },
+        });
+
+        if (existingClass) {
+            return {
+                success: false,
+                error: "Une classe avec ce nom existe déjà pour ce niveau",
+            };
+        }
+
 
         // Créer la classe
         await prisma.class.create({
@@ -1011,7 +1033,7 @@ export const createStudent = async (
 
         createdUserId = user.id
 
-        // 1. Create profile
+        // Create profile
         const profile = await prisma.userProfile.create({
             data: {
                 clerkId: user.id,
@@ -1280,8 +1302,6 @@ export const updateStudent = async (
     }
 }
 
-
-
 // Delete Student Action
 export const deleteStudent = async (
     _currentState: currentState,
@@ -1480,39 +1500,37 @@ export const createParent = async (
 
         userIdCreated = user.id
 
-        const result = await prisma.$transaction(async (tx) => {
-            const profile = await tx.userProfile.create({
-                data: {
-                    clerkId: user.id,
-                    role: "PARENT",
-                    username: data.username,
-                    firstName: data.name,
-                    lastName: data.surname,
-                    isActive: true,
-                    isBanned: false,
-                },
-            })
 
-            const parent = await tx.parent.create({
-                data: {
-                    id: user.id,
-                    username: data.username,
-                    name: data.name,
-                    surname: data.surname,
-                    email: data.email || null,
-                    phone: data.phone,
-                    address: data.address,
-                    image: data.image || null,
-                    sex: data.sex,
-                    birthday: data.birthday ?? null,
-                    userProfile: {
-                        connect: { id: profile.id },
-                    },
-                },
-            })
-
-            return { parent, profile }
+        const profile = await prisma.userProfile.create({
+            data: {
+                clerkId: user.id,
+                role: "PARENT",
+                username: data.username,
+                firstName: data.name,
+                lastName: data.surname,
+                isActive: true,
+                isBanned: false,
+            },
         })
+
+        const parent = await prisma.parent.create({
+            data: {
+                id: user.id,
+                username: data.username,
+                name: data.name,
+                surname: data.surname,
+                email: data.email || null,
+                phone: data.phone,
+                address: data.address,
+                image: data.image || null,
+                sex: data.sex,
+                birthday: data.birthday ?? null,
+                userProfile: {
+                    connect: { id: profile.id },
+                },
+            },
+        })
+
 
         // 🔥 récupérer userProfile (admin qui crée)
         const actor = await prisma.userProfile.findUnique({
@@ -1525,19 +1543,19 @@ export const createParent = async (
         await logAction({
             action: AuditAction.CREATE_PARENT,
             entityType: "Parent",
-            entityId: result.parent.id,
+            entityId: parent.id,
 
             performedById: actor.id,
             role: actor.role,
 
-            description: `Parent ${result.parent.name} créé`,
+            description: `Parent ${parent.name} créé`,
 
             before: null,
 
             after: {
-                username: result.parent.username,
-                email: result.parent.email,
-                phone: result.parent.phone,
+                username: parent.username,
+                email: parent.email,
+                phone: parent.phone,
             },
 
             metadata: {
@@ -1560,6 +1578,7 @@ export const createParent = async (
 
 // Update Parent Action
 export const updateParent = async (
+
     _currentState: { success: boolean; error: string | null },
     data: ParentSchemaInput
 ) => {
@@ -2708,10 +2727,7 @@ export const createResult = async (
 
     try {
         if (!userId) {
-            return {
-                success: false,
-                error: "Utilisateur non authentifié",
-            }
+            return { success: false, error: "Utilisateur non authentifié" }
         }
 
         const userProfile = await prisma.userProfile.findUnique({
@@ -2725,6 +2741,7 @@ export const createResult = async (
             }
         }
 
+        // 🔥 Récupérer la leçon liée
         const lesson = await prisma.lesson.findFirst({
             where: {
                 teacherId: userId,
@@ -2733,22 +2750,51 @@ export const createResult = async (
                     { assignments: { some: { id: data.assignmentId ?? undefined } } },
                 ],
             },
+            include: {
+                subject: true,
+            },
         })
 
         if (!lesson) {
-            return { success: false, error: "Accès refusé à cette leçon" }
+            return { success: false, error: "Accès refusé à ce cours" }
         }
 
         const result = await prisma.result.create({
             data: {
                 score: data.score,
-                studentId: data.studentId,
-                examId: data.examId ? Number(data.examId) : null,
-                assignmentId: data.assignmentId ? Number(data.assignmentId) : null,
-            },
-        })
 
-        // 🔥 LOG
+                student: {
+                    connect: { id: data.studentId }
+                },
+
+                ...(data.examId && {
+                    exam: {
+                        connect: { id: data.examId },
+                    },
+                }),
+
+                ...(data.assignmentId && {
+                    assignment: {
+                        connect: { id: data.assignmentId },
+                    },
+                }),
+
+                subject: {
+                    connect: { id: lesson.subjectId },
+                },
+                teacher: {
+                    connect: { id: userId },
+                },
+
+                appreciation: data.appreciation || null,
+
+                // 🔥 FIX RELATION
+                term: {
+                    connect: { id: data.termId },
+                },
+            },
+        });
+
         await logAction({
             action: AuditAction.CREATE_RESULT,
             entityType: "Result",
@@ -2760,17 +2806,13 @@ export const createResult = async (
             description: `Note ajoutée (${result.score})`,
 
             before: null,
-
             after: {
                 score: result.score,
                 studentId: result.studentId,
-                examId: result.examId,
-                assignmentId: result.assignmentId,
+                subjectId: result.subjectId,
             },
 
-            metadata: {
-                source: "createResult",
-            },
+            metadata: { source: "createResult" },
         })
 
         return { success: true, error: null }
@@ -2788,29 +2830,26 @@ export const updateResult = async (
     _currentState: { success: boolean; error: string | null },
     data: ResultSchemaInput
 ) => {
-    const { userId } = await auth()
+    const { userId } = await auth();
 
     try {
         if (!userId) {
-            return {
-                success: false,
-                error: "Utilisateur non authentifié",
-            }
+            return { success: false, error: "Utilisateur non authentifié" };
         }
 
         const userProfile = await prisma.userProfile.findUnique({
             where: { clerkId: userId },
-        })
+        });
 
         if (!userProfile || userProfile.role !== "TEACHER") {
             return {
                 success: false,
                 error: "Seul un enseignant peut modifier une note",
-            }
+            };
         }
 
         if (!data.id) {
-            return { success: false, error: "ID manquant" }
+            return { success: false, error: "ID manquant" };
         }
 
         const existingResult = await prisma.result.findUnique({
@@ -2819,36 +2858,61 @@ export const updateResult = async (
                 exam: { include: { lesson: true } },
                 assignment: { include: { lesson: true } },
             },
-        })
+        });
 
         if (!existingResult) {
-            return { success: false, error: "Note introuvable" }
+            return { success: false, error: "Note introuvable" };
         }
 
         const lesson =
             existingResult.exam?.lesson ||
-            existingResult.assignment?.lesson
+            existingResult.assignment?.lesson;
 
         if (!lesson || lesson.teacherId !== userId) {
-            return { success: false, error: "Accès refusé" }
+            return { success: false, error: "Accès refusé" };
+        }
+
+        // 🔥 sécurité métier
+        if (!data.examId && !data.assignmentId) {
+            return {
+                success: false,
+                error: "Veuillez choisir un examen ou un devoir",
+            };
         }
 
         // 🔥 BEFORE
         const before = {
             score: existingResult.score,
-        }
+            appreciation: existingResult.appreciation,
+        };
 
         const updatedResult = await prisma.result.update({
             where: { id: data.id },
             data: {
                 score: data.score,
+                appreciation: data.appreciation || null,
+
+                // 🔥 TERM relation
+                term: {
+                    connect: { id: data.termId },
+                },
+
+                // 🔥 RESET RELATIONS
+                exam: data.examId
+                    ? { connect: { id: data.examId } }
+                    : { disconnect: true },
+
+                assignment: data.assignmentId
+                    ? { connect: { id: data.assignmentId } }
+                    : { disconnect: true },
             },
-        })
+        });
 
         // 🔥 AFTER
         const after = {
             score: updatedResult.score,
-        }
+            appreciation: updatedResult.appreciation,
+        };
 
         await logAction({
             action: AuditAction.UPDATE_RESULT,
@@ -2866,17 +2930,17 @@ export const updateResult = async (
             metadata: {
                 source: "updateResult",
             },
-        })
+        });
 
-        return { success: true, error: null }
+        return { success: true, error: null };
     } catch (error) {
-        console.error(error)
+        console.error(error);
         return {
             success: false,
             error: "Erreur lors de la modification",
-        }
+        };
     }
-}
+};
 
 // Delete Result Action
 export const deleteResult = async (
@@ -2940,6 +3004,10 @@ export const deleteResult = async (
 
         await prisma.result.delete({
             where: { id },
+            // data: {
+            //     isDeleted: true,
+            //     deletedAt: new Date(),
+            // },
         })
 
         await logAction({
