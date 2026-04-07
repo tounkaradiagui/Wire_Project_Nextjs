@@ -28,6 +28,18 @@ const TeacherForm = ({
     formState: { errors },
   } = useForm({
     resolver: zodResolver(teacherSchema),
+      defaultValues: {
+        username: data?.username ?? "",
+        email: data?.email ?? "",
+        name: data?.name ?? "",
+        surname: data?.surname ?? "",
+        phone: data?.phone ?? "",
+        address: data?.address ?? "",
+        bloodType: data?.bloodType ?? "",
+        birthday: data?.birthday ?? "",
+        sex: data?.sex ?? "",
+        subjects: data?.subjects ?? undefined,
+      },
   });
 
 
@@ -99,7 +111,6 @@ useEffect(() => {
           <InputField
             label="Username"
             name="username"
-            defaultValue={data?.username}
             register={register}
             error={errors?.username}
           />
@@ -107,7 +118,6 @@ useEffect(() => {
             label="Adresse email"
             name="email"
             type="email"
-            defaultValue={data?.email}
             register={register}
             error={errors?.email}
           />
@@ -115,7 +125,6 @@ useEffect(() => {
             label="Mot de passe"
             name="password"
             type="password"
-            defaultValue={data?.password}
             register={register}
             error={errors?.password}
           />
@@ -128,42 +137,36 @@ useEffect(() => {
           <InputField
             label="Prénom"
             name="name"
-            defaultValue={data?.name}
             register={register}
             error={errors?.name}
           />
           <InputField
             label="Nom"
             name="surname"
-            defaultValue={data?.surname}
             register={register}
             error={errors?.surname}
           />
           <InputField
             label="Téléphone"
             name="phone"
-            defaultValue={data?.phone}
             register={register}
             error={errors?.phone}
           />
           <InputField
             label="Adresse"
             name="address"
-            defaultValue={data?.address}
             register={register}
             error={errors?.address}
           />
           <InputField
             label="Type Saguin"
             name="bloodType"
-            defaultValue={data?.bloodType}
             register={register}
             error={errors?.bloodType}
           />
           <InputField
             label="Date de naissance"
             name="birthday"
-            defaultValue={data?.birthday}
             register={register}
             error={errors?.birthday}
             type="date"
@@ -184,7 +187,6 @@ useEffect(() => {
             <select
               className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
               {...register("sex")}
-              defaultValue={data?.sex}
             >
               <option value="">Selectionner</option>
               <option value="MALE">Masculin</option>
@@ -203,13 +205,11 @@ useEffect(() => {
               multiple
               className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
               {...register("subjects")}
-              defaultValue={data?.subjects}
             >
               <option value="">Sélectionner</option>
               {subjects.map((subject: { id: number; name: string }) => (
                 <option
                   key={subject.id}
-                  defaultValue={data?.subjects}
                 >
                   {subject.name}
                 </option>
@@ -228,7 +228,6 @@ useEffect(() => {
               multiple
               className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
               {...register("classes")}
-              defaultValue={data?.classes}
             >
               {classes.map((cls: { id: number; name: string }) => (
                 <option key={cls.id} value={cls.id}>
@@ -267,7 +266,7 @@ useEffect(() => {
           {/* Server error */}
           {state.error && (
             <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">
-              ❌ {state.error}
+              {state.error}
             </div>
           )}
         </div>

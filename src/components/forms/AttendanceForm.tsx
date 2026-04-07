@@ -38,7 +38,9 @@ const AttendanceForm = ({
     } = useForm({
         resolver: zodResolver(attendanceSchema),
         defaultValues: {
-            status: role === "parent" ? "ABSENT" : data?.status ?? "PRESENT",
+            studentId: data?.studentId ?? "",
+            status: data?.status ?? "",
+            comment: data?.comment ?? "",
         },
     });
 
@@ -137,7 +139,9 @@ const AttendanceForm = ({
                                 <option key={session.id} value={session.id}>
                                     {session.lesson.name} • {session.class.name}
                                     {" — "}
-                                    {new Date(session.startTime).toLocaleTimeString([], {
+                                    {"Semaine du"} {new Date(session.date).toLocaleDateString("fr-FR")}
+                                    {" — "}
+                                    {new Date(session.startTime).toLocaleTimeString("fr-FR", {
                                         hour: "2-digit",
                                         minute: "2-digit",
                                     })}

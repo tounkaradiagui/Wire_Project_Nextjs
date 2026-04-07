@@ -9,6 +9,18 @@ const BigCalendarContainer = async ({
   type: "teacherId" | "classId";
   id: string | number;
 }) => {
+  const now = new Date();
+
+  // Lundi
+  const startOfWeek = new Date(now);
+  startOfWeek.setDate(now.getDate() - now.getDay() + 1);
+  startOfWeek.setHours(0, 0, 0, 0);
+
+  // Dimanche
+  const endOfWeek = new Date(startOfWeek);
+  endOfWeek.setDate(startOfWeek.getDate() + 6);
+  endOfWeek.setHours(23, 59, 59, 999);
+
   const dataRes = await prisma.session.findMany({
     where: {
       lesson: {
@@ -16,6 +28,14 @@ const BigCalendarContainer = async ({
           ? { teacherId: id as string }
           : { classId: id as number }),
       },
+      // FILTRE SEMAINE ACTUELLE
+      startTime: {
+        gte: startOfWeek,
+        lte: endOfWeek,
+      },
+
+      // éviter sessions supprimées
+      isDeleted: false,
     },
     include: {
       lesson: true,
@@ -32,7 +52,7 @@ const BigCalendarContainer = async ({
 
   return (
     <div>
-      <BigCalendar data={schedule} />
+      <BigCalendar data={data} />
     </div>
   );
 };

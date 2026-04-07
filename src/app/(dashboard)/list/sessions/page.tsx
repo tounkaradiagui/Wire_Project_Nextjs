@@ -64,7 +64,7 @@ const SessionListPage = async ({
       <td>{item.lesson.name}</td>
 
       <td>
-        {new Intl.DateTimeFormat("fr-FR").format(item.date)}
+        {"Semaine du"} {new Intl.DateTimeFormat("fr-FR").format(item.date)}
       </td>
 
       <td>
@@ -79,25 +79,26 @@ const SessionListPage = async ({
         }).format(item.endTime)}
       </td>
 
-      <td>{item.room ?? "—"}</td>
+      <td>{item.room ?? "Non définie"}</td>
 
 
       {(role === "admin" || role === "super_admin" || role === "teacher") && (
         <td>
           <div className="flex gap-2 items-center">
-            <Link
-              href={`/list/attendances?sessionId=${item.id}`}
-              className="flex items-center gap-1 px-3 py-1 text-xs rounded-md bg-green-600 text-white hover:bg-green-700"
-            >
-              <ClipboardCheck size={16} />
-              {/* Présences */}
-            </Link>
-
-            <>
-              <FormContainer table="session" type="update" data={item} />
-              <FormContainer table="session" type="delete" id={item.id} />
-            </>
-
+              <Link href={`/list/attendances?sessionId=${item.id}`}>
+                <button
+                  title="Voir les absences de cette séance"
+                  className="flex items-center gap-1 cursor-pointer px-3 py-1 text-xs rounded-md bg-green-600 text-white hover:bg-green-700"
+                  >
+                  <ClipboardCheck size={16} />
+                </button>
+              </Link>
+            {(role === "super_admin") && (
+              <>
+                <FormContainer table="session" type="update" data={item} />
+                <FormContainer table="session" type="delete" id={item.id} />
+              </>
+            )}
           </div>
         </td>
       )}
@@ -218,7 +219,7 @@ const SessionListPage = async ({
       <div className="flex items-center justify-between">
         <h1 className="hidden md:block text-lg font-semibold">
           {lessonId
-            ? "Cours de la séance"
+            ? "Séances du cours "
             : "Gestion des séances"}
         </h1>
 
@@ -238,7 +239,7 @@ const SessionListPage = async ({
             />
             <TableActions />
 
-            {(role === "admin" || role === "super_admin" || role === "teacher") && (
+            {(role === "super_admin") && (
               <FormContainer table="session" type="create" />
             )}
           </div>

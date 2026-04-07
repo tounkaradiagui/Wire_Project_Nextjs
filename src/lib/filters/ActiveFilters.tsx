@@ -7,6 +7,7 @@ interface Props {
     grades?: { id: number; level: number }[];
     subjects?: { id: number; name: string }[];
     lessons?: { id: number; name: string }[];
+    sessions?: {id: string; date?: Date; lesson?: { name?: string };}[];
     teachers?: { id: string; name: string; surname?: string }[];
     students?: { id: string; name: string; surname?: string }[];
     parents?: { id: string; name: string; surname?: string }[];
@@ -15,6 +16,7 @@ interface Props {
 
 const ActiveFilters = ({
     classes = [],
+    sessions = [],
     grades = [],
     subjects = [],
     lessons = [],
@@ -30,6 +32,7 @@ const ActiveFilters = ({
         { key: "gradeId", label: "Niveau" },
         { key: "subjectId", label: "Matière" },
         { key: "lessonId", label: "Cours" },
+        { key: "sessionId", label: "Séance" },
         { key: "sex", label: "Genre" },
         { key: "teacherId", label: "Enseignant" },
         { key: "studentId", label: "Elève" },
@@ -111,7 +114,18 @@ const ActiveFilters = ({
                     lessons.find((l) => l.id === Number(value))?.name ||
                     "Cours inconnu"
                 );
+                      
+           
+            case "sessionId": {
+                const session = sessions.find((s) => s.id === value);
 
+                if (!session) return "Séance inconnue";
+
+                return `${session.date
+                    ? new Date(session.date).toLocaleDateString("fr-FR")
+                    : "Date inconnue"} - ${session.lesson?.name ?? "Cours inconnu"}`;
+            }
+            
             case "teacherId": {
                 const teacher = teachers.find((t) => t.id === value);
                 return teacher

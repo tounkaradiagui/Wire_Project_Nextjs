@@ -77,14 +77,32 @@ const FormContainer = async ({ table, type, data, id, role }: FormContainerProps
       }
 
       case "teacher": {
+        const { userId, sessionClaims } = await auth();
+        const role = (sessionClaims?.metadata as { role?: string })?.role;
+        
         const teacherSubjects = await prisma.subject.findMany({
+          where: {
+            teachers: {
+              some: {
+                teacherId: userId!,
+              },
+            },
+            isDeleted: false,
+          },
           select: {
             id: true,
             name: true,
           },
         });
-
+        
         const teacherClasses = await prisma.class.findMany({
+          where: {
+            lessons: {
+              some: {
+                teacherId:userId!,
+              }
+            }
+          },
           select: {
             id: true,
             name: true,
@@ -93,6 +111,7 @@ const FormContainer = async ({ table, type, data, id, role }: FormContainerProps
             name: "asc",
           },
         });
+
 
         relatedData = {
           subjects: teacherSubjects,
@@ -108,6 +127,11 @@ const FormContainer = async ({ table, type, data, id, role }: FormContainerProps
           select: {
             id: true,
             level: true,
+            name: true,
+            cycle: true,
+          },
+          orderBy: {
+            level: "asc",
           },
         });
 
@@ -272,115 +296,126 @@ const FormContainer = async ({ table, type, data, id, role }: FormContainerProps
               },
             });
 
+            const weekDays = [
+              { value: 1, label: "Lundi" },
+              { value: 2, label: "Mardi" },
+              { value: 3, label: "Mercredi" },
+              { value: 4, label: "Jeudi" },
+              { value: 5, label: "Vendredi" },
+            ];
+
         relatedData = {
           subjects: lessonSubjects,
           classes: lessonClasses,
           teachers: lessonTeachers,
+          weekDays,
         };
         break;
       }
 
-case "result": {
-  const { userId, sessionClaims } = await auth();
-  const role = (sessionClaims?.metadata as { role?: string })?.role;
+    case "result": {
+      const { userId, sessionClaims } = await auth();
+      const role = (sessionClaims?.metadata as { role?: string })?.role;
 
-  // 🔹 Élèves
-  const students = await prisma.student.findMany({
-    select: {
-      id: true,
-      name: true,
-      surname: true,
-    },
-  });
-
-  // 🔹 Exams (filtrés si teacher)
-  const exams = await prisma.exam.findMany({
-    where: {
-      ...(role === "teacher"
-        ? {
-            lesson: {
-              teacherId: userId!,
-            },
-          }
-        : {}),
-    },
-    select: {
-      id: true,
-      title: true,
-      lesson: {
+      // 🔹 Élèves
+      const students = await prisma.student.findMany({
         select: {
-          subjectId: true,
+          id: true,
+          name: true,
+          surname: true,
         },
-      },
-    },
-  });
+      });
 
-  // 🔹 Assignments (filtrés si teacher)
-  const assignments = await prisma.assignment.findMany({
-    where: {
-      ...(role === "teacher"
-        ? {
-            lesson: {
-              teacherId: userId!,
-            },
-          }
-        : {}),
-    },
-    select: {
-      id: true,
-      title: true,
-      lesson: {
+      // 🔹 Exams (filtrés si teacher)
+      const exams = await prisma.exam.findMany({
+        where: {
+          ...(role === "teacher"
+            ? {
+                lesson: {
+                  teacherId: userId!,
+                },
+              }
+            : {}),
+        },
         select: {
-          subjectId: true,
+          id: true,
+          title: true,
+          lesson: {
+            select: {
+              subjectId: true,
+            },
+          },
         },
-      },
-    },
-  });
+      });
 
-  // 🔹 Terms (TRÈS IMPORTANT)
-  const terms = await prisma.term.findMany({
-    orderBy: {
-      order: "asc",
-    },
-    select: {
-      id: true,
-      name: true,
-    },
-  });
+      // 🔹 Assignments (filtrés si teacher)
+      const assignments = await prisma.assignment.findMany({
+        where: {
+          ...(role === "teacher"
+            ? {
+                lesson: {
+                  teacherId: userId!,
+                },
+              }
+            : {}),
+        },
+        select: {
+          id: true,
+          title: true,
+          lesson: {
+            select: {
+              subjectId: true,
+            },
+          },
+        },
+      });
 
-  // 🔹 Subjects (optionnel mais recommandé pour UI)
-  const subjects =
-    role === "teacher"
-      ? await prisma.subject.findMany({
-          where: {
-            lessons: {
-              some: {
-                teacherId: userId!,
+      // 🔹 Terms (TRÈS IMPORTANT)
+      const terms = await prisma.term.findMany({
+        orderBy: {
+          order: "asc",
+        },
+        select: {
+          id: true,
+          name: true,
+        },
+      });
+
+      // 🔹 Subjects (optionnel mais recommandé pour UI)
+      const subjects =
+        role === "teacher"
+          ? await prisma.subject.findMany({
+              where: {
+                lessons: {
+                  some: {
+                    teacherId: userId!,
+                  },
+                },
               },
-            },
-          },
-          select: {
-            id: true,
-            name: true,
-          },
-        })
-      : await prisma.subject.findMany({
-          select: {
-            id: true,
-            name: true,
-          },
-        });
+              select: {
+                id: true,
+                name: true,
+                code:true,
+              },
+            })
+          : await prisma.subject.findMany({
+              select: {
+                id: true,
+                name: true,
+                code: true,
+              },
+          });
 
-  relatedData = {
-    students,
-    exams,
-    assignments,
-    terms,      // ✅ NEW
-    subjects,   // ✅ NEW (important pour cohérence UI)
-  };
+              relatedData = {
+                students,
+                exams,
+                assignments,
+                terms,      
+                subjects,   
+              };
 
-  break;
-}
+              break;
+      }
 
       case "session": {
         const { userId, sessionClaims } = await auth();

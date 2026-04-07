@@ -45,7 +45,6 @@ const ClassForm = ({
 
   const [serverError, setServerError] = useState<string | null>(null);
 
-
   const onSubmit = handleSubmit((formData) => {
     startTransition(() => {
       setServerError(null)
@@ -55,24 +54,24 @@ const ClassForm = ({
 
   const router = useRouter();
 
-useEffect(() => {
-  if (state.error) {
-    setServerError(state.error);
-    toast.error("Erreur serveur, veuillez réessayer");
-  }
+  useEffect(() => {
+    if (state.error) {
+      setServerError(state.error);
+      toast.error("Erreur serveur, veuillez réessayer");
+    }
 
-  if (state.success) {
-    toast.success(
-      `La classe a été ${
-        type === "create"
-          ? "ajoutée avec succès"
-          : "mise à jour avec succès"
-      }`
-    );
-    setOpen(false);
-    router.refresh();
-  }
-}, [state.success, state.error, type, setOpen, router]);
+    if (state.success) {
+      toast.success(
+        `La classe a été ${
+          type === "create"
+            ? "ajoutée avec succès"
+            : "mise à jour avec succès"
+        }`
+      );
+      setOpen(false);
+      router.refresh();
+    }
+  }, [state.success, state.error, type, setOpen, router]);
 
   const grades = Array.isArray(relatedData?.grades) ? relatedData.grades : [];
 

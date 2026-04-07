@@ -11,8 +11,10 @@ type Parent = {
 
 const ParentSelect = ({
   onSelect,
+  defaultValue
 }: {
   onSelect: (parentId: string) => void;
+  defaultValue?: string;
 }) => {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Parent[]>([]);

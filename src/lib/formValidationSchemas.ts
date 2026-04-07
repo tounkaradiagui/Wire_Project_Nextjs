@@ -224,47 +224,56 @@ export type ParentSchemaInput = z.infer<typeof parentSchema>;
 // End Parent Schema  
 
 // Lesson Schema
-export const lessonSchema = z.object({
-  id: z.coerce.number().optional(),
-  name: z
-    .string()
-    .min(1, {
+export const lessonSchema = z
+  .object({
+    id: z.coerce.number().optional(),
+
+    name: z.string().min(1, {
       message: "Le titre de la leçon est requis.",
     }),
 
-  startDate: z.coerce.date({
-    message: "La date de début est requis.",
-  }),
+    weekDay: z
+      .number()
+      .min(0)
+      .max(6, {
+        message: "Jour invalide (0 = dimanche, 6 = samedi)",
+      }),
 
-  dueDate: z.coerce.date({
-    message: "La date de fin est requis.",
-  }),
+    startHour: z
+      .number()
+      .min(0)
+      .max(23, {
+        message: "Heure de début invalide",
+      }),
 
-  subjectId: z.coerce
-    .number()
-    .min(1, {
-      message: "La matière est requise.",
+    endHour: z
+      .number()
+      .min(0)
+      .max(23, {
+        message: "Heure de fin invalide",
+      }),
+
+    startDate: z.coerce.date({
+      message: "La date de début est requise.",
     }),
 
-  classId: z.coerce
-    .number()
-    .min(1, {
-      message: "La classe est requise.",
+    dueDate: z.coerce.date({
+      message: "La date de fin est requise.",
     }),
 
-  teacherId: z
-    .string()
-    .min(1, {
-      message: "L'enseignant est requis.",
-    }),
-})
-  .refine(
-    (data) => data.startDate < data.dueDate,
-    {
-      message: "La date de fin doit être après la date de début.",
-      path: ["dueDate"],
-    }
-  );
+    subjectId: z.coerce.number().min(1),
+    classId: z.coerce.number().min(1),
+
+    teacherId: z.string().min(1),
+  })
+  .refine((data) => data.startDate < data.dueDate, {
+    message: "La date de fin doit être après la date de début.",
+    path: ["dueDate"],
+  })
+  .refine((data) => data.endHour > data.startHour, {
+    message: "L'heure de fin doit être après l'heure de début.",
+    path: ["endHour"],
+  });
 
 export type LessonSchemaInput = z.infer<typeof lessonSchema>;
 // End Lesson Schema

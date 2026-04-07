@@ -112,13 +112,15 @@ const LessonListPage = async ({
         {(role === "admin" || role === "teacher") && (
           <td>
             <div className="flex items-center gap-2">
-              <Link
-                href={`/list/sessions?lessonId=${item.id}`}
-                className="px-3 py-1 text-xs font-medium rounded-md bg-blue-500 text-white hover:bg-blue-600"
-              >
-                <CalendarDays size={14} />
+              <Link href={`/list/sessions?lessonId=${item.id}`}>
+                <button
+                  title="Voir la séance"
+                  className="px-3 py-1 text-xs font-medium cursor-pointer rounded-md bg-blue-500 text-white hover:bg-blue-600"
+                >
+                  <CalendarDays size={16} />
+                </button>
               </Link>
-
+              
               <FormContainer table="lesson" type="update" data={item} />
               <FormContainer table="lesson" type="delete" id={item.id} />
             </div>
@@ -130,7 +132,9 @@ const LessonListPage = async ({
 
 
   // URL PARAMS CONDITION
-  const query: Prisma.LessonWhereInput = {};
+  const query: Prisma.LessonWhereInput = {
+    isDeleted: false
+  };
 
   // restriction teacher
   if (role === "teacher") {

@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { logAction } from "@/lib/logs/audit"
 import { Role, AuditAction } from "@prisma/client"
 import { randomUUID } from "crypto";
+import { isDatabaseConnectionError } from "@/lib/helpers/db-error";
 
 
 type currentState = { success: boolean; error: string | null; };
@@ -41,18 +42,59 @@ async function generateUniqueUsername(
     while (counter < 20) {
         const username = counter === 0 ? base : `${base}${counter}`;
 
-        const existing = await clerk.users.getUserList({
-            username: [username],
-        });
+        // 🔥 Vérifier dans Clerk, UserProfile ET Student en parallèle
+        const [existingClerk, existingProfile, existingStudent, existingTeacher, existingParent] = 
+            await Promise.all([
+                clerk.users.getUserList({ username: [username] }),
+                prisma.userProfile.findUnique({ where: { username } }),
+                prisma.student.findUnique({ where: { username } }),
+                prisma.teacher.findUnique({ where: { username } }),
+                prisma.parent.findUnique({ where: { username } }),
+            ]);
 
-        if (existing.data.length === 0) {
-            return username;
+        if (
+            existingClerk.data.length === 0 &&
+            !existingProfile &&
+            !existingStudent &&
+            !existingTeacher &&
+            !existingParent
+        ) {
+            return username; // ✅ Libre partout
         }
 
         counter++;
     }
 
-    throw new Error("Impossible de générer username unique");
+    throw new Error("Impossible de générer username unique après 20 tentatives");
+}
+
+
+async function isUsernameAvailableForUpdate(
+    clerk: any,
+    username: string,
+    currentId: string // l'ID de l'entité qu'on modifie (pour l'exclure)
+) {
+    const [existingClerk, existingProfile, existingStudent, existingTeacher, existingParent] =
+        await Promise.all([
+            clerk.users.getUserList({ username: [username] }),
+            prisma.userProfile.findUnique({ where: { username } }),
+            prisma.student.findUnique({ where: { username } }),
+            prisma.teacher.findUnique({ where: { username } }),
+            prisma.parent.findUnique({ where: { username } }),
+        ]);
+
+    // 🔥 Clerk : libre OU appartient à l'utilisateur courant
+    const clerkOk =
+        existingClerk.data.length === 0 ||
+        existingClerk.data[0].id === currentId;
+
+    // 🔥 Prisma : libre OU appartient à l'entité courante (exclure par ID)
+    const profileOk = !existingProfile || existingProfile.clerkId === currentId;
+    const studentOk = !existingStudent || existingStudent.id === currentId;
+    const teacherOk = !existingTeacher || existingTeacher.id === currentId;
+    const parentOk = !existingParent || existingParent.id === currentId;
+
+    return clerkOk && profileOk && studentOk && teacherOk && parentOk;
 }
 
 // generate student card token
@@ -91,74 +133,89 @@ async function generateUniqueCardNumber() {
 
 // Create clerk user Action
 export const createUser = async (
-    currentState: currentState,
-    data: UserSchemaInput
+  currentState: currentState,
+  data: UserSchemaInput
 ) => {
-    const clerk = createClerkClient({
-        secretKey: process.env.CLERK_SECRET_KEY!,
-    });
+  const clerk = createClerkClient({
+    secretKey: process.env.CLERK_SECRET_KEY!,
+  });
 
-    const baseUsername = generateBaseUsername(
-        data.firstName,
-        data.lastName
-    );
+  const baseUsername = generateBaseUsername(
+    data.firstName,
+    data.lastName
+  );
 
-    let attempt = 0;
+  let attempt = 0;
 
-    while (attempt < 10) {
-        const username =
-            attempt === 0
-                ? (data.username || baseUsername).toLowerCase()
-                : `${baseUsername}${attempt}`.toLowerCase();
+  while (attempt < 10) {
+    const username =
+      attempt === 0
+        ? (data.username || baseUsername).toLowerCase()
+        : `${baseUsername}${attempt}`.toLowerCase();
 
-        try {
-            // Conversion propre
-            const prismaRole = data.role.toUpperCase();   // ENUM PRISMA
-            const metadataRole = data.role.toLowerCase(); // CLERK + URL
+    try {
+      const prismaRole = data.role.toUpperCase();
+      const metadataRole = data.role.toLowerCase();
 
-            const clerkUser = await clerk.users.createUser({
-                firstName: data.firstName,
-                lastName: data.lastName,
-                username,
-                password: data.password,
-                publicMetadata: {
-                    role: metadataRole,
-                    status: "active",
-                },
+      const clerkUser = await clerk.users.createUser({
+        firstName: data.firstName,
+        lastName: data.lastName,
+        username,
+        password: data.password,
+        publicMetadata: {
+          role: metadataRole,
+          status: "active",
+        },
+      });
+      
+        // 1. UserProfile
+        const userProfile = await prisma.userProfile.create({
+          data: {
+            clerkId: clerkUser.id,
+            username: clerkUser.username!,
+            firstName: clerkUser.firstName!,
+            lastName: clerkUser.lastName!,
+            image: clerkUser.imageUrl || null,
+            role: prismaRole as any,
+            isActive: true,
+            isBanned: false,
+            bannedAt: null,
+          },
+        });
+
+        // 2. ROLE BASED CREATION
+        switch (prismaRole) {
+          case "ADMIN":
+            await prisma.admin.create({
+              data: {
+                id: clerkUser.id,
+                username: data.username,
+                email: data.email,
+                userProfileId: userProfile.id,
+              },
             });
+            break;      
+        }      
 
-            await prisma.userProfile.create({
-                data: {
-                    clerkId: clerkUser.id,
-                    username: clerkUser.username!,
-                    firstName: clerkUser.firstName!,
-                    lastName: clerkUser.lastName!,
-                    image: clerkUser.imageUrl || null,
-                    role: prismaRole as any, // compatible enum
-                    isActive: true,
-                    isBanned: false,
-                    bannedAt: null,
-                },
-            });
+      return { success: true, error: null };
 
-            return { success: true, error: null };
+    } catch (error: any) {
+      const clerkError = error?.errors?.[0];
 
-        } catch (error: any) {
-            const clerkError = error?.errors?.[0];
+      if (clerkError?.code === "form_identifier_exists") {
+        attempt++;
+        continue;
+      }
 
-            if (clerkError?.code === "form_identifier_exists") {
-                attempt++;
-                continue;
-            }
-
-            return { success: false, error: "Erreur Clerk" };
-        }
+      console.error(error);
+      return { success: false, error: "Erreur lors de la création utilisateur" };
     }
+  }
 
-    return {
-        success: false,
-        error: "Impossible de générer un username unique",
-    };
+  return {
+    success: false,
+    error: "Impossible de générer un username unique",
+  };
 };
 
 // Update clerk user Action
@@ -652,9 +709,16 @@ export const createTeacher = async (
     })
 
     try {
-        // 🔥 Clerk user
+        
+        // Générer un username unique vérifié dans Clerk ET Prisma
+        const username = await generateUniqueUsername(
+            clerk,
+            data.name,
+            data.surname
+        )
+        // Clerk user
         const user = await clerk.users.createUser({
-            username: data.username,
+            username: username,
             password: data.password,
             firstName: data.name,
             lastName: data.surname,
@@ -673,7 +737,7 @@ export const createTeacher = async (
             data: {
                 clerkId: user.id,
                 role: "TEACHER",
-                username: data.username,
+                username: username,
                 firstName: data.name,
                 lastName: data.surname,
                 isActive: true,
@@ -684,7 +748,7 @@ export const createTeacher = async (
         createdTeacher = await prisma.teacher.create({
             data: {
                 id: user.id,
-                username: data.username,
+                username: username,
                 name: data.name,
                 surname: data.surname,
                 email: data.email || null,
@@ -798,6 +862,10 @@ export const updateTeacher = async (
             surname: existingTeacher.surname,
         }
 
+        const available = await isUsernameAvailableForUpdate(clerk, data.username, data.id)
+        if (!available) {
+            return { success: false, error: "Ce nom d'utilisateur est déjà pris." }
+        }
         // 🔐 Clerk
         await clerk.users.updateUser(data.id, {
             username: data.username,
@@ -1020,8 +1088,15 @@ export const createStudent = async (
             return { success: false, error: "La classe est pleine." }
         }
 
+        // Générer un username unique vérifié dans Clerk ET Prisma
+        const username = await generateUniqueUsername(
+            clerk,
+            data.name,
+            data.surname
+        )
+
         const user = await clerk.users.createUser({
-            username: data.username,
+            username: username,
             password: data.password,
             firstName: data.name,
             lastName: data.surname,
@@ -1038,7 +1113,7 @@ export const createStudent = async (
             data: {
                 clerkId: user.id,
                 role: "STUDENT",
-                username: data.username,
+                username: username,
                 firstName: data.name,
                 lastName: data.surname,
                 isActive: true,
@@ -1053,7 +1128,7 @@ export const createStudent = async (
         const student = await prisma.student.create({
             data: {
                 id: user.id,
-                username: data.username,
+                username: username,
                 name: data.name,
                 surname: data.surname,
                 verificationToken: token,
@@ -1107,14 +1182,36 @@ export const createStudent = async (
 
         return { success: true, error: null }
     } catch (error) {
+        console.error("createStudent error:", error); // 🔥 toujours logger
+
+        // 🔥 Cleanup Clerk en premier dans tous les cas
         if (createdUserId) {
-            await clerk.users.deleteUser(createdUserId)
+            try {
+                await clerk.users.deleteUser(createdUserId);
+            } catch (cleanupError) {
+                console.error("Clerk cleanup failed:", cleanupError);
+            }
+        }
+
+        if (isDatabaseConnectionError(error)) {
+            return {
+                success: false,
+                error: "Impossible de se connecter à la base de données. Réessayez.",
+            };
+        }
+
+        // 🔥 Afficher l'erreur Prisma exacte en dev
+        if (process.env.NODE_ENV === "development") {
+            return {
+                success: false,
+                error: `Erreur: ${error instanceof Error ? error.message : "Inconnue"}`,
+            };
         }
 
         return {
             success: false,
             error: "Une erreur est survenue lors de la création de l'élève.",
-        }
+        };
     }
 }
 
@@ -1201,6 +1298,19 @@ export const updateStudent = async (
             parentId: existingStudent.parentId,
         }
 
+        // Vérifier si le nouveau username est disponible
+        const available = await isUsernameAvailableForUpdate(
+            clerk,
+            data.username,
+            data.id
+        )
+
+        if (!available) {
+            return {
+                success: false,
+                error: "Ce nom d'utilisateur est déjà pris. Choisissez-en un autre.",
+            }
+        }  
         // 🔐 Clerk update
         await clerk.users.updateUser(data.id!, {
             username: data.username,
@@ -1486,9 +1596,17 @@ export const createParent = async (
         secretKey: process.env.CLERK_SECRET_KEY!,
     })
 
+    
+    // Générer un username unique vérifié dans Clerk ET Prisma
+    const username = await generateUniqueUsername(
+        clerk,
+        data.name,
+        data.surname
+    )
+
     try {
         const user = await clerk.users.createUser({
-            username: data.username,
+            username: username,
             password: data.password,
             firstName: data.name,
             lastName: data.surname,
@@ -1505,7 +1623,7 @@ export const createParent = async (
             data: {
                 clerkId: user.id,
                 role: "PARENT",
-                username: data.username,
+                username: username,
                 firstName: data.name,
                 lastName: data.surname,
                 isActive: true,
@@ -1516,7 +1634,7 @@ export const createParent = async (
         const parent = await prisma.parent.create({
             data: {
                 id: user.id,
-                username: data.username,
+                username: username,
                 name: data.name,
                 surname: data.surname,
                 email: data.email || null,
@@ -1591,6 +1709,11 @@ export const updateParent = async (
     const clerk = createClerkClient({
         secretKey: process.env.CLERK_SECRET_KEY!,
     })
+
+    const available = await isUsernameAvailableForUpdate(clerk, data.username, data.id)
+    if (!available) {
+        return { success: false, error: "Ce nom d'utilisateur est déjà pris." }
+    }
 
     try {
         const existingParent = await prisma.parent.findUnique({
@@ -1765,6 +1888,24 @@ function isValidRole(role: any): role is Role {
     return ["SUPER_ADMIN", "ADMIN", "TEACHER", "PARENT", "STUDENT"].includes(role)
 }
 
+// Helper pour générer les sessions
+function generateSessionDates(start: Date, end: Date, dayOfWeek: number) {
+    const dates: Date[] = []
+
+    const current = new Date(start)
+
+    while (current.getDay() !== dayOfWeek) {
+        current.setDate(current.getDate() + 1)
+    }
+
+    while (current <= end) {
+        dates.push(new Date(current))
+        current.setDate(current.getDate() + 7)
+    }
+
+    return dates
+}
+
 // Create Lesson Action
 export const createLesson = async (
     _currentState: { success: boolean; error: string | null },
@@ -1810,18 +1951,80 @@ export const createLesson = async (
             }
         }
 
-        // récupérer le cours
+        // construire heures template
+        const base = new Date()
+        base.setHours(0, 0, 0, 0)
+
+        const lessonStartTime = new Date(base)
+        lessonStartTime.setHours(data.startHour, 0, 0, 0)
+
+        const lessonEndTime = new Date(base)
+        lessonEndTime.setHours(data.endHour, 0, 0, 0)
+        
+        // créer le cours
         const lesson = await prisma.lesson.create({
             data: {
                 name: data.name,
                 startDate,
                 dueDate,
+                weekDay: data.weekDay,
+                startTime: data.startHour,
+                endTime: data.endHour,
                 subjectId: data.subjectId,
                 classId: data.classId,
                 teacherId,
             },
         });
 
+        
+        /**
+        * ✅ AUTO GENERATE SESSIONS
+        */
+       const sessionDates = generateSessionDates(startDate, dueDate, data.weekDay)
+
+        const sessionsToCreate = []
+
+        for (const date of sessionDates) {
+            const baseDate = new Date(date)
+            baseDate.setHours(0, 0, 0, 0)
+
+            const startTime = new Date(baseDate)
+            startTime.setHours(lesson.startTime!, 0, 0, 0)
+
+            const endTime = new Date(baseDate)
+            endTime.setHours(lesson.endTime!, 0, 0, 0)
+
+            // 🚫 conflit
+            const conflict = await prisma.session.findFirst({
+                where: {
+                    isDeleted: false,
+                    date: baseDate,
+                    AND: [
+                        { startTime: { lt: endTime } },
+                        { endTime: { gt: startTime } },
+                    ],
+                    OR: [
+                        { teacherId },
+                        { classId: data.classId },
+                    ],
+                },
+            })
+
+            if (!conflict) {
+                sessionsToCreate.push({
+                    date: baseDate,
+                    startTime,
+                    endTime,
+                    lessonId: lesson.id,
+                    teacherId,
+                    classId: data.classId,
+                })
+            }
+        }
+
+        await prisma.session.createMany({
+            data: sessionsToCreate,
+        })
 
         const userProfile = await prisma.userProfile.findUnique({
             where: { clerkId: userId },
@@ -1852,6 +2055,29 @@ export const createLesson = async (
 
             metadata: {
                 source: "createLesson",
+            },
+        })
+
+        await logAction({
+            action: AuditAction.CREATE_SESSION,
+            entityType: "Session",
+
+            entityId: "BULK_SESSION_" + lesson.id, // groupé par lesson
+
+            performedById: userProfile.id,
+            role: userProfile.role,
+
+            description: `${sessionsToCreate.length} séances générées automatiquement`,
+
+            before: null,
+
+            after: {
+                totalSessions: sessionsToCreate.length,
+            },
+
+            metadata: {
+                source: "autoGenerateSessions",
+                lessonId: lesson.id,
             },
         })
 
@@ -1890,7 +2116,7 @@ export const updateLesson = async (
             return { success: false, error: "Aucun enseignant spécifié." }
         }
 
-        // 🔥 1️⃣ récupérer ancien lesson (IMPORTANT)
+        // récupérer ancien lesson
         const oldLesson = await prisma.lesson.findUnique({
             where: { id: data.id },
         })
@@ -1899,7 +2125,7 @@ export const updateLesson = async (
             return { success: false, error: "Cours introuvable." }
         }
 
-        // 🔒 sécurité teacher
+        //  sécurité teacher
         if (role === "TEACHER" && oldLesson.teacherId !== userId) {
             return {
                 success: false,
@@ -1917,6 +2143,7 @@ export const updateLesson = async (
             }
         }
 
+        // Vérifier assignation teacher/class
         const isAssigned = await prisma.teacherClass.findFirst({
             where: {
                 teacherId,
@@ -1931,48 +2158,138 @@ export const updateLesson = async (
             }
         }
 
-        // 🔥 2️⃣ update
+        /**
+         *  UPDATE LESSON (AVEC horaires)
+         */
         const updatedLesson = await prisma.lesson.update({
             where: { id: data.id },
             data: {
                 name: data.name,
                 startDate,
                 dueDate,
+                weekDay: data.weekDay,
+                startTime: data.startHour,
+                endTime: data.endHour,
                 subjectId: data.subjectId,
                 classId: data.classId,
                 teacherId,
             },
         })
 
-        // 🔥 3️⃣ récupérer userProfile
+        /**
+         * SUPPRIMER anciennes sessions que si necessaire (soft delete)
+         */
+        
+        const hasScheduleChanged =
+            oldLesson.weekDay !== data.weekDay ||
+            oldLesson.startTime !== data.startHour ||
+            oldLesson.endTime !== data.endHour ||
+            oldLesson.startDate?.toISOString() !== startDate.toISOString() ||
+            oldLesson.dueDate?.toISOString() !== dueDate.toISOString()
+
+        if (hasScheduleChanged) {
+            await prisma.session.updateMany({
+                where: {
+                    lessonId: data.id,
+                    isDeleted: false,
+                },
+                data: {
+                    isDeleted: true,
+                    deletedAt: new Date(),
+                },
+            })
+        }
+        /**
+         * REGENERER les sessions
+         */
+        const sessionDates = generateSessionDates(
+            startDate,
+            dueDate,
+            data.weekDay
+        )
+
+        const sessionsToCreate = []
+
+        for (const date of sessionDates) {
+            const baseDate = new Date(date)
+            baseDate.setHours(0, 0, 0, 0)
+
+            const startTime = new Date(baseDate)
+            startTime.setHours(data.startHour, 0, 0, 0)
+
+            const endTime = new Date(baseDate)
+            endTime.setHours(data.endHour, 0, 0, 0)
+
+            // conflits
+            const conflict = await prisma.session.findFirst({
+                where: {
+                    isDeleted: false,
+                    date: baseDate,
+                    AND: [
+                        { startTime: { lt: endTime } },
+                        { endTime: { gt: startTime } },
+                    ],
+                    OR: [
+                        { teacherId },
+                        { classId: data.classId },
+                    ],
+
+                    NOT: {
+                        lessonId: data.id,
+                    },
+                },
+            })
+
+            if (!conflict) {
+                sessionsToCreate.push({
+                    date: baseDate,
+                    startTime,
+                    endTime,
+                    lessonId: data.id,
+                    teacherId,
+                    classId: data.classId,
+                })
+            }
+        }
+
+        if (sessionsToCreate.length > 0) {
+            await prisma.session.createMany({
+                data: sessionsToCreate,
+            })
+        }
+       
+        
+        /**
+         * LOG
+         */
         const userProfile = await prisma.userProfile.findUnique({
             where: { clerkId: userId },
         })
 
-        if (!userProfile) {
-            throw new Error("UserProfile introuvable")
-        }
+        if (!userProfile) throw new Error("UserProfile introuvable")
 
-        // 🔥 4️⃣ construire diff (ULTRA IMPORTANT)
         const before = {
             name: oldLesson.name,
             startDate: oldLesson.startDate,
             dueDate: oldLesson.dueDate,
+            weekDay: oldLesson.weekDay,
+            startTime: oldLesson.startTime,
+            endTime: oldLesson.endTime,
             subjectId: oldLesson.subjectId,
             classId: oldLesson.classId,
-            teacherId: oldLesson.teacherId,
         }
 
         const after = {
             name: updatedLesson.name,
             startDate: updatedLesson.startDate,
             dueDate: updatedLesson.dueDate,
+            weekDay: updatedLesson.weekDay,
+            startTime: updatedLesson.startTime,
+            endTime: updatedLesson.endTime,
             subjectId: updatedLesson.subjectId,
             classId: updatedLesson.classId,
-            teacherId: updatedLesson.teacherId,
         }
 
-        // 🔥 5️⃣ log audit
         await logAction({
             action: AuditAction.UPDATE_LESSON,
             entityType: "Lesson",
@@ -1988,6 +2305,28 @@ export const updateLesson = async (
 
             metadata: {
                 source: "updateLesson",
+            },
+        })
+
+        // log sessions
+        await logAction({
+            action: AuditAction.UPDATE_SESSION,
+            entityType: "Session",
+            entityId: "BULK_SESSION_UPDATE_" + updatedLesson.id,
+
+            performedById: userProfile.id,
+            role: userProfile.role,
+
+            description: `${sessionsToCreate.length} séances régénérées`,
+
+            before: null,
+            after: {
+                totalSessions: sessionsToCreate.length,
+            },
+
+            metadata: {
+                source: "updateLesson_autoSessions",
+                lessonId: updatedLesson.id,
             },
         })
 
@@ -2052,13 +2391,22 @@ export const deleteLesson = async (
             teacherId: lesson.teacherId,
         }
 
-        // DELETE 
-        await prisma.lesson.delete({
+        // Session 
+        await prisma.session.updateMany({
+            where: { lessonId: id },
+            data: {
+                isDeleted: true,
+                deletedAt: new Date(),
+            },
+        })
+
+        // Lesson
+        await prisma.lesson.update({
             where: { id },
-            // data: {
-            //     isDeleted: true,
-            //     deletedAt: new Date(),
-            // },
+            data: {
+                isDeleted: true,
+                deletedAt: new Date(),
+            },
         })
 
         // LOG audit
@@ -2072,8 +2420,8 @@ export const deleteLesson = async (
 
             description: `Le cours ${lesson.name} a été supprimé`,
 
-            before,       // ✅ snapshot complet
-            after: null,  // ✅ logique pour delete
+            before,       // snapshot complet
+            after: null,  // logique pour delete
 
             metadata: {
                 source: "deleteLesson",

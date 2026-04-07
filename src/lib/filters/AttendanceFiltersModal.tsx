@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Filter } from "lucide-react";
 
-const AttendanceFiltersModal = ({ classes, teachers }: any) => {
+const AttendanceFiltersModal = ({ classes, teachers, sessions }: any) => {
     const router = useRouter();
     const searchParams = useSearchParams();
 
@@ -12,6 +12,7 @@ const AttendanceFiltersModal = ({ classes, teachers }: any) => {
 
     const [classId, setClassId] = useState(searchParams.get("classId") || "");
     const [teacherId, setTeacherId] = useState(searchParams.get("teacherId") || "");
+    const [sessionId, setSessionId] = useState(searchParams.get("sessionId") || "");
     const [status, setStatus] = useState(searchParams.get("status") || "");
     const [date, setDate] = useState(searchParams.get("date") || "");
 
@@ -23,6 +24,9 @@ const AttendanceFiltersModal = ({ classes, teachers }: any) => {
 
         if (teacherId) params.set("teacherId", teacherId);
         else params.delete("teacherId");
+
+        if (sessionId) params.set("sessionId", sessionId);
+        else params.delete("sessionId");
 
         if (status) params.set("status", status);
         else params.delete("status");
@@ -82,6 +86,24 @@ const AttendanceFiltersModal = ({ classes, teachers }: any) => {
                             ))}
                         </select>
 
+                        {/* Séances du cours */}
+                        <select
+                            value={sessionId}
+                            onChange={(e) => setSessionId(e.target.value)}
+                            className="w-full border p-2 rounded"
+                            >
+                            <option value="">Toutes les séances</option>
+
+                            {sessions?.map((s: any) => (
+                                <option key={s.id} value={s.id}>
+                                     {s.date
+                                        ? new Date(s.date).toLocaleDateString("fr-FR")
+                                        : "Date inconnue"}{" "}
+                                    - {s.lesson?.name ?? "Cours inconnu"}
+                                </option>
+                            ))}
+                        </select>
+
                         <select
                             value={status}
                             onChange={(e) => setStatus(e.target.value)}
@@ -90,7 +112,6 @@ const AttendanceFiltersModal = ({ classes, teachers }: any) => {
                             <option value="">Tous</option>
                             <option value="ABSENT">Absent</option>
                             <option value="LATE">En retard</option>
-                            <option value="PRESENT">Présent</option>
                         </select>
 
                         <input

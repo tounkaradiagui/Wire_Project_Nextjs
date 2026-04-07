@@ -18,6 +18,7 @@ import ActiveFilters from "@/lib/filters/ActiveFilters";
 import TableActions from "@/lib/helpers/TableActions";
 import ResultFiltersModal from "@/lib/filters/ResultFiltersModal";
 import Link from "next/link";
+import { withDB } from "@/lib/helpers/with-db";
 
 
 type ResultList = {
@@ -30,8 +31,8 @@ type ResultList = {
   teacherName: string;
   teacherSurname: string;
 
-  subjectName: string; // 🔥 NEW
-  termName: string;    // 🔥 NEW
+  subjectName: string;
+  termName: string;   
 
   score: number;
   className: string;
@@ -71,7 +72,7 @@ const ResultListPage = async ({
       className: "hidden md:table-cell",
     },
 
-    { header: "Trimestre", accessor: "term" },   // 🔥 NEW
+    { header: "Trimestre", accessor: "term" }, 
     { header: "Type", accessor: "type" },
 
     {
@@ -104,7 +105,7 @@ const ResultListPage = async ({
       <td className="hidden md:table-cell">{item.className}</td>
       <td>
         <span className="px-2 py-1 text-xs rounded bg-green-100 text-green-700">
-          {item.termName} {/* 🔥 */}
+          {item.termName} 
         </span>
       </td>
       <td>
@@ -288,7 +289,7 @@ const ResultListPage = async ({
 
   // Data & sources filters
   const [dataRes, count, classes, teachers, students] =
-    await prisma.$transaction([
+  await withDB(() => prisma.$transaction([
 
       prisma.result.findMany({
         where,
@@ -331,7 +332,8 @@ const ResultListPage = async ({
       prisma.teacher.findMany({ select: { id: true, name: true, surname: true } }),
 
       prisma.student.findMany({ select: { id: true, name: true, surname: true } }),
-    ]);
+    ])
+  );
 
   // Data
   const data: ResultList[] = dataRes

@@ -12,6 +12,7 @@ import TableActions from "@/lib/helpers/TableActions";
 import SubjectFiltersModal from "@/lib/filters/SubjectFiltersModal";
 import ActiveFilters from "@/lib/filters/ActiveFilters";
 import ResetFiltersButton from "@/lib/filters/ResetFiltersButton";
+import { withDB } from "@/lib/helpers/with-db";
 
 
 type SubjectList = Prisma.SubjectGetPayload<{
@@ -40,6 +41,7 @@ const SubjectListPage = async ({
 
   const columns = [
     { header: "Nom de la matière", accessor: "info" },
+    { header: "Coefficient", accessor: "coef" },
     {
       header: "Enseignants",
       accessor: "teachers",
@@ -58,8 +60,11 @@ const SubjectListPage = async ({
       <td className="flex items-center gap-4 p-4">
         <div className="flex flex-col">
           <h3 className="font-semibold">{item.name}</h3>
-          <p className="text-xs text-gray-500">{item.code ? item.code : "Aucun code défini"}</p>
+          <p className="text-xs text-gray-500">{item.code?.trim() || "Aucun code défini"}</p>
         </div>
+      </td>
+      <td className="hidden md:table-cell">
+       {item.coefficient ?? "Non défini"}
       </td>
       <td className="hidden md:table-cell">
         {item.teachers.length > 0
@@ -84,6 +89,16 @@ const SubjectListPage = async ({
     isDeleted: false
   };
 
+  // Restrictions
+  if (role === "teacher") {
+    query.teachers = {
+      some: {
+        teacherId: userId!,
+      },
+    };
+  }
+
+  // Filtres coté UI
   if (params) {
     for (const [key, value] of Object.entries(params)) {
       if (!value) continue;
@@ -94,15 +109,7 @@ const SubjectListPage = async ({
             { name: { contains: value, mode: "insensitive" } },
             { code: { contains: value, mode: "insensitive" } },
           ];
-          break;
-
-        case "teacherId":
-          query.teachers = {
-            some: {
-              teacherId: value,
-            },
-          };
-          break;
+          break;      
 
         case "classId":
           query.lessons = {
@@ -133,31 +140,34 @@ const SubjectListPage = async ({
   };
 
   // Role basé sur les filtres d'accès (ex: un enseignant ne voit que ses matières) 
-  const [data, count, teachers, classes] = await prisma.$transaction([
-    prisma.subject.findMany({
-      where: query,
-      include: {
-        teachers: {
-          include: {
-            teacher: true,
+  const [data, count, teachers, classes] = await withDB(() =>
+    prisma.$transaction([
+      prisma.subject.findMany({
+        where: query,
+        include: {
+          teachers: {
+            include: {
+              teacher: true,
+            },
           },
         },
-      },
-      skip: (page - 1) * ITEM_PER_PAGE,
-      take: ITEM_PER_PAGE,
-      orderBy,
-    }),
+        skip: (page - 1) * ITEM_PER_PAGE,
+        take: ITEM_PER_PAGE,
+        orderBy,
+      }),
 
-    prisma.subject.count({ where: query }),
+      prisma.subject.count({ where: query }),
 
-    prisma.teacher.findMany({
-      select: { id: true, name: true, surname: true },
-    }),
+      prisma.teacher.findMany({
+        select: { id: true, name: true, surname: true },
+      }),
 
-    prisma.class.findMany({
-      select: { id: true, name: true },
-    }),
-  ]);
+
+      prisma.class.findMany({
+        select: { id: true, name: true },
+      }),
+    ])
+  );
 
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">

@@ -87,6 +87,7 @@ model Student {
   classId           Int
   attendances       Attendance[]
   results           Result[]
+  reportCards ReportCard[]
   class             Class        @relation(fields: [classId], references: [id])
   grade             Grade        @relation(fields: [gradeId], references: [id])
   parent            Parent       @relation(fields: [parentId], references: [id])
@@ -109,13 +110,16 @@ model Teacher {
   image          String?
   bloodType      String
   birthday       DateTime?
+  userProfileId  String           @unique
+  
   sex            UserSex
   lessons        Lesson[]
   subjects       TeacherSubject[]
   teacherClasses TeacherClass[]
   sessions       Session[]
   results        Result[]
-  userProfileId  String           @unique
+  subjectReports SubjectReport[]
+
   userProfile    UserProfile      @relation(fields: [userProfileId], references: [id])
 
   createdAt DateTime  @default(now())
@@ -144,6 +148,7 @@ model Class {
   students       Student[]
   teacherClasses TeacherClass[]
   sessions       Session[]
+  reportCards ReportCard[]
 
   @@unique([name, gradeId])
 }
@@ -156,6 +161,7 @@ model Subject {
   lessons     Lesson[]
   results     Result[]
   teachers    TeacherSubject[]
+  subjectReports SubjectReport[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
@@ -186,10 +192,13 @@ model TeacherClass {
 model Lesson {
   id          Int       @id @default(autoincrement())
   name        String
-  duration    String?
   description String?
   startDate   DateTime?
   dueDate     DateTime?
+
+  weekDay   Int?      // 0 = dimanche, 1 = lundi ...
+  startTime Int? // heure uniquement
+  endTime   Int?
 
   subjectId Int
   classId   Int
@@ -404,6 +413,7 @@ model Term {
   schoolYear   SchoolYear @relation(fields: [schoolYearId], references: [id])
 
   results Result[]
+  reportCards ReportCard[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -415,8 +425,88 @@ model SchoolYear {
   isActive Boolean @default(true)
 
   terms Term[]
+  reportCards ReportCard[]
 
   createdAt DateTime @default(now())
+}
+
+// Bulletin par élève, par trimestre
+model ReportCard {
+  id        Int    @id @default(autoincrement())
+  studentId String
+  classId   Int
+  termId    Int
+  schoolYearId Int
+
+  // Moyenne générale pondérée (calculée et figée)
+  generalAverage  Float
+  rank            Int        // Rang dans la classe
+  totalStudents   Int        // Effectif au moment du calcul
+  appreciation    String?    // Appréciation globale (conseil de classe)
+  decision        String?    // Passage, redoublement, félicitations...
+
+  status      ReportCardStatus @default(DRAFT)
+  generatedAt DateTime?
+  closedAt    DateTime?
+
+  student    Student    @relation(fields: [studentId], references: [id])
+  class      Class      @relation(fields: [classId], references: [id])
+  term       Term       @relation(fields: [termId], references: [id])
+  schoolYear SchoolYear @relation(fields: [schoolYearId], references: [id])
+
+  subjectReports SubjectReport[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([studentId, termId]) // 1 bulletin par élève par trimestre
+}
+
+// Ligne du bulletin : 1 ligne par matière
+model SubjectReport {
+  id           Int    @id @default(autoincrement())
+  reportCardId Int
+  subjectId    Int
+  teacherId    String
+
+  coefficient  Float  // Snapshot du coefficient au moment du calcul
+
+  // Notes détaillées (figées)
+  examScore       Float?  // Moyenne des examens
+  assignmentScore Float?  // Moyenne des devoirs
+  finalAverage    Float   // Moyenne pondérée finale de la matière
+
+  // Stats de la classe (figées au moment de la génération)
+  classMin    Float?
+  classMax    Float?
+  classAverage Float?
+
+  appreciation String?  // Appréciation du prof pour cette matière
+  rank         Int?     // Rang dans la matière (optionnel)
+
+  reportCard ReportCard @relation(fields: [reportCardId], references: [id], onDelete: Cascade)
+  subject    Subject    @relation(fields: [subjectId], references: [id])
+  teacher    Teacher    @relation(fields: [teacherId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([reportCardId, subjectId])
+}
+
+
+
+
+
+
+
+
+
+enum ReportCardStatus {
+  DRAFT       // En cours de génération
+  GENERATED   // Calculé, pas encore validé
+  VALIDATED   // Validé par l'admin / conseil de classe
+  PUBLISHED   // Visible par les parents et élèves
 }
 
 enum AuditAction {

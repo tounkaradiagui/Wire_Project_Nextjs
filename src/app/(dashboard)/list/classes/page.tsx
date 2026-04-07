@@ -57,7 +57,7 @@ const ClassListPage = async ({
         </div>
       </td>
       <td>{item.capacity}</td>
-      <td className="hidden md:table-cell">{item.grade.cycle === "FIRST" ? "1er Cycle" : "Second Cycle"}</td>
+      <td className="hidden md:table-cell">{item.grade.cycle === "FIRST" ? "1er Cycle" : "2ème Cycle"}</td>
       <td>
         <div className="flex items-center gap-2">
           {role === "admin" && (

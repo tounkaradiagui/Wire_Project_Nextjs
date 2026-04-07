@@ -30,7 +30,8 @@ export const formatDate = (date: Date | string) => {
   const month = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
 
-  return `${year}-${month}-${day}`;
+  // return `${year}-${month}-${day}`;
+  return `${day}/${month}/${year}`;
 };
 
 export const formatDateTimeLocal = (date: Date | string) => {
@@ -42,7 +43,8 @@ export const formatDateTimeLocal = (date: Date | string) => {
   const hours = String(d.getHours()).padStart(2, "0");
   const minutes = String(d.getMinutes()).padStart(2, "0");
 
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
+  // return `${year}-${month}-${day}T${hours}:${minutes}`;
+  return `$${day}/${month}/${year}T${hours}:${minutes}`;
 };
 
 const SessionForm = ({

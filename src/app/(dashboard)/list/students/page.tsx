@@ -16,7 +16,7 @@ import TableActions from "@/lib/helpers/TableActions";
 import StudentFiltersModal from "@/lib/filters/StudentFiltersModal";
 import ActiveFilters from "@/lib/filters/ActiveFilters";
 import ResetFiltersButton from "@/lib/filters/ResetFiltersButton";
-
+import { withDB } from "@/lib/helpers/with-db";
 
 type StudentList = Student & {
   class: Class;
@@ -85,9 +85,9 @@ const StudentListPage = async ({
       </td>
       <td className="hidden md:table-cell">{item.username}</td>
       <td className="hidden md:table-cell">
-        {item.sex === "MALE" ? "Masculin" : "Féminin"}
+        {item.sex === "MALE" ? "M" : "F"}
       </td>
-      <td className="hidden md:table-cell">{item.grade.cycle === "FIRST" ? "1er Cycle" : "Second Cycle"}</td>
+      <td className="hidden md:table-cell">{item.grade.cycle === "FIRST" ? "1er Cycle" : "2ème Cycle"}</td>
       <td className="hidden md:table-cell">{item.class.name}</td>
       <td className="hidden md:table-cell">{item.phone}</td>
       <td className="hidden lg:table-cell">{item.address}</td>
@@ -183,21 +183,23 @@ const StudentListPage = async ({
   // QUERY
   // ----------------------
 
-  const [data, count, classes, grades] = await prisma.$transaction([
-    prisma.student.findMany({
-      where: query,
-      orderBy,
-      include: {
-        class: true,
-        grade: true,
-      },
-      take: ITEM_PER_PAGE,
-      skip: ITEM_PER_PAGE * (p - 1),
-    }),
-    prisma.student.count({ where: query }),
-    prisma.class.findMany({ select: { id: true, name: true } }),
-    prisma.grade.findMany({ select: { id: true, level: true } }),
-  ]);
+  const [data, count, classes, grades] = await withDB(() =>
+    prisma.$transaction([
+      prisma.student.findMany({
+        where: query,
+        orderBy,
+        include: {
+          class: true,
+          grade: true,
+        },
+        take: ITEM_PER_PAGE,
+        skip: ITEM_PER_PAGE * (p - 1),
+      }),
+      prisma.student.count({ where: query }),
+      prisma.class.findMany({ select: { id: true, name: true } }),
+      prisma.grade.findMany({ select: { id: true, level: true } }),
+    ])
+  );
 
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-6">

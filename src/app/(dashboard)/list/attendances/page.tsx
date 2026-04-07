@@ -147,7 +147,7 @@ const AttendanceListPage = async ({
               📄 Télécharger le PDF
             </a>
           ) : isImage(item.proofUrl) ? (
-            <a href={item.proofUrl} target="_blank" rel="noopener noreferrer">
+            <a href={item.proofUrl} target="_blank" title="Afficher l'image" rel="noopener noreferrer">
               <Image
                 src={item.proofUrl}
                 alt="Justificatif"
@@ -188,29 +188,35 @@ const AttendanceListPage = async ({
   const query: Prisma.AttendanceWhereInput = {
     // status: AttendanceStatus.ABSENT,
     isDeleted: false,
+    AND: [],
   };
 
   // ----------------------
   // ROLE FILTER
   // ----------------------
-
   switch (role) {
     case "teacher":
-      query.session = {
-        lesson: {
-          teacherId: userId!,
+      (query.AND as Prisma.AttendanceWhereInput[]).push({
+        session: {
+          lesson: {
+            teacherId: userId!,
+          },
         },
-      };
+      });
       break;
 
     case "parent":
-      query.student = {
-        parentId: userId!,
-      };
+      (query.AND as Prisma.AttendanceWhereInput[]).push({
+        student: {
+          parentId: userId!,
+        },
+      });
       break;
 
     case "student":
-      query.studentId = userId!;
+      (query.AND as Prisma.AttendanceWhereInput[]).push({
+        studentId: userId!,
+      });
       break;
   }
 
@@ -237,32 +243,37 @@ const AttendanceListPage = async ({
         case "status": {
           query.status = value as AttendanceStatus;
           break;
+        }       
+
+        case "classId":{
+          (query.AND as Prisma.AttendanceWhereInput[]).push({
+            session: {
+              lesson: {
+                classId: parseInt(value),
+              },
+            },
+          });
+          break;
+        }
+
+        case "teacherId":{
+          (query.AND as Prisma.AttendanceWhereInput[]).push({
+            session: {
+              lesson: {
+                teacherId: value,
+              },
+            },
+          });
+          break;
         }
 
         case "sessionId": {
-          query.sessionId = value;
-          break;
-        }
+          if (!value || value === "NaN") break;
 
-        case "classId": {
-          query.session = {
-            ...(query.session as any),
-            lesson: {
-              ...(query.session as any)?.lesson,
-              classId: parseInt(value),
-            },
-          };
-          break;
-        }
+          (query.AND as Prisma.AttendanceWhereInput[]).push({
+            sessionId: value, 
+          });
 
-        case "teacherId": {
-          query.session = {
-            ...(query.session as any),
-            lesson: {
-              ...(query.session as any)?.lesson,
-              teacherId: value,
-            },
-          };
           break;
         }
 
@@ -302,7 +313,8 @@ const AttendanceListPage = async ({
   };
 
   /* ================= DATA ================= */
-  const [data, count, classes, teachers] = await prisma.$transaction([
+  const [data, count, classes, sessions, teachers] = await 
+  prisma.$transaction([
     prisma.attendance.findMany({
       where: query,
       orderBy,
@@ -335,6 +347,22 @@ const AttendanceListPage = async ({
       select: { id: true, name: true },
     }),
 
+    prisma.session.findMany({
+      where: {
+        isDeleted: false,
+        lesson: {
+          isDeleted: false,
+        },
+      },
+      select: {
+        id: true,
+        date: true,
+        lesson: {
+          select: { name: true },
+        },
+      },
+    }),
+
     prisma.teacher.findMany({
       select: { id: true, name: true },
     }),
@@ -363,8 +391,8 @@ const AttendanceListPage = async ({
               </>
             )}
             <ResetFiltersButton />
-            <ActiveFilters classes={classes} teachers={teachers} />
-            <AttendanceFiltersModal classes={classes} teachers={teachers} />
+            <ActiveFilters classes={classes} teachers={teachers} sessions={sessions}/>
+            <AttendanceFiltersModal classes={classes} teachers={teachers} sessions={sessions} />
             <TableActions />
             {(role === "admin" || role === "teacher" || role === "parent") && (
               <FormContainer table="attendance" type="create" />

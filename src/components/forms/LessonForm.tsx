@@ -34,7 +34,14 @@ const LessonForm = ({
         formState: { errors },
     } = useForm({
         resolver: zodResolver(lessonSchema),
-        defaultValues: data,
+        defaultValues: {
+            name: data?.name ?? "",
+            startDate: data?.startDate ?? "",
+            dueDate: data?.dueDate ?? "",
+            weekDay: data?.weekDay ?? "",
+            startHour: data?.startHour ?? "",
+            endHour: data?.endHour ?? "",
+            }
     });
 
     const [state, formAction, isPending] = useActionState(
@@ -183,7 +190,61 @@ const LessonForm = ({
                             </span>
                         )}
                     </div>
+
+                    {/* Jour */}
+                    <div className="flex flex-col gap-2 md:w-1/4">
+                        <label>Jour</label>
+                        <select
+                            {...register("weekDay", { valueAsNumber: true })}
+                            className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+                        >
+                            <option value="">Sélectionner un jour</option>
+                            {relatedData?.weekDays?.map((d: any) => (
+                            <option key={d.value} value={d.value}>
+                                {d.label}
+                            </option>
+                            ))}
+                        </select>
+
+                        {errors.weekDay && (
+                            <span className="text-[11px] text-red-500">
+                            {errors.weekDay.message?.toString()}
+                            </span>
+                        )}
+                    </div>
+
+                   <div className="flex flex-col gap-2 md:w-1/4">
+                        <label>Heure de début</label>
+                        <select
+                            {...register("startHour", { valueAsNumber: true })}
+                            className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm"
+                        >
+                            <option value="">Heure</option>
+                            {Array.from({ length: 24 }).map((_, i) => (
+                            <option key={i} value={i}>
+                                {i.toString().padStart(2, "0")}:00
+                            </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="flex flex-col gap-2 md:w-1/4">
+                        <label>Heure de fin</label>
+                        <select
+                            {...register("endHour", { valueAsNumber: true })}
+                            className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm"
+                        >
+                            <option value="">Heure</option>
+                            {Array.from({ length: 24 }).map((_, i) => (
+                            <option key={i} value={i}>
+                                {i.toString().padStart(2, "0")}:00
+                            </option>
+                            ))}
+                        </select>
+                    </div>
+
                 </div>
+
                 <button
                     type="submit"
                     disabled={isPending}

@@ -27,6 +27,12 @@ const SubjectForm = ({
     formState: { errors },
   } = useForm({
     resolver: zodResolver(subjectSchema),
+    defaultValues: {
+      name: data?.name ?? "",
+      code: data?.code ?? "",
+      coefficient: data?.coefficient ?? "",
+      teachers: data?.teachers ?? undefined,
+    }
   });
 
   const [state, formAction, isPending] = useActionState(
@@ -102,7 +108,6 @@ const SubjectForm = ({
             label="Code"
             name="code"
             placeholder="MATH101"
-            defaultValue={data?.code}
             register={register}
             error={errors?.code}
             inputClassName="text-sm py-2"
@@ -113,7 +118,7 @@ const SubjectForm = ({
             label="Coefficient"
             name="coefficient"
             placeholder="3"
-            defaultValue={data?.coefficient}
+            type="number"
             register={register}
             error={errors?.coefficient}
             inputClassName="text-sm py-2"
@@ -141,7 +146,6 @@ const SubjectForm = ({
             label="Matière"
             name="name"
             placeholder= "Nom de la matière"
-            defaultValue={data?.name}
             register={register}
             error={errors?.name}
             inputClassName="text-sm py-2"
@@ -158,7 +162,6 @@ const SubjectForm = ({
           <select
             multiple
             {...register("teachers")}
-            defaultValue={data?.teachers}
             className="min-h-24 rounded-md border border-gray-300 text-xs p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
           >
             {teachers.map(
