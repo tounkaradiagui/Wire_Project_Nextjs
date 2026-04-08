@@ -29,14 +29,8 @@ const menuItems = [
       {
         icon: Home,
         label: "Accueil",
-        href: "/admin",
-        visible: ["admin", "teacher", "student", "parent"],
-      },
-      {
-        icon: Home,
-        label: "Accueil",
-        href: "/dashboard/super_admin",
-        visible: ["super_admin"],
+        href: "DYNAMIC_HOME", // placeholder
+        visible: ["admin", "teacher", "student", "parent", "super_admin"],
       },
       {
         icon: Home,
@@ -158,6 +152,23 @@ const Menu = ({ isMobileOpen = false }: MenuProps) => {
   if (!user) return null;
   const role = user.publicMetadata?.role as string;
 
+  const getHomeRoute = (role: string) => {
+    switch (role) {
+      case "super_admin":
+        return "/dashboard/super_admin";
+      case "admin":
+        return "/admin";
+      case "teacher":
+        return "/teacher";
+      case "student":
+        return "/student";
+      case "parent":
+        return "/parent";
+      default:
+        return "/";
+    }
+  };
+
   return (
     <div className="flex-1 px-2 py-4">
       {menuItems.map((group) => (
@@ -171,7 +182,7 @@ const Menu = ({ isMobileOpen = false }: MenuProps) => {
               const Icon = item.icon;
               return (
                 <Link
-                  href={item.href}
+                  href={item.href === "DYNAMIC_HOME" ? getHomeRoute(role) : item.href}
                   key={item.label}
                   className={`
                     flex items-center gap-4 mt-2 text-gray-700 transition-all duration-200

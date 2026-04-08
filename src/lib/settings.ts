@@ -5,6 +5,9 @@ type RouteAccessMap = {
 };
 
 export const routeAccessMap: RouteAccessMap = {
+  // ✅ pages d'erreur — accessibles à tous (connectés ou non)
+  "/errors(.*)": ["admin", "teacher", "student", "parent", "super_admin"],
+
   // ✅ routes accessibles à tous les rôles connectés
   "/profile(.*)": ["admin", "teacher", "student", "parent", "super_admin"],
   "/settings(.*)": ["admin", "teacher", "student", "parent", "super_admin"],
@@ -16,6 +19,8 @@ export const routeAccessMap: RouteAccessMap = {
   "/list/subjects(.*)": ["admin", "super_admin", "teacher"],
   "/list/classes(.*)": ["admin", "teacher", "super_admin"],
   "/list/users(.*)": ["super_admin"],
+  "/list/lessons(.*)": ["admin", "teacher", "super_admin"], 
+  
 
   "/list/sessions(.*)": ["admin", "super_admin", "teacher"],
   // page prendre les présences

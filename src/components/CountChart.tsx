@@ -34,8 +34,9 @@ const CountChart = ({ boys, girls }: { boys: number; girls: number }) => {
   ];
 
   return (
-    <div className="relative w-full h-[60%]">
-      <ResponsiveContainer>
+    // <div className="relative w-full h-[60%]">
+    <div className="w-full h-[300px]">
+      <ResponsiveContainer width="100%" height="100%">
         <RadialBarChart
           cx="50%"
           cy="50%"
