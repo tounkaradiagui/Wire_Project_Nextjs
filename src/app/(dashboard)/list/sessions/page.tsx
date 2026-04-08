@@ -187,9 +187,14 @@ const SessionListPage = async ({
 
 
   /* ================= DATA ================= */
-  const [data, count, classes, teachers, lessons] =
-    await prisma.$transaction([
+  let data: any[] = [];
+  let count = 0;
+  let classes: any[] = [];
+  let teachers: any[] = [];
+  let lessons: any[] = [];
 
+  try {
+    const result = await prisma.$transaction([
       prisma.session.findMany({
         where: query,
         include: {
@@ -219,6 +224,19 @@ const SessionListPage = async ({
         select: { id: true, name: true },
       }),
     ]);
+
+    data = result[0];
+    count = result[1];
+    classes = result[2];
+    teachers = result[3];
+    lessons = result[4];
+
+  } catch (error) {
+    console.error("🔥 SESSION ERROR:", error);
+    throw error;
+  }
+
+  // const serializedData = data;
   
   const serializedData = data.map((item) => ({
     ...item,

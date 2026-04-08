@@ -313,8 +313,14 @@ const AttendanceListPage = async ({
   };
 
   /* ================= DATA ================= */
-  const [data, count, classes, sessions, teachers] = await 
-    prisma.$transaction([
+  let data: any[] = [];
+  let count = 0;
+  let classes: any[] = [];
+  let sessions: any[] = [];
+  let teachers: any[] = [];
+
+  try {
+    const result = await prisma.$transaction([
       prisma.attendance.findMany({
         where: query,
         orderBy,
@@ -367,6 +373,19 @@ const AttendanceListPage = async ({
         select: { id: true, name: true },
       }),
     ]);
+
+    data = result[0];
+    count = result[1];
+    classes = result[2];
+    sessions = result[3];
+    teachers = result[4];
+
+  } catch (error) {
+    console.error("🔥 ATTENDANCE ERROR:", error);
+    throw error;
+  }
+
+// const serializedData = data;
 
   const serializedData = data.map((item) => ({
     ...item,

@@ -255,35 +255,54 @@ const LessonListPage = async ({
       [sortBy!]: sortOrder,
     };
 
-    const [data, count, classes, teachers, subjects] =
-    await prisma.$transaction([
+    let data: LessonList[] = [];
+    let count = 0;
+    let classes: any[] = [];
+    let teachers: any[] = [];
+    let subjects: any[] = [];
 
-      prisma.lesson.findMany({
-        where: query,
-        include: {
-          class: { select: { name: true } },
-          subject: { select: { name: true } },
-          teacher: { select: { name: true, surname: true } },
-        },
-        take: ITEM_PER_PAGE,
-        skip: ITEM_PER_PAGE * (p - 1),
-        orderBy,
-      }),
+    try {
+      const result = await prisma.$transaction([
+        prisma.lesson.findMany({
+          where: query,
+          include: {
+            class: { select: { name: true } },
+            subject: { select: { name: true } },
+            teacher: { select: { name: true, surname: true } },
+          },
+          take: ITEM_PER_PAGE,
+          skip: ITEM_PER_PAGE * (p - 1),
+          orderBy,
+        }),
 
-      prisma.lesson.count({ where: query }),
+        prisma.lesson.count({ where: query }),
 
-      prisma.class.findMany({
-        select: { id: true, name: true },
-      }),
+        prisma.class.findMany({
+          select: { id: true, name: true },
+        }),
 
-      prisma.teacher.findMany({
-        select: { id: true, name: true, surname: true },
-      }),
+        prisma.teacher.findMany({
+          select: { id: true, name: true, surname: true },
+        }),
 
-      prisma.subject.findMany({
-        select: { id: true, name: true },
-      }),
-    ]);
+        prisma.subject.findMany({
+          select: { id: true, name: true },
+        }),
+      ]);
+
+      data = result[0];
+      count = result[1];
+      classes = result[2];
+      teachers = result[3];
+      subjects = result[4];
+
+    } catch (error) {
+      console.error("🔥 LESSON ERROR:", error);
+      throw error;
+    }
+
+    // ⚠️ OPTION SAFE → NE PAS convertir en string
+    // const serializedData = data;
 
     const serializedData = data.map((item) => ({
       ...item,

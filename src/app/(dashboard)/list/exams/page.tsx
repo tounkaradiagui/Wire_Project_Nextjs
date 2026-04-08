@@ -157,23 +157,35 @@ const ExamListPage = async ({
       break;
   }
 
-  const [data, count] = await prisma.$transaction([
-    prisma.exam.findMany({
-      where: query,
-      include: {
-        lesson: {
-          include: {
-            class: { select: { name: true } },
-            subject: { select: { name: true } },
-            teacher: { select: { name: true, surname: true } },
+  let data: ExamList[] = [];
+  let count = 0;
+
+  try {
+    const result = await prisma.$transaction([
+      prisma.exam.findMany({
+        where: query,
+        include: {
+          lesson: {
+            include: {
+              class: { select: { name: true } },
+              subject: { select: { name: true } },
+              teacher: { select: { name: true, surname: true } },
+            },
           },
         },
-      },
-      take: ITEM_PER_PAGE,
-      skip: ITEM_PER_PAGE * (p - 1),
-    }),
-    prisma.exam.count({ where: query }),
-  ]);
+        take: ITEM_PER_PAGE,
+        skip: ITEM_PER_PAGE * (p - 1),
+      }),
+      prisma.exam.count({ where: query }),
+    ]);
+
+    data = result[0];
+    count = result[1];
+
+  } catch (error) {
+    console.error("🔥 PRISMA ERROR:", error);
+    throw error;
+  }
 
   const serializedData = data.map((item) => ({
     ...item,
