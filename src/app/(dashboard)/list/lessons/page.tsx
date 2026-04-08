@@ -71,7 +71,7 @@ const LessonListPage = async ({
     return "active";
   };
 
-  const renderRow = (item: LessonList & { startDate: string | null; dueDate: string | null }) => {
+  const renderRow = (item: LessonList) => {
 
     const status = getLessonStatus(item);
 
@@ -289,7 +289,7 @@ const LessonListPage = async ({
       ...item,
       startDate: item.startDate ? item.startDate.toISOString() : null,
       dueDate: item.dueDate ? item.dueDate.toISOString() : null,
-    }));
+    })) as unknown as LessonList[];
 
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
