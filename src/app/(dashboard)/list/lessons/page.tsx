@@ -216,10 +216,11 @@ const LessonListPage = async ({
           };
           break;
         }
-        
-        case "search":
+
+        case "search": {
+          const existing = Array.isArray(query.AND) ? query.AND : query.AND ? [query.AND] : [];
           query.AND = [
-            ...(query.AND || []),
+            ...existing,
             {
               OR: [
                 { name: { contains: value, mode: "insensitive" } },
@@ -229,6 +230,8 @@ const LessonListPage = async ({
             },
           ];
           break;
+        }       
+        
       }
     }
   }
