@@ -192,13 +192,14 @@ const LessonListPage = async ({
           }
 
           if (value === "active") {
+            const existing = Array.isArray(query.AND) ? query.AND : query.AND ? [query.AND] : [];
             query.AND = [
-              ...(query.AND || []),
+              ...existing,
               { startDate: { lte: today } },
               { OR: [{ dueDate: null }, { dueDate: { gte: today } }] },
             ];
           }
-
+          
           if (value === "upcoming") {
             query.startDate = { gt: today };
           }
