@@ -18,8 +18,8 @@ type AssignmentList = {
   id: number;
   title: string;
   lessonId: number;
-  startDate: Date;
-  dueDate: Date;
+  startDate: string | null;
+  dueDate: string | null; 
   lesson: {
     teacher: {
       name: string;

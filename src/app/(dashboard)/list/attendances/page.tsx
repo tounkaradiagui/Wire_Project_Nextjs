@@ -378,7 +378,7 @@ const AttendanceListPage = async ({
       startTime: item.session.startTime ? item.session.startTime.toISOString() : null,
       endTime: item.session.endTime ? item.session.endTime.toISOString() : null,
     } : null,
-  }));
+  })) as unknown as AttendanceList[];
 
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
