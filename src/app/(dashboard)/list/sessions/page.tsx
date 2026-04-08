@@ -59,24 +59,25 @@ const SessionListPage = async ({
       key={item.id}
       className="border-b even:bg-slate-50 hover:bg-blue-50"
     >
-      <td className="p-4">{item.lesson.class.name}</td>
+      <td className="p-4">{item.lesson?.class?.name}</td>
 
-      <td>{item.lesson.name}</td>
+      <td>{item.lesson?.name ?? "-"}</td>
 
       <td>
-        {"Semaine du"} {new Intl.DateTimeFormat("fr-FR").format(item.date)}
+        {"Semaine du"} {new Intl.DateTimeFormat("fr-FR").format(new Date(item.date))}
       </td>
 
       <td>
         {new Intl.DateTimeFormat("fr-FR", {
           hour: "2-digit",
           minute: "2-digit",
-        }).format(item.startTime)}
+        }).format(new Date(item.startTime))
+      }
         {" - "}
         {new Intl.DateTimeFormat("fr-FR", {
           hour: "2-digit",
-          minute: "2-digit",
-        }).format(item.endTime)}
+          minute: "2-digit",          
+        }).format(new Date(item.endTime))}
       </td>
 
       <td>{item.room ?? "Non définie"}</td>
@@ -134,15 +135,21 @@ const SessionListPage = async ({
 
       switch (key) {
         case "classId":
-          query.classId = parseInt(value);
+          const classId = Number(value);
+          if (!isNaN(classId)) {
+            query.classId = classId;
+          }
+          break;
+
+        case "lessonId":
+          const lessonId = Number(value);
+          if (!isNaN(lessonId)) {
+            query.lessonId = lessonId;
+          }
           break;
 
         case "teacherId":
           query.teacherId = value;
-          break;
-
-        case "lessonId":
-          query.lessonId = parseInt(value);
           break;
 
         case "date":
@@ -212,6 +219,16 @@ const SessionListPage = async ({
         select: { id: true, name: true },
       }),
     ]);
+  
+  const serializedData = data.map((item) => ({
+    ...item,
+    date: item.date ? item.date.toISOString() : null,
+    startTime: item.startTime ? item.startTime.toISOString() : null,
+    endTime: item.endTime ? item.endTime.toISOString() : null,
+    lesson: item.lesson ? {
+      ...item.lesson,
+    } : null,
+  }));
 
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
@@ -250,7 +267,7 @@ const SessionListPage = async ({
       <Table
         columns={columns}
         renderRow={renderRow}
-        data={data}
+        data={serializedDatas}
       />
 
       {/* PAGINATION */}

@@ -37,7 +37,7 @@ type ResultList = {
   score: number;
   className: string;
 
-  date: Date;
+  date: string;
   type: "Exam" | "Assignment";
 };
 
@@ -48,7 +48,8 @@ const ResultListPage = async ({
     [key: string]: string | undefined
   };
 }) => {
-  const { page, ...queryParams } = await searchParams;
+  const resolvedParams = await searchParams;
+  const { page, ...queryParams } = resolvedParams;
 
   const p = page ? parseInt(page) : 1;
 
@@ -57,7 +58,7 @@ const ResultListPage = async ({
   const columns = [
     { header: "Titre", accessor: "title" },
     { header: "Élève", accessor: "student" },
-    { header: "Matière", accessor: "subject" },   // 🔥 NEW
+    { header: "Matière", accessor: "subject" },  
     { header: "Note", accessor: "score" },
 
     {
@@ -120,7 +121,9 @@ const ResultListPage = async ({
         )}
       </td>
       <td className="hidden md:table-cell">
-        {new Intl.DateTimeFormat("fr-FR").format(item.date)}
+        {
+          new Intl.DateTimeFormat("fr-FR").format(new Date(item.date))
+        }
       </td>
       <td>
         <div className="flex items-center gap-2">
@@ -357,16 +360,16 @@ const ResultListPage = async ({
       teacherName: lesson.teacher.name,
       teacherSurname: lesson.teacher.surname,
 
-      subjectName: item.subject.name, // 🔥
-      termName: item.term.name,       // 🔥
+      subjectName: item.subject.name, 
+      termName: item.term.name,       
 
       score: item.score,
 
       className: lesson.class.name,
 
       date: isExam
-        ? item.exam!.startTime
-        : item.assignment!.startDate,
+        ? item.exam!.startTime.toISOString()
+        : item.assignment!.startDate.toISOString(),
 
       type: isExam ? "Exam" : "Assignment",
     };

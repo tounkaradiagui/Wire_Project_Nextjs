@@ -78,15 +78,15 @@ const AttendanceListPage = async ({
       className="border-b even:bg-slate-50 hover:bg-blue-100"
     >
       <td className="p-4 font-medium">
-        {item.student.name} {item.student.surname}
+        {item.student?.name} {item.student?.surname}
       </td>
 
       <td>
-        {item.session?.lesson.class.name}
+        {item.session?.lesson?.class?.name ?? "Classe inconnue"}
       </td>
 
       <td>
-        {item.session?.lesson.name}
+        {item.session?.lesson?.name ?? "Cours inconnu"}
       </td>
 
       <td>
@@ -314,59 +314,71 @@ const AttendanceListPage = async ({
 
   /* ================= DATA ================= */
   const [data, count, classes, sessions, teachers] = await 
-  prisma.$transaction([
-    prisma.attendance.findMany({
-      where: query,
-      orderBy,
-      select: {
-        id: true,
-        status: true,
-        proofUrl: true,
-        createdBy: true,
-        createdAt: true,
-        updatedAt: true,
-        student: true,
-        session: {
-          include: {
-            lesson: {
-              include: {
-                class: true,
-                teacher: true,
+    prisma.$transaction([
+      prisma.attendance.findMany({
+        where: query,
+        orderBy,
+        select: {
+          id: true,
+          status: true,
+          proofUrl: true,
+          createdBy: true,
+          createdAt: true,
+          updatedAt: true,
+          student: true,
+          session: {
+            include: {
+              lesson: {
+                include: {
+                  class: true,
+                  teacher: true,
+                },
               },
             },
           },
         },
-      },
-      take: ITEM_PER_PAGE,
-      skip: ITEM_PER_PAGE * (p - 1),
-    }),
+        take: ITEM_PER_PAGE,
+        skip: ITEM_PER_PAGE * (p - 1),
+      }),
 
-    prisma.attendance.count({ where: query }),
+      prisma.attendance.count({ where: query }),
 
-    prisma.class.findMany({
-      select: { id: true, name: true },
-    }),
+      prisma.class.findMany({
+        select: { id: true, name: true },
+      }),
 
-    prisma.session.findMany({
-      where: {
-        isDeleted: false,
-        lesson: {
+      prisma.session.findMany({
+        where: {
           isDeleted: false,
+          lesson: {
+            isDeleted: false,
+          },
         },
-      },
-      select: {
-        id: true,
-        date: true,
-        lesson: {
-          select: { name: true },
+        select: {
+          id: true,
+          date: true,
+          lesson: {
+            select: { name: true },
+          },
         },
-      },
-    }),
+      }),
 
-    prisma.teacher.findMany({
-      select: { id: true, name: true },
-    }),
-  ]);
+      prisma.teacher.findMany({
+        select: { id: true, name: true },
+      }),
+    ]);
+
+  const serializedData = data.map((item) => ({
+    ...item,
+    createdAt: item.createdAt ? item.createdAt.toISOString() : null,
+    updatedAt: item.updatedAt ? item.updatedAt.toISOString() : null,
+    session: item.session ? {
+      ...item.session,
+      date: item.session.date ? item.session.date.toISOString() : null,
+      startTime: item.session.startTime ? item.session.startTime.toISOString() : null,
+      endTime: item.session.endTime ? item.session.endTime.toISOString() : null,
+    } : null,
+  }));
 
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
@@ -404,8 +416,8 @@ const AttendanceListPage = async ({
       {/* TABLE */}
       <Table<AttendanceList>
         columns={columns}
-        data={data}
         renderRow={renderRow}
+        data={serializedData}
       />
 
       {/* PAGINATION */}

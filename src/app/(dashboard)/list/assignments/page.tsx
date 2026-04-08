@@ -86,19 +86,19 @@ const AssignmentListPage = async ({
     >
       <td className="flex items-center gap-4 p-4">
         <div className="flex flex-col">
-          <h3 className="font-semibold">{item.lesson.subject.name}</h3>
+          <h3 className="font-semibold">{item.lesson?.subject?.name}</h3>
         </div>
       </td>
       <td>{item.title}</td>
-      <td>{item.lesson.class.name}</td>
+      <td>{item.lesson?.class?.name}</td>
       <td className="hidden md:table-cell">
-        {item.lesson.teacher.name + " " + item.lesson.teacher.surname}
+        {item.lesson?.teacher?.name + " " + item.lesson?.teacher?.surname}
       </td>
       <td className="hidden md:table-cell">
-        {new Intl.DateTimeFormat("fr-FR").format(item.startDate)}
+        {new Intl.DateTimeFormat("fr-FR").format(new Date(item.startDate))}
       </td>
       <td className="hidden md:table-cell">
-        {new Intl.DateTimeFormat("fr-FR").format(item.dueDate)}
+        {new Intl.DateTimeFormat("fr-FR").format(new Date(item.dueDate))}
       </td>
       <td>
         <div className="flex items-center gap-2">
@@ -193,7 +193,11 @@ const AssignmentListPage = async ({
     prisma.assignment.count({ where: query }),
   ]);
 
-
+  const serializedData = data.map((item) => ({
+    ...item,
+    startDate: item.startDate ? item.startDate.toISOString() : null,
+    dueDate: item.dueDate ? item.dueDate.toISOString() : null,
+  }));
 
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
@@ -229,11 +233,10 @@ const AssignmentListPage = async ({
       </div>
 
       {/* List of Assignments */}
-      {/* <Table columns={columns} renderRow={renderRow} data={data} /> */}
       <Table<AssignmentList>
         columns={columns}
         renderRow={renderRow}
-        data={data}
+        data={serializedData}
       />
 
       {/* Pagination */}

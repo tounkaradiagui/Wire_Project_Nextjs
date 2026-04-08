@@ -30,7 +30,9 @@ const LessonListPage = async ({
 }: {
   searchParams: { [key: string]: string | undefined };
 }) => {
-  const { page, ...queryParams } = await searchParams;
+
+  const resolvedParams = await searchParams;
+  const { page, ...queryParams } = resolvedParams;
 
   const p = page ? parseInt(page) : 1;
 
@@ -69,7 +71,7 @@ const LessonListPage = async ({
     return "active";
   };
 
-  const renderRow = (item: LessonList) => {
+  const renderRow = (item: LessonList & { startDate: string | null; dueDate: string | null }) => {
 
     const status = getLessonStatus(item);
 
@@ -80,19 +82,19 @@ const LessonListPage = async ({
       >
         <td className="flex items-center gap-4 p-4">
           <div className="flex flex-col">
-            <h3 className="font-semibold">{item.subject.name}</h3>
+            <h3 className="font-semibold">{item.subject?.name ?? "-"}</h3>
           </div>
         </td>
         <td>{item.name}</td>
-        <td>{item.class.name}</td>
+        <td>{item.class?.name}</td>
         <td className="hidden md:table-cell ">
-          {item.teacher.name + " " + item.teacher.surname}
+          {item.teacher?.name + " " + item.teacher?.surname}
         </td>
         <td className="hidden md:table-cell">
-          {item.startDate && new Intl.DateTimeFormat("fr-FR").format(item.startDate)}
+          {item.startDate && new Intl.DateTimeFormat("fr-FR").format(new Date(item.startDate))}
         </td>
         <td className="hidden md:table-cell">
-          {item.dueDate && new Intl.DateTimeFormat("fr-FR").format(item.dueDate)}
+          {item.dueDate && new Intl.DateTimeFormat("fr-FR").format(new Date(item.dueDate))}
         </td>
         <td>
           {status === "finished" ? (
@@ -112,15 +114,16 @@ const LessonListPage = async ({
         {(role === "admin" || role === "teacher") && (
           <td>
             <div className="flex items-center gap-2">
-              <Link href={`/list/sessions?lessonId=${item.id}`}>
-                <button
-                  title="Voir la séance"
-                  className="px-3 py-1 text-xs font-medium cursor-pointer rounded-md bg-blue-500 text-white hover:bg-blue-600"
-                >
-                  <CalendarDays size={16} />
-                </button>
-              </Link>
-              
+              {item.id && ( 
+                <Link href={`/list/sessions?lessonId=${item.id}`}>
+                  <button
+                    title="Voir la séance"
+                    className="px-3 py-1 text-xs font-medium cursor-pointer rounded-md bg-blue-500 text-white hover:bg-blue-600"
+                  >
+                    <CalendarDays size={16} />
+                  </button>
+                </Link>
+              )}
               <FormContainer table="lesson" type="update" data={item} />
               <FormContainer table="lesson" type="delete" id={item.id} />
             </div>
@@ -148,13 +151,23 @@ const LessonListPage = async ({
 
       switch (key) {
         case "classId":
-          query.classId = parseInt(value);
+          const classId = Number(value);
+          if (!isNaN(classId)) {
+            query.classId = classId;
+          }
+          break;
+
+        case "subjectId":
+          const subjectId = Number(value);
+          if (!isNaN(subjectId)) {
+            query.subjectId = subjectId;
+          }
           break;
 
         case "teacherId":
           query.teacherId = value;
           break;
-
+             
         case "studentId": {
           const student = await prisma.student.findUnique({
             where: { id: value },
@@ -180,6 +193,7 @@ const LessonListPage = async ({
 
           if (value === "active") {
             query.AND = [
+              ...(query.AND || []),
               { startDate: { lte: today } },
               { OR: [{ dueDate: null }, { dueDate: { gte: today } }] },
             ];
@@ -191,42 +205,53 @@ const LessonListPage = async ({
           break;
         }
 
-        case "date":
+        case "date": {
+          const start = new Date(value);
+          const end = new Date(value);
+          end.setHours(23, 59, 59);
+
           query.startDate = {
-            gte: new Date(value),
+            gte: start,
+            lte: end,
           };
           break;
-
+        }
+        
         case "search":
-          query.OR = [
-            { name: { contains: value, mode: "insensitive" } },
-            { subject: { name: { contains: value, mode: "insensitive" } } },
-            { teacher: { name: { contains: value, mode: "insensitive" } } },
+          query.AND = [
+            ...(query.AND || []),
+            {
+              OR: [
+                { name: { contains: value, mode: "insensitive" } },
+                { subject: { name: { contains: value, mode: "insensitive" } } },
+                { teacher: { name: { contains: value, mode: "insensitive" } } },
+              ],
+            },
           ];
           break;
       }
     }
   }
 
-  // Afficher les filtres actifs
-  const allowedSortFields = [
-    "name",
-    "startDate",
-    "dueDate",
-  ];
+    // Afficher les filtres actifs
+    const allowedSortFields = [
+      "name",
+      "startDate",
+      "dueDate",
+    ];
 
-  const sortBy = allowedSortFields.includes(queryParams.sortBy || "")
-    ? queryParams.sortBy
-    : "startDate";
+    const sortBy = allowedSortFields.includes(queryParams.sortBy || "")
+      ? queryParams.sortBy
+      : "startDate";
 
-  const sortOrder =
+    const sortOrder =
     queryParams.sortOrder === "asc" ? "asc" : "desc";
 
-  const orderBy: Prisma.LessonOrderByWithRelationInput = {
-    [sortBy!]: sortOrder,
-  };
+    const orderBy: Prisma.LessonOrderByWithRelationInput = {
+      [sortBy!]: sortOrder,
+    };
 
-  const [data, count, classes, teachers, subjects] =
+    const [data, count, classes, teachers, subjects] =
     await prisma.$transaction([
 
       prisma.lesson.findMany({
@@ -256,6 +281,12 @@ const LessonListPage = async ({
       }),
     ]);
 
+    const serializedData = data.map((item) => ({
+      ...item,
+      startDate: item.startDate ? item.startDate.toISOString() : null,
+      dueDate: item.dueDate ? item.dueDate.toISOString() : null,
+    }));
+
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
       {/* TOP SECTION */}
@@ -284,7 +315,7 @@ const LessonListPage = async ({
       </div>
 
       {/* List of lessons */}
-      <Table columns={columns} renderRow={renderRow} data={data} />
+      <Table columns={columns} renderRow={renderRow} data={serializedData} />
 
       {/* Pagination */}
       <Pagination page={p} count={count} />

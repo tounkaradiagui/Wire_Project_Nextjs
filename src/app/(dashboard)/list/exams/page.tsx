@@ -66,22 +66,22 @@ const ExamListPage = async ({
           <h3 className="font-semibold">{item.title}</h3>
         </div>
       </td>
-      <td>{item.lesson.subject.name}</td>
-      <td>{item.lesson.class.name}</td>
+      <td>{item.lesson?.subject?.name}</td>
+      <td>{item.lesson?.class?.name}</td>
       <td>
-        {item.lesson.teacher.name + " " + item.lesson.teacher.surname}
+        {item.lesson?.teacher?.name + " " + item.lesson?.teacher?.surname}
       </td>
       <td className="hidden md:table-cell">
         {new Intl.DateTimeFormat("fr-FR", {
           dateStyle: "short",
           timeStyle: "short",
-        }).format(item.startTime)}
+        }).format(new Date(item.startTime))}
       </td>
       <td className="hidden md:table-cell">
         {new Intl.DateTimeFormat("fr-FR", {
           dateStyle: "short",
           timeStyle: "short",
-        }).format(item.endTime)}
+        }).format(new Date(item.endTime))}
       </td>
       <td>
         <div className="flex items-center gap-2">
@@ -175,6 +175,12 @@ const ExamListPage = async ({
     prisma.exam.count({ where: query }),
   ]);
 
+  const serializedData = data.map((item) => ({
+    ...item,
+    startTime: item.startTime ? item.startTime.toISOString() : null,
+    endTime: item.endTime ? item.endTime.toISOString() : null,
+  }));
+
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
       {/* TOP SECTION */}
@@ -209,7 +215,7 @@ const ExamListPage = async ({
       </div>
 
       {/* List of Exams */}
-      <Table<ExamList> columns={columns} renderRow={renderRow} data={data} />
+      <Table<ExamList> columns={columns} renderRow={renderRow} data={serializedData} />
 
       {/* Pagination */}
       <Pagination page={p} count={count} />

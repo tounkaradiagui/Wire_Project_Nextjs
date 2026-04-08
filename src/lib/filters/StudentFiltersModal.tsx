@@ -79,7 +79,7 @@ const FiltersModal = ({ classes, grades }: Props) => {
                             className="w-full border p-2 rounded"
                         >
                             <option value="">Toutes les classes</option>
-                            {classes.map((c) => (
+                            {classes?.map((c) => (
                                 <option key={c.id} value={c.id}>
                                     {c.name}
                                 </option>
@@ -93,7 +93,7 @@ const FiltersModal = ({ classes, grades }: Props) => {
                             className="w-full border p-2 rounded"
                         >
                             <option value="">Tous les niveaux</option>
-                            {grades.map((g) => (
+                            {grades?.map((g) => (
                                 <option key={g.id} value={g.id}>
                                     Niveau {g.level}
                                 </option>

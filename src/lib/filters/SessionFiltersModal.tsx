@@ -69,7 +69,7 @@ const SessionFiltersModal = ({
                             className="w-full border p-2 rounded"
                         >
                             <option value="">Toutes classes</option>
-                            {classes.map((c: any) => (
+                            {classes?.map((c: any) => (
                                 <option key={c.id} value={c.id}>{c.name}</option>
                             ))}
                         </select>
@@ -81,7 +81,7 @@ const SessionFiltersModal = ({
                             className="w-full border p-2 rounded"
                         >
                             <option value="">Tous cours</option>
-                            {lessons.map((l: any) => (
+                            {lessons?.map((l: any) => (
                                 <option key={l.id} value={l.id}>{l.name}</option>
                             ))}
                         </select>
@@ -93,7 +93,7 @@ const SessionFiltersModal = ({
                             className="w-full border p-2 rounded"
                         >
                             <option value="">Tous enseignants</option>
-                            {teachers.map((t: any) => (
+                            {teachers?.map((t: any) => (
                                 <option key={t.id} value={t.id}>
                                     {t.name} {t.surname}
                                 </option>

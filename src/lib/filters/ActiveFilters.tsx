@@ -121,9 +121,9 @@ const ActiveFilters = ({
 
                 if (!session) return "Séance inconnue";
 
-                return `${session.date
-                    ? new Date(session.date).toLocaleDateString("fr-FR")
-                    : "Date inconnue"} - ${session.lesson?.name ?? "Cours inconnu"}`;
+                return `${session?.date
+                    ? new Date(session?.date).toLocaleDateString("fr-FR")
+                    : "Date inconnue"} - ${session?.lesson?.name ?? "Cours inconnu"}`;
             }
             
             case "teacherId": {
