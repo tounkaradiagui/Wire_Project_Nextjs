@@ -267,7 +267,7 @@ const SessionListPage = async ({
       <Table
         columns={columns}
         renderRow={renderRow}
-        data={serializedDatas}
+        data={serializedData}
       />
 
       {/* PAGINATION */}
