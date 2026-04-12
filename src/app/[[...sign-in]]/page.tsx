@@ -45,7 +45,6 @@ export default function LoginPage() {
       return;
     }
 
-    
     const result = loginSchema.safeParse({ identifier, password });
   
     if (!result.success) {
@@ -108,7 +107,7 @@ export default function LoginPage() {
         transition={{ duration: 0.8 }}
         className="text-white text-2xl md:text-4xl font-semibold mb-6 text-center"
       >
-        Ecole de Gogui – Gestion des absences
+        Wagadu – Gestion des absences
       </motion.h1>
 
       <motion.div
@@ -184,7 +183,7 @@ export default function LoginPage() {
               className={`w-full py-3 rounded-xl font-semibold transition flex items-center justify-center ${isDisabled ? "bg-blue-500 cursor-not-allowed" : "bg-blue-600 cursor-pointer hover:bg-blue-700 text-white"
                 }`}
             >
-              {loading ? <div className="w-6 h-6 border-4 border-white border-t-transparent rounded-full animate-spin" /> : "Connexion"}
+              {loading ? <div className="w-6 h-6 border-4 border-white border-t-transparent rounded-full animate-spin" /> : "Se connecter"}
             </motion.button>
           </form>
         </div>

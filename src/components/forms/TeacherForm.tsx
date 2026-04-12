@@ -38,7 +38,8 @@ const TeacherForm = ({
         bloodType: data?.bloodType ?? "",
         birthday: data?.birthday ?? "",
         sex: data?.sex ?? "",
-        subjects: data?.subjects ?? undefined,
+        subjects: data?.subjects?.map((s: any) => s.id) ?? [],
+        classes: data?.classes?.map((c: any) => c.id) ?? [],      
       },
   });
 
@@ -206,10 +207,10 @@ useEffect(() => {
               className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
               {...register("subjects")}
             >
-              <option value="">Sélectionner</option>
               {subjects.map((subject: { id: number; name: string }) => (
                 <option
                   key={subject.id}
+                  value={subject.id}
                 >
                   {subject.name}
                 </option>

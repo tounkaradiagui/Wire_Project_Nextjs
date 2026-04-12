@@ -448,6 +448,13 @@ model ReportCard {
   status      ReportCardStatus @default(DRAFT)
   generatedAt DateTime?
   closedAt    DateTime?
+  publishedAt  DateTime?
+  totalCoefficients  Float?   
+  totalPoints  Float?   
+
+  classHighest  Float?
+  classLowest   Float?
+  classAverage  Float?
 
   student    Student    @relation(fields: [studentId], references: [id])
   class      Class      @relation(fields: [classId], references: [id])
@@ -475,6 +482,8 @@ model SubjectReport {
   examScore       Float?  // Moyenne des examens
   assignmentScore Float?  // Moyenne des devoirs
   finalAverage    Float   // Moyenne pondérée finale de la matière
+  continuousScore Float?
+  product         Float?  
 
   // Stats de la classe (figées au moment de la génération)
   classMin    Float?

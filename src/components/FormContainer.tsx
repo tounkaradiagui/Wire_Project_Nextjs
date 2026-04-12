@@ -79,43 +79,68 @@ const FormContainer = async ({ table, type, data, id, role }: FormContainerProps
       case "teacher": {
         const { userId, sessionClaims } = await auth();
         const role = (sessionClaims?.metadata as { role?: string })?.role;
-        
-        const teacherSubjects = await prisma.subject.findMany({
-          where: {
-            teachers: {
-              some: {
-                teacherId: userId!,
+
+        let subjects;
+        let classes;
+
+        if (role === "teacher") {
+          // 👨‍🏫 Teacher → seulement ses matières
+          subjects = await prisma.subject.findMany({
+            where: {
+              teachers: {
+                some: {
+                  teacherId: userId!,
+                },
+              },
+              isDeleted: false,
+            },
+            select: {
+              id: true,
+              name: true,
+            },
+          });
+
+          classes = await prisma.class.findMany({
+            where: {
+              lessons: {
+                some: {
+                  teacherId: userId!,
+                },
               },
             },
-            isDeleted: false,
-          },
-          select: {
-            id: true,
-            name: true,
-          },
-        });
-        
-        const teacherClasses = await prisma.class.findMany({
-          where: {
-            lessons: {
-              some: {
-                teacherId:userId!,
-              }
-            }
-          },
-          select: {
-            id: true,
-            name: true,
-          },
-          orderBy: {
-            name: "asc",
-          },
-        });
+            select: {
+              id: true,
+              name: true,
+            },
+            orderBy: {
+              name: "asc",
+            },
+          });
 
+        } else {
+          // 👑 ADMIN / SUPER_ADMIN → tout voir
+          subjects = await prisma.subject.findMany({
+            where: { isDeleted: false },
+            select: {
+              id: true,
+              name: true,
+            },
+          });
+
+          classes = await prisma.class.findMany({
+            select: {
+              id: true,
+              name: true,
+            },
+            orderBy: {
+              name: "asc",
+            },
+          });
+        }
 
         relatedData = {
-          subjects: teacherSubjects,
-          classes: teacherClasses,
+          subjects,
+          classes,
         };
 
         break;

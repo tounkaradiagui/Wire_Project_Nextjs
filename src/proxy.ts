@@ -7,7 +7,7 @@ const matchers = Object.keys(routeAccessMap).map(route => ({
     allowRoles: routeAccessMap[route]
 }));
 
-// Pages d'erreur publiques (accessibles sans auth)
+// 🔥 Pages d'erreur publiques (accessibles sans auth)
 const publicErrorPages = createRouteMatcher([
     '/errors/connection-error',
     '/errors/unauthorized',
@@ -24,8 +24,13 @@ export default clerkMiddleware(async (auth, req) => {
 
     const { sessionClaims } = await auth();
 
-    const role =
-        (sessionClaims?.metadata as { role?: string } | undefined)?.role ?? '';
+    // Normalise en minuscules pour matcher le routeAccessMap
+    const role = (
+    (sessionClaims?.metadata as { role?: string } | undefined)?.role ?? ''
+    ).toLowerCase()
+
+    // const role =
+    //     (sessionClaims?.metadata as { role?: string } | undefined)?.role ?? '';
 
     for (const { matcher, allowRoles } of matchers) {
         if (matcher(req)) {

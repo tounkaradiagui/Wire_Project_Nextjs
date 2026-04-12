@@ -29,7 +29,7 @@ const menuItems = [
       {
         icon: Home,
         label: "Accueil",
-        href: "DYNAMIC_HOME", // placeholder
+        href: "DYNAMIC_HOME",
         visible: ["admin", "teacher", "student", "parent", "super_admin"],
       },
       {
@@ -99,6 +99,18 @@ const menuItems = [
         visible: ["admin", "teacher", "student", "parent", "super_admin"],
       },
       {
+        icon: NotebookPen,
+        label: "Bulletins",
+        href: "/bulletins",
+        visible: ["admin", "teacher", "student", "parent", "super_admin"],
+      },
+      {
+        icon: NotebookPen,
+        label: "Rapports",
+        href: "/report-cards",
+        visible: ["admin", "teacher", "super_admin"],
+      },
+      {
         icon: CheckSquare,
         label: "Absences",
         href: "/list/attendances",
@@ -114,7 +126,7 @@ const menuItems = [
         icon: MessageSquare,
         label: "Messages",
         href: "/list/messages",
-        visible: ["admin", "teacher", "student", "parent"],
+        visible: ["admin", "teacher", "parent"],
       },
       {
         icon: Megaphone,

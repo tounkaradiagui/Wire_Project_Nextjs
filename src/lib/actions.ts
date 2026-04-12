@@ -43,7 +43,7 @@ async function generateUniqueUsername(
         const username = counter === 0 ? base : `${base}${counter}`;
 
         // 🔥 Vérifier dans Clerk, UserProfile ET Student en parallèle
-        const [existingClerk, existingProfile, existingStudent, existingTeacher, existingParent] = 
+        const [existingClerk, existingProfile, existingStudent, existingTeacher, existingParent] =
             await Promise.all([
                 clerk.users.getUserList({ username: [username] }),
                 prisma.userProfile.findUnique({ where: { username } }),
@@ -133,89 +133,89 @@ async function generateUniqueCardNumber() {
 
 // Create clerk user Action
 export const createUser = async (
-  currentState: currentState,
-  data: UserSchemaInput
+    currentState: currentState,
+    data: UserSchemaInput
 ) => {
-  const clerk = createClerkClient({
-    secretKey: process.env.CLERK_SECRET_KEY!,
-  });
+    const clerk = createClerkClient({
+        secretKey: process.env.CLERK_SECRET_KEY!,
+    });
 
-  const baseUsername = generateBaseUsername(
-    data.firstName,
-    data.lastName
-  );
+    const baseUsername = generateBaseUsername(
+        data.firstName,
+        data.lastName
+    );
 
-  let attempt = 0;
+    let attempt = 0;
 
-  while (attempt < 10) {
-    const username =
-      attempt === 0
-        ? (data.username || baseUsername).toLowerCase()
-        : `${baseUsername}${attempt}`.toLowerCase();
+    while (attempt < 10) {
+        const username =
+            attempt === 0
+                ? (data.username || baseUsername).toLowerCase()
+                : `${baseUsername}${attempt}`.toLowerCase();
 
-    try {
-      const prismaRole = data.role.toUpperCase();
-      const metadataRole = data.role.toLowerCase();
+        try {
+            const prismaRole = data.role.toUpperCase();
+            const metadataRole = data.role.toLowerCase();
 
-      const clerkUser = await clerk.users.createUser({
-        firstName: data.firstName,
-        lastName: data.lastName,
-        username,
-        password: data.password,
-        publicMetadata: {
-          role: metadataRole,
-          status: "active",
-        },
-      });
-      
-        // 1. UserProfile
-        const userProfile = await prisma.userProfile.create({
-          data: {
-            clerkId: clerkUser.id,
-            username: clerkUser.username!,
-            firstName: clerkUser.firstName!,
-            lastName: clerkUser.lastName!,
-            image: clerkUser.imageUrl || null,
-            role: prismaRole as any,
-            isActive: true,
-            isBanned: false,
-            bannedAt: null,
-          },
-        });
-
-        // 2. ROLE BASED CREATION
-        switch (prismaRole) {
-          case "ADMIN":
-            await prisma.admin.create({
-              data: {
-                id: clerkUser.id,
-                username: data.username,
-                email: data.email,
-                userProfileId: userProfile.id,
-              },
+            const clerkUser = await clerk.users.createUser({
+                firstName: data.firstName,
+                lastName: data.lastName,
+                username,
+                password: data.password,
+                publicMetadata: {
+                    role: metadataRole,
+                    status: "active",
+                },
             });
-            break;      
-        }      
 
-      return { success: true, error: null };
+            // 1. UserProfile
+            const userProfile = await prisma.userProfile.create({
+                data: {
+                    clerkId: clerkUser.id,
+                    username: clerkUser.username!,
+                    firstName: clerkUser.firstName!,
+                    lastName: clerkUser.lastName!,
+                    image: clerkUser.imageUrl || null,
+                    role: prismaRole as any,
+                    isActive: true,
+                    isBanned: false,
+                    bannedAt: null,
+                },
+            });
 
-    } catch (error: any) {
-      const clerkError = error?.errors?.[0];
+            // 2. ROLE BASED CREATION
+            switch (prismaRole) {
+                case "ADMIN":
+                    await prisma.admin.create({
+                        data: {
+                            id: clerkUser.id,
+                            username: data.username,
+                            email: data.email,
+                            userProfileId: userProfile.id,
+                        },
+                    });
+                    break;
+            }
 
-      if (clerkError?.code === "form_identifier_exists") {
-        attempt++;
-        continue;
-      }
+            return { success: true, error: null };
 
-      console.error(error);
-      return { success: false, error: "Erreur lors de la création utilisateur" };
+        } catch (error: any) {
+            const clerkError = error?.errors?.[0];
+
+            if (clerkError?.code === "form_identifier_exists") {
+                attempt++;
+                continue;
+            }
+
+            console.error(error);
+            return { success: false, error: "Erreur lors de la création utilisateur" };
+        }
     }
-  }
 
-  return {
-    success: false,
-    error: "Impossible de générer un username unique",
-  };
+    return {
+        success: false,
+        error: "Impossible de générer un username unique",
+    };
 };
 
 // Update clerk user Action
@@ -709,7 +709,7 @@ export const createTeacher = async (
     })
 
     try {
-        
+
         // Générer un username unique vérifié dans Clerk ET Prisma
         const username = await generateUniqueUsername(
             clerk,
@@ -763,18 +763,19 @@ export const createTeacher = async (
         })
 
         // subjects
-        if (data.subjects?.length) {
-            const subjects = await prisma.subject.findMany({
-                where: { name: { in: data.subjects } },
-            })
+        const subjectIds = Array.isArray(data.subjects)
+            ? data.subjects
+            : data.subjects ? [data.subjects] : [];
 
-            await prisma.teacherSubject.createMany({
-                data: subjects.map((s) => ({
-                    teacherId: user.id!,
-                    subjectId: s.id,
-                })),
-            })
-        }
+        const validSubjectIds = subjectIds
+            .filter((id): id is string => !!id && !isNaN(Number(id)));
+
+        await prisma.teacherSubject.createMany({
+            data: validSubjectIds.map((id) => ({
+                teacherId: user.id!,
+                subjectId: Number(id),
+            })),
+        });
 
         // classes
         if (data.classes?.length) {
@@ -846,6 +847,7 @@ export const updateTeacher = async (
         secretKey: process.env.CLERK_SECRET_KEY!,
     })
 
+
     try {
         // 🔍 BEFORE
         const existingTeacher = await prisma.teacher.findUnique({
@@ -909,23 +911,26 @@ export const updateTeacher = async (
             },
         })
 
+        // Teacher subjects
         await prisma.teacherSubject.deleteMany({
             where: { teacherId: data.id },
-        })
+        });
 
-        if (data.subjects?.length) {
-            const subjects = await prisma.subject.findMany({
-                where: { name: { in: data.subjects } },
-            })
+        const subjectIds = Array.isArray(data.subjects)
+            ? data.subjects
+            : data.subjects ? [data.subjects] : [];
 
-            await prisma.teacherSubject.createMany({
-                data: subjects.map((s) => ({
-                    teacherId: data.id!,
-                    subjectId: s.id,
-                })),
-            })
-        }
+        const validSubjectIds = subjectIds
+            .filter((id): id is string => !!id && !isNaN(Number(id)));
 
+        await prisma.teacherSubject.createMany({
+            data: validSubjectIds.map((id) => ({
+                teacherId: userId!,
+                subjectId: Number(id),
+            })),
+        });
+
+        // Teacher classes
         await prisma.teacherClass.deleteMany({
             where: { teacherId: data.id },
         })
@@ -1310,7 +1315,7 @@ export const updateStudent = async (
                 success: false,
                 error: "Ce nom d'utilisateur est déjà pris. Choisissez-en un autre.",
             }
-        }  
+        }
         // 🔐 Clerk update
         await clerk.users.updateUser(data.id!, {
             username: data.username,
@@ -1596,7 +1601,7 @@ export const createParent = async (
         secretKey: process.env.CLERK_SECRET_KEY!,
     })
 
-    
+
     // Générer un username unique vérifié dans Clerk ET Prisma
     const username = await generateUniqueUsername(
         clerk,
@@ -1960,7 +1965,7 @@ export const createLesson = async (
 
         const lessonEndTime = new Date(base)
         lessonEndTime.setHours(data.endHour, 0, 0, 0)
-        
+
         // créer le cours
         const lesson = await prisma.lesson.create({
             data: {
@@ -1976,11 +1981,11 @@ export const createLesson = async (
             },
         });
 
-        
+
         /**
         * ✅ AUTO GENERATE SESSIONS
         */
-       const sessionDates = generateSessionDates(startDate, dueDate, data.weekDay)
+        const sessionDates = generateSessionDates(startDate, dueDate, data.weekDay)
 
         const sessionsToCreate = []
 
@@ -2179,7 +2184,7 @@ export const updateLesson = async (
         /**
          * SUPPRIMER anciennes sessions que si necessaire (soft delete)
          */
-        
+
         const hasScheduleChanged =
             oldLesson.weekDay !== data.weekDay ||
             oldLesson.startTime !== data.startHour ||
@@ -2257,8 +2262,8 @@ export const updateLesson = async (
                 data: sessionsToCreate,
             })
         }
-       
-        
+
+
         /**
          * LOG
          */
