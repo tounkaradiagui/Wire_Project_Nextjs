@@ -700,25 +700,25 @@ export const createTeacher = async (
     currentState: { success: boolean; error: string | null },
     data: TeacherSchemaInput
 ) => {
-    let userId: string | null = null
+    let createdUserId: string | null = null;
 
-    const { userId: actorClerkId } = await auth()
+    const { userId: actorClerkId } = await auth();
 
     const clerk = createClerkClient({
         secretKey: process.env.CLERK_SECRET_KEY!,
-    })
+    });
 
     try {
-
-        // Générer un username unique vérifié dans Clerk ET Prisma
+        // 🔤 Username unique
         const username = await generateUniqueUsername(
             clerk,
             data.name,
             data.surname
-        )
-        // Clerk user
+        );
+
+        // 👤 Clerk user
         const user = await clerk.users.createUser({
-            username: username,
+            username,
             password: data.password,
             firstName: data.name,
             lastName: data.surname,
@@ -726,176 +726,201 @@ export const createTeacher = async (
                 role: "teacher",
                 status: "active",
             },
-        })
+        });
 
-        userId = user.id
+        createdUserId = user.id;
 
-        let createdTeacher: any = null
-
-
+        // 👤 UserProfile
         const profile = await prisma.userProfile.create({
             data: {
                 clerkId: user.id,
                 role: "TEACHER",
-                username: username,
+                username,
                 firstName: data.name,
                 lastName: data.surname,
                 isActive: true,
                 isBanned: false,
             },
-        })
+        });
 
-        createdTeacher = await prisma.teacher.create({
+        // 🧑‍🏫 Teacher
+        const createdTeacher = await prisma.teacher.create({
             data: {
                 id: user.id,
-                username: username,
+                username,
                 name: data.name,
                 surname: data.surname,
-                email: data.email || null,
-                phone: data.phone || null,
+                email: data.email ?? null,
+                phone: data.phone ?? null,
                 address: data.address,
-                image: data.image || null,
+                image: data.image ?? null,
                 bloodType: data.bloodType,
                 sex: data.sex,
                 birthday: data.birthday ?? null,
                 userProfileId: profile.id,
             },
-        })
-
-        // subjects
-        const subjectIds = Array.isArray(data.subjects)
-            ? data.subjects
-            : data.subjects ? [data.subjects] : [];
-
-        const validSubjectIds = subjectIds
-            .filter((id): id is string => !!id && !isNaN(Number(id)));
-
-        await prisma.teacherSubject.createMany({
-            data: validSubjectIds.map((id) => ({
-                teacherId: user.id!,
-                subjectId: Number(id),
-            })),
         });
 
-        // classes
-        if (data.classes?.length) {
-            await prisma.teacherClass.createMany({
-                data: data.classes.map((classId) => ({
-                    teacherId: user.id!,
-                    classId,
+        // =========================
+        // 🔥 SUBJECTS FIX
+        // =========================
+
+        const subjectIds = Array.isArray(data.subjects)
+            ? data.subjects
+            : data.subjects
+                ? [data.subjects]
+                : [];
+
+        const validSubjectIds = subjectIds
+            .filter((id): id is string => !!id && !isNaN(Number(id)))
+            .map((id) => Number(id));
+
+        if (validSubjectIds.length > 0) {
+            await prisma.teacherSubject.createMany({
+                data: validSubjectIds.map((id) => ({
+                    teacherId: user.id, // ✅ OK
+                    subjectId: id,
                 })),
-            })
+            });
         }
 
+        // =========================
+        // 🔥 CLASSES FIX
+        // =========================
+
+        const classIds = Array.isArray(data.classes)
+            ? data.classes
+            : data.classes
+                ? [data.classes]
+                : [];
+
+        const validClassIds = classIds
+            .filter((id): id is number => !!id && !isNaN(Number(id)))
+            .map((id) => Number(id));
+
+        if (validClassIds.length > 0) {
+            await prisma.teacherClass.createMany({
+                data: validClassIds.map((classId) => ({
+                    teacherId: user.id, // ✅ OK
+                    classId,
+                })),
+            });
+        }
 
         // 🔍 Actor
         const actor = await prisma.userProfile.findUnique({
             where: { clerkId: actorClerkId! },
-        })
+        });
 
-        if (!actor) throw new Error("UserProfile introuvable")
+        if (!actor) throw new Error("UserProfile introuvable");
 
-        // 🧾 AUDIT
+        // 🧾 Audit
         await logAction({
             action: AuditAction.CREATE_TEACHER,
             entityType: "Teacher",
             entityId: createdTeacher.id,
-
             performedById: actor.id,
             role: actor.role,
-
             description: `Professeur ${createdTeacher.name} créé`,
-
             before: null,
             after: {
                 username: createdTeacher.username,
                 name: createdTeacher.name,
                 surname: createdTeacher.surname,
             },
-
             metadata: {
                 source: "createTeacher",
             },
-        })
+        });
 
-        return { success: true, error: null }
-
+        return { success: true, error: null };
     } catch (error) {
-        if (userId) {
-            await clerk.users.deleteUser(userId)
+        console.error("createTeacher error:", error);
+
+        // 🔥 rollback Clerk
+        if (createdUserId) {
+            await clerk.users.deleteUser(createdUserId);
         }
 
         return {
             success: false,
             error: "Une erreur est survenue lors de la création du professeur.",
-        }
+        };
     }
-}
+};
 
 // Update Teacher Action
 export const updateTeacher = async (
     _currentState: { success: boolean; error: string | null },
     data: TeacherSchemaInput
 ) => {
-    const { userId } = await auth()
+    const { userId } = await auth();
 
     if (!data.id) {
-        return { success: false, error: "ID manquant" }
+        return { success: false, error: "ID manquant" };
     }
 
     const clerk = createClerkClient({
         secretKey: process.env.CLERK_SECRET_KEY!,
-    })
-
+    });
 
     try {
         // 🔍 BEFORE
         const existingTeacher = await prisma.teacher.findUnique({
             where: { id: data.id },
-        })
+        });
 
         if (!existingTeacher) {
-            return { success: false, error: "Teacher introuvable" }
+            return { success: false, error: "Teacher introuvable" };
         }
 
         const before = {
             username: existingTeacher.username,
             name: existingTeacher.name,
             surname: existingTeacher.surname,
+        };
+
+        // ✅ username unique
+        const available = await isUsernameAvailableForUpdate(
+            clerk,
+            data.username,
+            data.id
+        );
+
+        if (!available) {
+            return {
+                success: false,
+                error: "Ce nom d'utilisateur est déjà pris.",
+            };
         }
 
-        const available = await isUsernameAvailableForUpdate(clerk, data.username, data.id)
-        if (!available) {
-            return { success: false, error: "Ce nom d'utilisateur est déjà pris." }
-        }
-        // 🔐 Clerk
+        // 🔐 Clerk update
         await clerk.users.updateUser(data.id, {
             username: data.username,
             ...(data.password && { password: data.password }),
             firstName: data.name,
             lastName: data.surname,
-        })
+        });
 
-        let updatedTeacher: any = null
-
-
-        const teacher = await prisma.teacher.findUnique({
+        // 🔁 Update userProfile
+        const teacherProfile = await prisma.teacher.findUnique({
             where: { id: data.id },
             select: { userProfileId: true },
-        })
+        });
 
-        if (!teacher) throw new Error("Teacher introuvable")
+        if (!teacherProfile) throw new Error("Teacher introuvable");
 
         await prisma.userProfile.update({
-            where: { id: teacher.userProfileId },
+            where: { id: teacherProfile.userProfileId },
             data: {
                 username: data.username,
                 firstName: data.name,
                 lastName: data.surname,
             },
-        })
+        });
 
-        updatedTeacher = await prisma.teacher.update({
+        // 🧑‍🏫 Update teacher
+        const updatedTeacher = await prisma.teacher.update({
             where: { id: data.id },
             data: {
                 username: data.username,
@@ -909,82 +934,99 @@ export const updateTeacher = async (
                 sex: data.sex,
                 birthday: data.birthday ?? null,
             },
-        })
+        });
 
-        // Teacher subjects
+        // =========================
+        // 🔥 SUBJECTS
+        // =========================
+
         await prisma.teacherSubject.deleteMany({
             where: { teacherId: data.id },
         });
 
         const subjectIds = Array.isArray(data.subjects)
             ? data.subjects
-            : data.subjects ? [data.subjects] : [];
+            : data.subjects
+                ? [data.subjects]
+                : [];
 
         const validSubjectIds = subjectIds
-            .filter((id): id is string => !!id && !isNaN(Number(id)));
+            .filter((id): id is string => !!id && !isNaN(Number(id)))
+            .map((id) => Number(id));
 
-        await prisma.teacherSubject.createMany({
-            data: validSubjectIds.map((id) => ({
-                teacherId: userId!,
-                subjectId: Number(id),
-            })),
-        });
+        if (validSubjectIds.length > 0) {
+            await prisma.teacherSubject.createMany({
+                data: validSubjectIds.map((id) => ({
+                    teacherId: data.id!,
+                    subjectId: id,
+                })),
+            });
+        }
 
-        // Teacher classes
+        // =========================
+        // 🔥 CLASSES
+        // =========================
+
         await prisma.teacherClass.deleteMany({
             where: { teacherId: data.id },
-        })
+        });
 
-        if (data.classes?.length) {
+        const classIds = Array.isArray(data.classes)
+            ? data.classes
+            : data.classes
+                ? [data.classes]
+                : [];
+
+        const validClassIds = classIds
+            .filter((id): id is number => !!id && !isNaN(Number(id)))
+            .map((id) => Number(id));
+
+        if (validClassIds.length > 0) {
             await prisma.teacherClass.createMany({
-                data: data.classes.map((classId) => ({
+                data: validClassIds.map((classId) => ({
                     teacherId: data.id!,
                     classId,
                 })),
-            })
+            });
         }
 
-
-        // 🔍 Actor
+        // 🔍 Actor (admin connecté)
         const actor = await prisma.userProfile.findUnique({
             where: { clerkId: userId! },
-        })
+        });
 
-        if (!actor) throw new Error("UserProfile introuvable")
+        if (!actor) throw new Error("UserProfile introuvable");
 
         const after = {
             username: updatedTeacher.username,
             name: updatedTeacher.name,
             surname: updatedTeacher.surname,
-        }
+        };
 
+        // 🧾 Audit
         await logAction({
             action: AuditAction.UPDATE_TEACHER,
             entityType: "Teacher",
             entityId: data.id,
-
             performedById: actor.id,
             role: actor.role,
-
             description: `Professeur ${updatedTeacher.name} mis à jour`,
-
             before,
             after,
-
             metadata: {
                 source: "updateTeacher",
             },
-        })
+        });
 
-        return { success: true, error: null }
-
+        return { success: true, error: null };
     } catch (error) {
+        console.error("updateTeacher error:", error);
         return {
             success: false,
             error: "Erreur lors de la mise à jour.",
-        }
+        };
     }
-}
+};
 
 // Delete Teacher Action
 export const deleteTeacher = async (
