@@ -28,6 +28,7 @@ const AnnouncementForm = ({
     resolver: zodResolver(announcementSchema),
   });
 
+  // useActionState est un hook personnalisé qui gère l'état d'une action asynchrone (chargement, succès, erreur)
   const [state, formAction, isPending] = useActionState(
     type === "create" ? createAnnouncement : updateAnnouncement,
     {
@@ -36,6 +37,7 @@ const AnnouncementForm = ({
     }
   );
 
+  // Gérer les messages de succès et d'erreur après la soumission du formulaire, en affichant des notifications toast et en rafraîchissant la page après une action réussie
   const [serverError, setServerError] = useState<string | null>(null);
   const onSubmit = handleSubmit((data) => {
     startTransition(() => {
@@ -78,6 +80,8 @@ const AnnouncementForm = ({
     }
   }, [state.success, state.error, type, router, setOpen]);
 
+  // Récupérer la liste des classes pour le champ de sélection de classe, à partir des données liées passées en props (relatedData.classes),
+  //  et gérer le cas où il n'y a pas de classes disponibles en affichant un message d'erreur et en désactivant le champ de sélection
   const classes = relatedData?.classes || [];
 
   return (

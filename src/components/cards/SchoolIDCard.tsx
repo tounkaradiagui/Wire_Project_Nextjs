@@ -6,6 +6,7 @@ import * as htmlToImage from "html-to-image";
 import { createRoot } from "react-dom/client";
 import jsPDF from "jspdf";
 
+// Définition du type Student 
 interface Student {
     id: string;
     verificationToken: string;
@@ -22,6 +23,7 @@ interface Student {
     telephone: string;
     email: string;
     photo?: string;
+    schoolYear: string
 }
 
 export default function SchoolIDCard({ student }: { student: Student }) {
@@ -40,7 +42,7 @@ export default function SchoolIDCard({ student }: { student: Student }) {
         if (side === "back") {
             return (
                 <div
-                    className="w-[780px] h-[350px] text-white p-6 relative flex flex-col justify-between rounded-2xl shadow-xl"
+                    className="w-195 h-87.5 text-white p-6 relative flex flex-col justify-between rounded-2xl shadow-xl"
                     style={{ backgroundColor: "#1D4ED8" }} // Bleu fixe pour export
                 >
                     {/* Header */}
@@ -77,9 +79,9 @@ export default function SchoolIDCard({ student }: { student: Student }) {
 
         // FRONT
         return (
-            <div className="w-[780px] h-[350px] flex shadow-xl overflow-hidden">
+            <div className="w-195 h-87.5 flex shadow-xl overflow-hidden">
                 {/* LEFT */}
-                <div className="w-[40%] bg-gradient-to-b from-blue-600 to-purple-700 text-white p-4 flex flex-col justify-between">
+                <div className="w-[40%] bg-linear-to-b from-blue-600 to-purple-700 text-white p-4 flex flex-col justify-between">
                     <div className="text-sm font-semibold text-start">
                         {student.ecole}
                         <br />
@@ -110,7 +112,7 @@ export default function SchoolIDCard({ student }: { student: Student }) {
                     <div className="flex justify-between text-sm mb-4">
                         <div>
                             <p className="text-gray-500">Année académique</p>
-                            <p className="font-semibold">2026-2027</p>
+                            <p className="font-semibold">{student.schoolYear}</p>
                         </div>
                         <div className="text-right">
                             <p className="text-gray-500">Valide jusqu'au</p>
@@ -246,7 +248,7 @@ export default function SchoolIDCard({ student }: { student: Student }) {
         <div className="flex flex-col items-center gap-4 p-6">
             {/* Carte avec flip */}
             <div
-                className="w-[780px] h-[350px] perspective cursor-pointer"
+                className="w-195 h-87.5 perspective cursor-pointer"
                 onClick={() => setFlipped(!flipped)}
             >
                 <div

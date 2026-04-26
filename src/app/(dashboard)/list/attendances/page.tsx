@@ -49,6 +49,7 @@ const AttendanceListPage = async ({
   const { userId, sessionClaims } = await auth();
   const role = (sessionClaims?.metadata as { role?: string })?.role;
 
+  // Fonctions utilitaires pour détecter le type de justificatif
   const isPdf = (url: string) =>
     url.toLowerCase().includes(".pdf");
 
@@ -220,10 +221,7 @@ const AttendanceListPage = async ({
       break;
   }
 
-  // ----------------------
-  // FILTERS
-  // ----------------------
-
+  // Filtrer les données en fonction des paramètres d'URL
   if (queryParams) {
     for (const [key, value] of Object.entries(queryParams)) {
       if (!value) continue;
@@ -243,9 +241,9 @@ const AttendanceListPage = async ({
         case "status": {
           query.status = value as AttendanceStatus;
           break;
-        }       
+        }
 
-        case "classId":{
+        case "classId": {
           (query.AND as Prisma.AttendanceWhereInput[]).push({
             session: {
               lesson: {
@@ -256,7 +254,7 @@ const AttendanceListPage = async ({
           break;
         }
 
-        case "teacherId":{
+        case "teacherId": {
           (query.AND as Prisma.AttendanceWhereInput[]).push({
             session: {
               lesson: {
@@ -271,7 +269,7 @@ const AttendanceListPage = async ({
           if (!value || value === "NaN") break;
 
           (query.AND as Prisma.AttendanceWhereInput[]).push({
-            sessionId: value, 
+            sessionId: value,
           });
 
           break;
@@ -295,12 +293,14 @@ const AttendanceListPage = async ({
     }
   }
 
+  // Définir les champs de tri autorisés et construire l'objet orderBy en fonction des paramètres d'URL
   const allowedSortFields = [
     "createdAt",
     "updatedAt",
     "status",
   ];
 
+  // Valider le champ de tri et l'ordre de tri à partir des paramètres d'URL, avec des valeurs par défaut
   const sortBy = allowedSortFields.includes(queryParams.sortBy || "")
     ? queryParams.sortBy
     : "createdAt";
@@ -319,6 +319,7 @@ const AttendanceListPage = async ({
   let sessions: any[] = [];
   let teachers: any[] = [];
 
+  // Récupérer les données avec pagination et gestion des erreurs
   try {
     const result = await prisma.$transaction([
       prisma.attendance.findMany({
@@ -349,6 +350,7 @@ const AttendanceListPage = async ({
 
       prisma.attendance.count({ where: query }),
 
+      // Données auxiliaires pour les filtres
       prisma.class.findMany({
         select: { id: true, name: true },
       }),
@@ -374,6 +376,7 @@ const AttendanceListPage = async ({
       }),
     ]);
 
+    // Assigner les résultats de la transaction à des variables distinctes pour une meilleure lisibilité
     data = result[0];
     count = result[1];
     classes = result[2];
@@ -381,12 +384,11 @@ const AttendanceListPage = async ({
     teachers = result[4];
 
   } catch (error) {
-    console.error("🔥 ATTENDANCE ERROR:", error);
+    console.error("ATTENDANCE ERROR:", error);
     throw error;
   }
 
-// const serializedData = data;
-
+  // Convertir les dates en chaînes ISO pour éviter les problèmes de sérialisation dans Next.js
   const serializedData = data.map((item) => ({
     ...item,
     createdAt: item.createdAt ? item.createdAt.toISOString() : null,
@@ -421,8 +423,9 @@ const AttendanceListPage = async ({
                 </button>
               </>
             )}
+            {/*  */}
             <ResetFiltersButton />
-            <ActiveFilters classes={classes} teachers={teachers} sessions={sessions}/>
+            <ActiveFilters classes={classes} teachers={teachers} sessions={sessions} />
             <AttendanceFiltersModal classes={classes} teachers={teachers} sessions={sessions} />
             <TableActions />
             {(role === "admin" || role === "teacher" || role === "parent") && (

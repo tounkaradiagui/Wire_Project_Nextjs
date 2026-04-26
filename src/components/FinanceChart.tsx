@@ -29,7 +29,7 @@ const data = [
 
 const FinanceChart = () => {
   return (
-    <div className="bg-white rounded-xl w-full h-[400px] p-4 shadow-md">
+    <div className="bg-white rounded-xl w-full h-100 p-4 shadow-md">
       {/* Titre */}
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-semibold">Finances Scolaires</h2>
@@ -43,7 +43,7 @@ const FinanceChart = () => {
       </div>
 
       {/* Graphique */}
-      <div className="w-full h-[320px]">
+      <div className="w-full h-80">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
             data={data}

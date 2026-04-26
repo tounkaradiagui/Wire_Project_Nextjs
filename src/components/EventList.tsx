@@ -66,7 +66,6 @@ export async function getEventsByDay(dateParam?: string) {
   });
 }
 
-// EventList Component
 const EventList = async ({ dateParam }: { dateParam?: string }) => {
   const events = await getEventsByDay(dateParam);
 

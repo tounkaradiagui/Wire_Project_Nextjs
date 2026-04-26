@@ -1,4 +1,6 @@
 
+// Polyfill minimal pour performance.mark et performance.measure (nécessaire pour jspdf dans certains environnements)
+
 const _marks = new Map<string, number>()
 
 const perf = {
@@ -7,7 +9,7 @@ const perf = {
     _marks.set(name, Date.now())
   },
   measure: (name: string, start?: string, end?: string) => {
-    // Ne rien faire — évite l'erreur "negative timestamp"
+    // Si start ou end sont fournis, calculer la durée entre les deux marques
   },
   getEntriesByName: () => [],
   getEntriesByType: () => [],

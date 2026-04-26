@@ -114,7 +114,7 @@ const LessonListPage = async ({
         {(role === "admin" || role === "teacher") && (
           <td>
             <div className="flex items-center gap-2">
-              {item.id && ( 
+              {item.id && (
                 <Link href={`/list/sessions?lessonId=${item.id}`}>
                   <button
                     title="Voir la séance"
@@ -167,7 +167,7 @@ const LessonListPage = async ({
         case "teacherId":
           query.teacherId = value;
           break;
-             
+
         case "studentId": {
           const student = await prisma.student.findUnique({
             where: { id: value },
@@ -179,10 +179,6 @@ const LessonListPage = async ({
           }
           break;
         }
-
-        case "subjectId":
-          query.subjectId = parseInt(value);
-          break;
 
         case "status": {
           const today = new Date();
@@ -199,7 +195,7 @@ const LessonListPage = async ({
               { OR: [{ dueDate: null }, { dueDate: { gte: today } }] },
             ];
           }
-          
+
           if (value === "upcoming") {
             query.startDate = { gt: today };
           }
@@ -231,84 +227,84 @@ const LessonListPage = async ({
             },
           ];
           break;
-        }       
-        
+        }
+
       }
     }
   }
 
-    // Afficher les filtres actifs
-    const allowedSortFields = [
-      "name",
-      "startDate",
-      "dueDate",
-    ];
+  // Afficher les filtres actifs
+  const allowedSortFields = [
+    "name",
+    "startDate",
+    "dueDate",
+  ];
 
-    const sortBy = allowedSortFields.includes(queryParams.sortBy || "")
-      ? queryParams.sortBy
-      : "startDate";
+  const sortBy = allowedSortFields.includes(queryParams.sortBy || "")
+    ? queryParams.sortBy
+    : "startDate";
 
-    const sortOrder =
+  const sortOrder =
     queryParams.sortOrder === "asc" ? "asc" : "desc";
 
-    const orderBy: Prisma.LessonOrderByWithRelationInput = {
-      [sortBy!]: sortOrder,
-    };
+  const orderBy: Prisma.LessonOrderByWithRelationInput = {
+    [sortBy!]: sortOrder,
+  };
 
-    let data: LessonList[] = [];
-    let count = 0;
-    let classes: any[] = [];
-    let teachers: any[] = [];
-    let subjects: any[] = [];
+  let data: LessonList[] = [];
+  let count = 0;
+  let classes: any[] = [];
+  let teachers: any[] = [];
+  let subjects: any[] = [];
 
-    try {
-      const result = await prisma.$transaction([
-        prisma.lesson.findMany({
-          where: query,
-          include: {
-            class: { select: { name: true } },
-            subject: { select: { name: true } },
-            teacher: { select: { name: true, surname: true } },
-          },
-          take: ITEM_PER_PAGE,
-          skip: ITEM_PER_PAGE * (p - 1),
-          orderBy,
-        }),
+  try {
+    const result = await prisma.$transaction([
+      prisma.lesson.findMany({
+        where: query,
+        include: {
+          class: { select: { name: true } },
+          subject: { select: { name: true } },
+          teacher: { select: { name: true, surname: true } },
+        },
+        take: ITEM_PER_PAGE,
+        skip: ITEM_PER_PAGE * (p - 1),
+        orderBy,
+      }),
 
-        prisma.lesson.count({ where: query }),
+      prisma.lesson.count({ where: query }),
 
-        prisma.class.findMany({
-          select: { id: true, name: true },
-        }),
+      prisma.class.findMany({
+        select: { id: true, name: true },
+      }),
 
-        prisma.teacher.findMany({
-          select: { id: true, name: true, surname: true },
-        }),
+      prisma.teacher.findMany({
+        select: { id: true, name: true, surname: true },
+      }),
 
-        prisma.subject.findMany({
-          select: { id: true, name: true },
-        }),
-      ]);
+      prisma.subject.findMany({
+        select: { id: true, name: true },
+      }),
+    ]);
 
-      data = result[0];
-      count = result[1];
-      classes = result[2];
-      teachers = result[3];
-      subjects = result[4];
+    data = result[0];
+    count = result[1];
+    classes = result[2];
+    teachers = result[3];
+    subjects = result[4];
 
-    } catch (error) {
-      console.error("🔥 LESSON ERROR:", error);
-      throw error;
-    }
+  } catch (error) {
+    console.error("🔥 LESSON ERROR:", error);
+    throw error;
+  }
 
-    // ⚠️ OPTION SAFE → NE PAS convertir en string
-    // const serializedData = data;
+  // ⚠️ OPTION SAFE → NE PAS convertir en string
+  // const serializedData = data;
 
-    const serializedData = data.map((item) => ({
-      ...item,
-      startDate: item.startDate ? item.startDate.toISOString() : null,
-      dueDate: item.dueDate ? item.dueDate.toISOString() : null,
-    })) as unknown as LessonList[];
+  const serializedData = data.map((item) => ({
+    ...item,
+    startDate: item.startDate ? item.startDate.toISOString() : null,
+    dueDate: item.dueDate ? item.dueDate.toISOString() : null,
+  })) as unknown as LessonList[];
 
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">

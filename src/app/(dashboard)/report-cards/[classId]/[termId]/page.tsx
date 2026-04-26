@@ -21,10 +21,7 @@ export default async function ReportCardsPage({ params, searchParams }: Props) {
     where: { clerkId: user.id },
   })
 
-  // if (!profile || profile.role !== "TEACHER" || !profile.teacher) {
-  //   notFound()
-  // }
-
+  // Constants pour les stats
   const classId = Number(classIdStr)
   const termId = Number(termIdStr)
 

@@ -78,8 +78,8 @@ const EventListPage = async ({
       </td>
     </tr>
   );
-  // URL PARAMS CONDITION
 
+  // Ajouter des conditions de recherche basées sur les paramètres d'URL
   const query: Prisma.EventWhereInput = {};
 
   if (queryParams) {
@@ -96,7 +96,7 @@ const EventListPage = async ({
     }
   }
 
-  // Fetch data according to user role
+  // Ajouter des conditions spécifiques selon le rôle de l'utilisateur
   const roleConditions = {
     teacher: { lessons: { some: { teacherId: currentUserId! } } },
     student: { students: { some: { id: currentUserId! } } },
@@ -112,6 +112,7 @@ const EventListPage = async ({
     ];
   }
 
+  // Récupérer les événements avec pagination
   const [data, count] = await prisma.$transaction([
     prisma.event.findMany({
       where: query,
@@ -155,7 +156,7 @@ const EventListPage = async ({
         </div>
       </div>
 
-      {/* List of Events */}
+      {/* List de Events */}
       <Table columns={columns} renderRow={renderRow} data={data} />
 
       {/* Pagination */}

@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react"
 import { updateSubjectAppreciation } from "@/lib/actions/report-cards"
 
+// Liste des appréciations possibles pour les bulletins
 const APPRECIATIONS = [
   "Excellent",
   "Très bien",
@@ -24,6 +25,8 @@ export function AppreciationForm({
   const [saved, setSaved] = useState(false)
   const [isPending, startTransition] = useTransition()
 
+  // Gérer la mise à jour de l'appréciation en appelant l'API updateSubjectAppreciation avec le subjectReportId et la nouvelle valeur, 
+  // et afficher un indicateur de chargement pendant la mise à jour, ainsi qu'une confirmation visuelle lorsque la sauvegarde est réussie
   const handleChange = (newValue: string) => {
     setValue(newValue)
     setSaved(false)

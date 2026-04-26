@@ -121,7 +121,6 @@ const UsersListPage = async ({
                     : "bg-green-500 hover:bg-green-600"
                     }`}
                 >
-                  {/* {item.isActive ? "Ban" : "Activer"} */}
                   {item.isActive ?
                     <Ban size={16} className="cursor-pointer" />
                     :
@@ -189,7 +188,7 @@ const UsersListPage = async ({
     [sortBy]: sortOrder,
   };
 
-  const [data, count, teachers, students, parents, admins] = await prisma.$transaction([
+  const [data, count, admins, teachers, parents, students] = await prisma.$transaction([
     prisma.userProfile.findMany({
       where: query,
       take: ITEM_PER_PAGE,
@@ -198,10 +197,11 @@ const UsersListPage = async ({
     }),
     prisma.userProfile.count({ where: query }),
 
-    prisma.teacher.findMany({ select: { id: true, name: true, surname: true } }),
-    prisma.student.findMany({ select: { id: true, name: true, surname: true } }),
-    prisma.parent.findMany({ select: { id: true, name: true, surname: true } }),
+    // Données pour les filtres (ex: liste des enseignants pour filtrer par enseignant)
     prisma.admin.findMany({ select: { id: true, username: true } }),
+    prisma.teacher.findMany({ select: { id: true, name: true, surname: true } }),
+    prisma.parent.findMany({ select: { id: true, name: true, surname: true } }),
+    prisma.student.findMany({ select: { id: true, name: true, surname: true } }),
   ]);
 
   return (
@@ -215,9 +215,9 @@ const UsersListPage = async ({
           <TableSearch />
           <div className="flex items-center gap-4 self-end">
             <ResetFiltersButton />
-            <ActiveFilters />
+            <ActiveFilters teachers={teachers} parents={parents} students={students} />
             <UserFiltersModal />
-            <TableActions />
+            < TableActions />
             {role === "super_admin" && <FormContainer table="user" type="create" />}
           </div>
         </div>

@@ -78,18 +78,6 @@ const TeacherListPage = async ({
       className: "hidden lg:table-cell",
     },
 
-    // {
-    //   header: "Création",
-    //   accessor: "createdAt",
-    //   className: "hidden lg:table-cell",
-    // },
-
-    // {
-    //   header: "Mise à jour",
-    //   accessor: "updatedAt",
-    //   className: "hidden lg:table-cell",
-    // },
-
     {
       header: "Adresse",
       accessor: "address",
@@ -140,8 +128,6 @@ const TeacherListPage = async ({
           : "—"}
       </td>
       <td className="hidden lg:table-cell">{item.phone}</td>
-      {/* <td className="hidden lg:table-cell">{item.createdAt}</td>
-      <td className="hidden lg:table-cell">{item.updatedAt}</td> */}
       <td className="hidden lg:table-cell">{item.address}</td>
       <td>
         <div className="flex items-center gap-2">

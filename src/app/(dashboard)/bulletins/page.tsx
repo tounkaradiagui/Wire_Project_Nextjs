@@ -8,6 +8,7 @@ export default async function BulletinsIndexPage() {
   const user = await currentUser()
   if (!user) redirect("/")
 
+  // Récupérer le profil de l'utilisateur avec les relations nécessaires     
   const profile = await prisma.userProfile.findUnique({
     where: { clerkId: user.id },
     include: {
@@ -16,11 +17,15 @@ export default async function BulletinsIndexPage() {
     },
   })
 
+  // Si pas de profil trouvé, afficher une page 404 ─
   if (!profile) notFound()
 
-  // ── Récupérer les studentIds selon le rôle ──
+  // Récupérer les studentIds selon le rôle
   let studentIds: string[] = []
 
+  // STUDENT → son propre ID
+  // PARENT → les IDs de tous ses enfants
+  // ADMIN/TEACHER → redirection vers une page dédiée (pas de bulletins à afficher)
   if (profile.role === "STUDENT" && profile.student) {
     studentIds = [profile.student.id]
   } else if (profile.role === "PARENT" && profile.parent) {
@@ -30,7 +35,7 @@ export default async function BulletinsIndexPage() {
     redirect("/report-cards")
   }
 
-  // ── Récupérer les bulletins publiés ──
+  // Récupérer les bulletins publiés
   const reportCards = await prisma.reportCard.findMany({
     where: {
       studentId: { in: studentIds },
@@ -47,7 +52,7 @@ export default async function BulletinsIndexPage() {
     ],
   })
 
-  // ── Grouper par élève ──
+  // Grouper par élève
   const grouped = studentIds.map((sid) => {
     const studentCards = reportCards.filter((r) => r.studentId === sid)
     const student = studentCards[0]?.student ?? null

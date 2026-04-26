@@ -9,11 +9,12 @@ const CountChartContainer = async () => {
     by: ["sex"],
     _count: true,
   });
+  // Calculer le nombre de garçons et de filles à partir des données récupérées, en utilisant des valeurs par défaut de 0 si aucune donnée n'est trouvée pour un sexe donné
   const boysData = data.find((item) => item.sex === "MALE")?._count || 0;
   const girlsData = data.find((item) => item.sex === "FEMALE")?._count || 0;
 
   return (
-      <div className="bg-white rounded-xl p-4 shadow-md h-full w-full">
+    <div className="bg-white rounded-xl p-4 shadow-md h-full w-full">
 
       {/* Bar title */}
       <div className="flex justify-between items-center">
@@ -37,7 +38,7 @@ const CountChartContainer = async () => {
             Garçons {Math.round((boysData / (girlsData + boysData)) * 100)}%
           </h1>
         </div>
-        
+
         <div className=" flex flex-col gap-1">
           <div className="w-5 h-5 bg-yellow-500 rounded-full" />
           <h1 className="text-bold">{girlsData}</h1>

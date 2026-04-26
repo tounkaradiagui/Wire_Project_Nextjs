@@ -16,7 +16,6 @@ import ResetFiltersButton from "@/lib/filters/ResetFiltersButton";
 import TableActions from "@/lib/helpers/TableActions";
 
 /* ================= TYPE ================= */
-
 type SessionList = Prisma.SessionGetPayload<{
   include: {
     lesson: {
@@ -72,11 +71,11 @@ const SessionListPage = async ({
           hour: "2-digit",
           minute: "2-digit",
         }).format(new Date(item.startTime))
-      }
+        }
         {" - "}
         {new Intl.DateTimeFormat("fr-FR", {
           hour: "2-digit",
-          minute: "2-digit",          
+          minute: "2-digit",
         }).format(new Date(item.endTime))}
       </td>
 
@@ -86,14 +85,14 @@ const SessionListPage = async ({
       {(role === "admin" || role === "super_admin" || role === "teacher") && (
         <td>
           <div className="flex gap-2 items-center">
-              <Link href={`/list/attendances?sessionId=${item.id}`}>
-                <button
-                  title="Voir les absences de cette séance"
-                  className="flex items-center gap-1 cursor-pointer px-3 py-1 text-xs rounded-md bg-green-600 text-white hover:bg-green-700"
-                  >
-                  <ClipboardCheck size={16} />
-                </button>
-              </Link>
+            <Link href={`/list/attendances?sessionId=${item.id}`}>
+              <button
+                title="Voir les absences de cette séance"
+                className="flex items-center gap-1 cursor-pointer px-3 py-1 text-xs rounded-md bg-green-600 text-white hover:bg-green-700"
+              >
+                <ClipboardCheck size={16} />
+              </button>
+            </Link>
             {(role === "super_admin") && (
               <>
                 <FormContainer table="session" type="update" data={item} />
@@ -181,6 +180,7 @@ const SessionListPage = async ({
   const sortOrder =
     queryParams.sortOrder === "asc" ? "asc" : "desc";
 
+  // Construire l'objet orderBy pour Prisma
   const orderBy: Prisma.SessionOrderByWithRelationInput = {
     [sortBy!]: sortOrder,
   };
@@ -236,8 +236,7 @@ const SessionListPage = async ({
     throw error;
   }
 
-  // const serializedData = data;
-  
+  // Sérialisation des données pour le rendu (notamment les dates) et éviter les problèmes de types avec Prisma
   const serializedData = data.map((item) => ({
     ...item,
     date: item.date ? item.date.toISOString() : null,

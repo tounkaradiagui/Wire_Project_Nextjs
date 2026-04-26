@@ -13,7 +13,7 @@ import {
   ArrowUpDown
 } from "lucide-react";
 
-
+// Type pour les données d'affichage des examens, incluant les relations nécessaires
 type ExamList = Prisma.ExamGetPayload<{
   include: {
     lesson: {
@@ -96,15 +96,16 @@ const ExamListPage = async ({
     </tr>
   );
 
+  // La requête de base
   const query: Prisma.ExamWhereInput = {};
-
-  // query.lesson = {};
   query.lesson = query.lesson ?? {};
 
+  // Ajouter des conditions de recherche basées sur les paramètres d'URL
   if (role === "teacher") {
     query.lesson.teacherId = userId!;
   }
 
+  // Conditions de filtrage basées sur les paramètres d'URL
   if (queryParams) {
     for (const [key, value] of Object.entries(queryParams)) {
       if (value !== undefined) {
@@ -127,7 +128,7 @@ const ExamListPage = async ({
     }
   }
 
-  // Fetch data according to user role
+  // Ajouter des conditions spécifiques selon le rôle de l'utilisateur
   switch (role) {
     case "admin":
       break;
@@ -160,6 +161,7 @@ const ExamListPage = async ({
   let data: ExamList[] = [];
   let count = 0;
 
+  // Récupérer les examens avec pagination
   try {
     const result = await prisma.$transaction([
       prisma.exam.findMany({
@@ -183,10 +185,11 @@ const ExamListPage = async ({
     count = result[1];
 
   } catch (error) {
-    console.error("🔥 PRISMA ERROR:", error);
+    console.error("PRISMA ERROR:", error);
     throw error;
   }
 
+  // Sérialiser les dates pour éviter les problèmes de format lors du rendu côté client
   const serializedData = data.map((item) => ({
     ...item,
     startTime: item.startTime ? item.startTime.toISOString() : null,
@@ -226,7 +229,7 @@ const ExamListPage = async ({
         </div>
       </div>
 
-      {/* List of Exams */}
+      {/* List des Examens */}
       <Table<ExamList> columns={columns} renderRow={renderRow} data={serializedData} />
 
       {/* Pagination */}

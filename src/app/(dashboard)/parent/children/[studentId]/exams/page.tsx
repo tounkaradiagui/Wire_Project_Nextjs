@@ -5,6 +5,7 @@ const ExamsPage = async ({
 }: {
     params: { studentId: string };
 }) => {
+    // Récupérer les examens de l'élève en utilisant une fonction d'action qui vérifie que le parent a le droit de voir ces examens 
     const exams = await getExams(params.studentId);
 
     return (

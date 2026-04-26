@@ -62,10 +62,9 @@ const ClassForm = ({
 
     if (state.success) {
       toast.success(
-        `La classe a été ${
-          type === "create"
-            ? "ajoutée avec succès"
-            : "mise à jour avec succès"
+        `La classe a été ${type === "create"
+          ? "ajoutée avec succès"
+          : "mise à jour avec succès"
         }`
       );
       setOpen(false);
@@ -73,8 +72,10 @@ const ClassForm = ({
     }
   }, [state.success, state.error, type, setOpen, router]);
 
+  // Récupérer les niveaux depuis les données liées tout en assurant que c'est un tableau
   const grades = Array.isArray(relatedData?.grades) ? relatedData.grades : [];
 
+  // Labels pour les cycles
   const cycleLabel = {
     FIRST: "1er Cycle",
     SECOND: "2eme Cycle",

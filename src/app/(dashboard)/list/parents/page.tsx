@@ -142,6 +142,7 @@ const ParentListPage = async ({
     "createdAt",
   ];
 
+  // Déterminer le champ de tri et l'ordre de tri en fonction des paramètres d'URL, avec des valeurs par défaut
   const sortBy = allowedSortFields.includes(queryParams.sortBy || "")
     ? queryParams.sortBy
     : "createdAt";
@@ -153,6 +154,7 @@ const ParentListPage = async ({
     [sortBy!]: sortOrder,
   };
 
+  // Récupérer les parents avec pagination
   const [data, count, classes] = await prisma.$transaction([
     prisma.parent.findMany({
       where: query,
@@ -194,7 +196,7 @@ const ParentListPage = async ({
         </div>
       </div>
 
-      {/* List of Students */}
+      {/* List des élèves */}
       <Table columns={columns} renderRow={renderRow} data={data} />
 
       {/* Pagination */}

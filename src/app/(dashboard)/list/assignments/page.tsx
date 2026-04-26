@@ -13,13 +13,13 @@ import {
   ArrowUpDown
 } from "lucide-react";
 
-
+// Type pour les données d'affichage des devoirs, incluant les relations nécessaires
 type AssignmentList = {
   id: number;
   title: string;
   lessonId: number;
   startDate: string | null;
-  dueDate: string | null; 
+  dueDate: string | null;
   lesson: {
     teacher: {
       name: string;
@@ -40,14 +40,17 @@ const AssignmentListPage = async ({
   searchParams: { [key: string]: string | undefined };
 }) => {
 
+  // Gérer la pagination et les paramètres de recherche
   const { page, ...queryParams } = await searchParams;
 
   const p = page ? parseInt(page) : 1;
 
+  // Récupérer le rôle de l'utilisateur pour conditionner les actions et les données affichées
   const { userId, sessionClaims } = await auth();
   const role = (sessionClaims?.metadata as { role?: string })?.role;
   const currentUserId = userId;
 
+  // Définir les colonnes de la table en fonction du rôle de l'utilisateur
   const columns = [
     { header: "Matière", accessor: "info" },
 
@@ -113,8 +116,7 @@ const AssignmentListPage = async ({
     </tr>
   );
 
-  // URL PARAMS CONDITION
-
+  // Construire la requête de filtrage en fonction des paramètres d'URL et du rôle de l'utilisateur
   const query: Prisma.AssignmentWhereInput = {};
   if (role === "teacher") {
     query.lesson = {
@@ -124,6 +126,7 @@ const AssignmentListPage = async ({
 
   query.lesson = {};
 
+  // Conditions de filtrage basées sur les paramètres d'URL
   if (queryParams) {
     for (const [key, value] of Object.entries(queryParams)) {
       if (value !== undefined) {
@@ -146,7 +149,7 @@ const AssignmentListPage = async ({
     }
   }
 
-  // Fetch data based on role conditions
+  // Afficher les devoirs en fonction du rôle de l'utilisateur
   switch (role) {
     case "admin":
       break;
@@ -175,9 +178,11 @@ const AssignmentListPage = async ({
       break;
   }
 
+  // 
   let data: any[] = [];
   let count = 0;
 
+  // Récupérer les devoirs avec pagination et gestion des erreurs
   try {
     const result = await prisma.$transaction([
       prisma.assignment.findMany({
@@ -205,7 +210,7 @@ const AssignmentListPage = async ({
     throw error;
   }
 
-
+  // Sérialiser les dates pour éviter les problèmes de format lors du rendu côté client
   const serializedData = data.map((item) => ({
     ...item,
     startDate: item.startDate ? item.startDate.toISOString() : null,
@@ -245,7 +250,7 @@ const AssignmentListPage = async ({
         </div>
       </div>
 
-      {/* List of Assignments */}
+      {/* List de devoirs */}
       <Table<AssignmentList>
         columns={columns}
         renderRow={renderRow}

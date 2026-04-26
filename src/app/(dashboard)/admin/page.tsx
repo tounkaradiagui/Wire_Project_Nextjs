@@ -11,7 +11,7 @@ const AdminPage = async () => {
       {/* Left */}
       <div className="w-full lg:w-2/3 flex flex-col gap-8">
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-          <UserCards type="admin" />
+          <UserCards type="subject" />
           <UserCards type="student" />
           <UserCards type="teacher" />
           <UserCards type="parent" />

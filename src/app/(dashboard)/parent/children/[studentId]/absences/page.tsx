@@ -9,14 +9,7 @@ const AttendanceBadge = ({ status }: { status: string }) => {
     };
 
     return (
-        // <div className="flex gap-2">
-        //     <Link href={`?status=ABSENT`} className="px-2 py-1 bg-red-100 rounded text-xs">
-        //         Absents
-        //     </Link>
-        //     <Link href={`?status=LATE`} className="px-2 py-1 bg-yellow-100 rounded text-xs">
-        //         Retards
-        //     </Link>
-        // </div>
+
         <span
             className={`px-2 py-1 text-xs rounded ${styles[status as keyof typeof styles]
                 }`}

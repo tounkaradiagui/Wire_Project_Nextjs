@@ -75,6 +75,7 @@ const ResultForm = ({
         }
     }, [state.success, state.error, type, router, setOpen]);
 
+    // Récupérer les données liées (examens, devoirs, élèves, trimestres) tout en assurant que ce sont des tableaux
     const exams = relatedData?.exams ?? [];
     const assignments = relatedData?.assignments ?? [];
     const students = relatedData?.students ?? [];

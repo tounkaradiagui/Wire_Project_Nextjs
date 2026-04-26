@@ -1,6 +1,6 @@
 export function isDatabaseConnectionError(error: unknown): boolean {
     if (!(error instanceof Error)) return false;
-    
+
     return (
         error.message.includes("Can't reach database server") ||
         error.message.includes("Connection refused") ||

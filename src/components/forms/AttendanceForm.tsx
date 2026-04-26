@@ -45,21 +45,27 @@ const AttendanceForm = ({
     });
 
 
+    // Récupérer le statut sélectionné dans le formulaire pour afficher conditionnellement les champs de justification et de preuve uniquement
+    // lorsque le statut est "ABSENT", en utilisant watch pour surveiller les changements du champ "status"
     const status = watch("status");
 
-    // Start sessions filters
+    // Récupérer la séance sélectionnée pour filtrer la liste des élèves disponibles dans le sélecteur d'élèves, en utilisant watch pour surveiller
+    // les changements du champ "sessionId" et en filtrant relatedData.students en fonction de la classe de la séance sélectionnée
     const selectedSessionId = watch("sessionId");
     const selectedSession = relatedData?.sessions?.find(
         (session: any) => session.id === selectedSessionId
     );
 
-    // Students filters
+    // Filtrer la liste des élèves disponibles dans le sélecteur d'élèves en fonction de la classe de la séance sélectionnée, pour éviter d'afficher tous les 
+    // élèves de l'école et limiter le choix aux élèves concernés par la séance
     const filteredStudents = selectedSession
         ? relatedData?.students?.filter(
             (student: any) => student.classId === selectedSession.class.id
         )
         : [];
 
+    // Gérer l'état de l'image de preuve téléchargée avec Cloudinary, en stockant l'URL sécurisée de l'image dans le state "image" après un téléchargement réussi,
+    // et en incluant cette URL dans les données soumises du formulaire pour l'API createAttendance ou updateAttendance
     const [image, setImage] = useState<any>(null);
 
     const [state, formAction, isPending] = useActionState(
@@ -177,6 +183,7 @@ const AttendanceForm = ({
                             <p className="text-xs text-red-500">{errors.studentId.message}</p>
                         )}
                     </div>
+                    {/* masquer le champs id coté UI du formulaire */}
                     {data && (
                         <InputField
                             label="ID"

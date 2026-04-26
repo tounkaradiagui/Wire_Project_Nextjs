@@ -1,9 +1,12 @@
+// Composant de table générique pour afficher des données tabulaires, avec des fonctionnalités de pagination, de tri et de gestion des données vides
 type Column<T> = {
   header: string;
   accessor: keyof T | string;
   className?: string;
 };
 
+// Type pour les props du composant Table, qui inclut les colonnes à afficher, les données à afficher, une fonction 
+// pour rendre chaque ligne et un message à afficher lorsque les données sont vides
 type TableProps<T> = {
   columns: Column<T>[];
   data: T[];
@@ -41,7 +44,6 @@ const Table = <T,>({ columns, data, renderRow, emptyMessage = "Aucune donnée di
           ) : (
             data.map((item) => renderRow(item))
           )}
-          {/* {data.map(renderRow)} */}
         </tbody>
       </table>
     </div>

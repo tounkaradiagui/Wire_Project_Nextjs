@@ -27,12 +27,12 @@ export function ReportCardHeader({
 }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
-  const [message, setMessage] = useState<{text: string, type: "success" | "error"} | null>(null)
+  const [message, setMessage] = useState<{ text: string, type: "success" | "error" } | null>(null)
   const [confirm, setConfirm] = useState<"generate" | "validate" | "publish" | null>(null)
 
-  const allGenerated  = stats.generated + stats.validated + stats.published === stats.total
-  const allValidated  = stats.validated + stats.published === stats.total
-  const allPublished  = stats.published === stats.total
+  const allGenerated = stats.generated + stats.validated + stats.published === stats.total
+  const allValidated = stats.validated + stats.published === stats.total
+  const allPublished = stats.published === stats.total
 
   const handleAction = (action: "generate" | "validate" | "publish") => {
     startTransition(async () => {
@@ -41,8 +41,8 @@ export function ReportCardHeader({
 
       const fn =
         action === "generate" ? generateReportCards :
-        action === "validate" ? validateReportCards :
-        publishReportCards
+          action === "validate" ? validateReportCards :
+            publishReportCards
 
       const result = await fn(classId, termId)
 
@@ -73,10 +73,10 @@ export function ReportCardHeader({
       {/* Stats */}
       <div className="grid grid-cols-4 gap-3">
         {[
-          { label: "Total élèves",  value: stats.total,     color: "bg-gray-100 text-gray-700" },
-          { label: "Générés",       value: stats.generated,  color: "bg-blue-100 text-blue-700" },
-          { label: "Validés",       value: stats.validated,  color: "bg-yellow-100 text-yellow-700" },
-          { label: "Publiés",       value: stats.published,  color: "bg-green-100 text-green-700" },
+          { label: "Total élèves", value: stats.total, color: "bg-gray-100 text-gray-700" },
+          { label: "Générés", value: stats.generated, color: "bg-blue-100 text-blue-700" },
+          { label: "Validés", value: stats.validated, color: "bg-yellow-100 text-yellow-700" },
+          { label: "Publiés", value: stats.published, color: "bg-green-100 text-green-700" },
         ].map((stat) => (
           <div
             key={stat.label}
@@ -91,11 +91,10 @@ export function ReportCardHeader({
       {/* Message feedback */}
       {message && (
         <div
-          className={`rounded-lg px-4 py-3 text-sm font-medium ${
-            message.type === "success"
-              ? "bg-green-50 text-green-700 border border-green-200"
-              : "bg-red-50 text-red-700 border border-red-200"
-          }`}
+          className={`rounded-lg px-4 py-3 text-sm font-medium ${message.type === "success"
+            ? "bg-green-50 text-green-700 border border-green-200"
+            : "bg-red-50 text-red-700 border border-red-200"
+            }`}
         >
           {message.text}
         </div>
@@ -121,7 +120,7 @@ export function ReportCardHeader({
                        hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed
                        transition-colors"
           >
-            {stats.total === 0 ? "Aucun élève" : allGenerated ? "🔄 Regénérer" : "⚡ Générer les bulletins"}
+            {stats.total === 0 ? "Aucun élève" : allGenerated ? "Regénérer" : "Générer les bulletins"}
           </button>
         )}
 
@@ -142,7 +141,7 @@ export function ReportCardHeader({
                        hover:bg-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed
                        transition-colors"
           >
-            ✅ Valider ({stats.generated})
+            Valider ({stats.generated})
           </button>
         )}
 
@@ -163,7 +162,7 @@ export function ReportCardHeader({
                        hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed
                        transition-colors"
           >
-            🌐 Publier ({stats.validated})
+            Publier ({stats.validated})
           </button>
         )}
 
@@ -179,7 +178,7 @@ export function ReportCardHeader({
       {termClosed && (
         <p className="text-xs text-orange-600 bg-orange-50 border border-orange-200
                       rounded px-3 py-2">
-          ⚠️ Ce trimestre est clôturé. La génération est désactivée.
+          Ce trimestre est clôturé. La génération est désactivée.
         </p>
       )}
     </div>

@@ -5,6 +5,7 @@ import "moment/locale/fr";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import { useState } from "react";
 
+// Configurer moment pour la localisation en français
 moment.locale("fr");
 const localizer = momentLocalizer(moment);
 
@@ -15,12 +16,7 @@ const BigCalendar = ({ data }: { data: { title: string; start: Date; end: Date }
     setView(selectedView);
   };
 
-  const formats = {
-    dayHeaderFormat: (date: Date, culture?: string, localizer?: any) =>
-    localizer.format(date, "dddd D", culture),
-};
-
-  // 🔹 Traduction complète des libellés
+  // Traduction complète des libellés
   const messages = {
     today: "Aujourd’hui",
     previous: "Précédent",

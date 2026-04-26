@@ -33,6 +33,7 @@ const SubjectListPage = async ({
 }) => {
   const params = await searchParams;
 
+  // Gérer la paginationet les paramètres de recherche
   const page = params.page ? Math.max(1, parseInt(params.page, 10) || 1) : 1;
   const search = (params.search || "").trim();
 
@@ -64,7 +65,7 @@ const SubjectListPage = async ({
         </div>
       </td>
       <td className="hidden md:table-cell">
-       {item.coefficient ?? "Non défini"}
+        {item.coefficient ?? "Non défini"}
       </td>
       <td className="hidden md:table-cell">
         {item.teachers.length > 0
@@ -109,7 +110,7 @@ const SubjectListPage = async ({
             { name: { contains: value, mode: "insensitive" } },
             { code: { contains: value, mode: "insensitive" } },
           ];
-          break;      
+          break;
 
         case "classId":
           query.lessons = {

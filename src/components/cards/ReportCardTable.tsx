@@ -5,6 +5,9 @@ import Link from "next/link"
 import { StatusBadge } from "@/components/cards/StatusBadge"
 import { DecisionForm } from "@/components/forms/DecisionForm"
 
+
+// Aactoriser avec la table des bulletins trimestriels de la page d'accueil (ReportCardSummaryTable) 
+// en créant un composant ReportCardTable commun qui prendrait en props les colonnes à afficher et les actions possibles selon le rôle de l'utilisateur
 type Row = {
   student: {
     id: string
@@ -23,6 +26,7 @@ type Row = {
   } | null
 }
 
+// Ajouter une colonne "Actions" avec des boutons pour voir le bulletin, télécharger le PDF, etc. selon le rôle de l'utilisateur (teacher, admin) et le statut du bulletin
 type Props = {
   rows: Row[]
   classId: number
@@ -31,6 +35,7 @@ type Props = {
   role: string
 }
 
+// Ajouter un système de filtres pour afficher tous les bulletins, ou seulement ceux en attente, générés, validés, publiés, etc. selon le statut du bulletin
 const FILTERS = [
   { value: "ALL", label: "Tous" },
   { value: "PENDING", label: "En attente" },
@@ -48,6 +53,9 @@ export function ReportCardTable({
   const isTeacher = role === "TEACHER"
   const isAdmin = role === "ADMIN" || role === "SUPER_ADMIN"
 
+  // Ajouter une action de validation pour les enseignants, et une action de publication pour les admins, avec 
+  // des boutons dans la colonne "Actions" de chaque ligne du tableau, et des fonctions handleValidate(reportCardId) et 
+  // handlePublish(reportCardId) qui appellent les API correspondantes pour mettre à jour le statut du bulletin et rafraîchir la page
   const handleFilter = (value: string) => {
     const params = new URLSearchParams()
     if (value !== "ALL") params.set("status", value)

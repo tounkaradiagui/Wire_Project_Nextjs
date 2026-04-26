@@ -1,22 +1,21 @@
 import { PrismaClient } from "@prisma/client";
 
 
-// Create a singleton instance function
+// Singleton pour PrismaClient afin d'éviter les problèmes de connexion multiples en développement avec le hot reload de Next.js
 const prismaClientSingleton = () => {
   return new PrismaClient({
     log: ["error", "warn"],
   });
 };
 
-// Extend globalThis with a prisma property (for hot reload in dev)
 declare global {
   var prisma: ReturnType<typeof prismaClientSingleton> | undefined;
 }
 
-// Reuse existing instance or create a new one
+// Utiliser une instance globale de PrismaClient en développement pour éviter les problèmes de connexion multiples
 const prisma = globalThis.prisma ?? prismaClientSingleton();
 
-// If not in production, store it on globalThis to prevent multiple connections
+// En production on peut se permettre de créer une nouvelle instance sans risque de fuite de mémoire
 if (process.env.NODE_ENV !== "production") globalThis.prisma = prisma;
 
 export default prisma;

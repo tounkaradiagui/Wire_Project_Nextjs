@@ -22,8 +22,7 @@ const AttendanceChartContainer = async () => {
   nextSunday.setDate(lastMonday.getDate() + 6);
   nextSunday.setHours(23, 59, 59, 999);
 
-  // --- 2. Récupérer les présences depuis la base de données ---
-
+  // --- 2. Récupérer les absences depuis la base de données ---
   const resData = await prisma.attendance.findMany({
     where: {
       isDeleted: false,
@@ -47,16 +46,11 @@ const AttendanceChartContainer = async () => {
     },
   });
 
-  const formatted = resData.map((item) => ({
-    date: item.session?.date,
-    status: item.status,
-  }));
-
   // --- 3. Préparer la structure de données pour le graphique ---
   // Jours de la semaine (version française abrégée)
   const daysOfWeek = ["Lun", "Mar", "Mer", "Jeu", "Ven"];
 
-  // Structure pour stocker le nombre de présents / absents par jour
+  // Structure pour stocker le nombre de retards / absents par jour
   const attendanceMap: Record<
     string,
     { absent: number; late: number }
@@ -81,7 +75,7 @@ const AttendanceChartContainer = async () => {
     if (day >= 1 && day <= 5) {
       const dayName = daysOfWeek[day - 1];// Convertit 1–5 en Lun–Ven
 
-      // Ajout dans le compteur selon présence ou absence
+      // Ajout dans le compteur selon retard ou absence
       switch (item.status) {
         case "ABSENT":
           attendanceMap[dayName].absent += 1;
@@ -104,7 +98,6 @@ const AttendanceChartContainer = async () => {
   //   console.log(data);
 
   // --- 6. Rendu du composant ---
-
   return (
     <div className="bg-white rounded-xl w-full h-full p-4 shadow-md">
       {/* Titre du graphique + bouton d’options */}

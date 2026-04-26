@@ -19,6 +19,7 @@ import {
   X,
 } from "lucide-react";
 
+// Mapping des actions de suppression pour chaque type d'entité, utilisé dans les formulaires de suppression
 const deleteActionMap = {
   subject: deleteSubject,
   teacher: deleteTeacher,
@@ -35,6 +36,7 @@ const deleteActionMap = {
   session: deleteSession,
 };
 
+// Import dynamique des formulaires pour éviter de charger tous les composants de formulaire à la fois, ce qui améliore les performances et réduit le temps de chargement initial de la page
 const TeacherForm = dynamic(() => import("./forms/TeacherForm"), {
   loading: () => <h1>Chargement...</h1>,
 });
@@ -100,6 +102,9 @@ const forms: {
 
   ) => React.JSX.Element;
 } = {
+  // Chaque clé correspond à une table de la base de données et la valeur est une fonction qui retourne le composant 
+  // de formulaire correspondant, avec les props nécessaires pour gérer l'ouverture du modal, le type d'action (création ou mise à jour), 
+  // les données de l'élément à modifier (le cas échéant) et les données liées pour les listes déroulantes
   subject: (setOpen, type, data, relatedData) => (
     <SubjectForm
       type={type}
@@ -232,8 +237,10 @@ const FormModal = ({
 }: FormContainerProps & { relatedData?: any }) => {
   const size = type === "create" ? "w-8 h-8" : "w-7 h-7";
 
+  // État local pour gérer l'ouverture du modal, utilisé pour afficher ou masquer le formulaire en fonction de l'action de l'utilisateur (création, mise à jour ou suppression)
   const [open, setOpen] = useState(false);
 
+  // Composant de formulaire à afficher dans le modal, déterminé dynamiquement en fonction de la table ciblée du type d'action (supprimé)
   const Form = () => {
     const action = deleteActionMap[table as keyof typeof deleteActionMap];
     const [state, formAction, isPending] = useActionState(action as any, {

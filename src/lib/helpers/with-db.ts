@@ -9,7 +9,7 @@ export async function withDB<T>(fn: () => Promise<T>): Promise<T> {
         if (isDatabaseConnectionError(error)) {
             redirect("/errors/connection-error");
         }
-        // 🔥 Toute autre erreur → server-error
+        // Toute autre erreur → server-error
         redirect("/errors/server-error");
     }
 }

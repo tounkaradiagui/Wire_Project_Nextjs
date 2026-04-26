@@ -7,6 +7,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
+// Styles pour la légende du graphique
 const style = {
   top: "50%",
   right: 0,
@@ -14,6 +15,8 @@ const style = {
   lineHeight: "24px",
 };
 
+// Composant pour afficher un graphique en barres radiales représentant le nombre de garçons et de filles,
+// avec une section centrale affichant une image symbolisant les élèves
 const CountChart = ({ boys, girls }: { boys: number; girls: number }) => {
   const data = [
     {

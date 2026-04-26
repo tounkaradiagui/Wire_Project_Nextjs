@@ -82,6 +82,7 @@ const SubjectForm = ({
     }
   }, [state.success, state.error]);
 
+  // Récupérer la liste des enseignants pour les afficher dans le select multiple
   const teachers = Array.isArray(relatedData?.teachers)
     ? relatedData.teachers
     : [];
@@ -145,7 +146,7 @@ const SubjectForm = ({
           <InputField
             label="Matière"
             name="name"
-            placeholder= "Nom de la matière"
+            placeholder="Nom de la matière"
             register={register}
             error={errors?.name}
             inputClassName="text-sm py-2"

@@ -23,6 +23,7 @@ type SessionFormProps = {
   relatedData?: any;
 };
 
+// Formater une date au format "dd/MM/yyyy"
 export const formatDate = (date: Date | string) => {
   const d = new Date(date);
 
@@ -30,10 +31,10 @@ export const formatDate = (date: Date | string) => {
   const month = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
 
-  // return `${year}-${month}-${day}`;
   return `${day}/${month}/${year}`;
 };
 
+// Formater une date au format "dd/MM/yyyyTHH:mm" pour les champs datetime-local
 export const formatDateTimeLocal = (date: Date | string) => {
   const d = new Date(date);
 
@@ -43,7 +44,6 @@ export const formatDateTimeLocal = (date: Date | string) => {
   const hours = String(d.getHours()).padStart(2, "0");
   const minutes = String(d.getMinutes()).padStart(2, "0");
 
-  // return `${year}-${month}-${day}T${hours}:${minutes}`;
   return `$${day}/${month}/${year}T${hours}:${minutes}`;
 };
 

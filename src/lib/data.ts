@@ -1,4 +1,6 @@
-// TEMPORARY DATA
+// Ce fichier contient des données fictives pour les enseignants, les étudiants, les parents, les matières, les classes, 
+// les leçons, les examens, les devoirs, les résultats, les événements et les annonces. Ces données sont utilisées pour tester l'affichage
+// et le fonctionnement de l'application avant d'intégrer une base de données réelle ou une API backend.
 
 // export let role = "admin"; // Change this value to "admin", "teacher", "student", or "parent" to test different roles
 

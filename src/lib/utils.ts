@@ -1,5 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 
+// Cette fonction récupère les données d'authentification de l'utilisateur connecté, notamment son ID et son rôle. 
+// Elle utilise la fonction `auth` de Clerk pour obtenir les informations de session, puis extrait le rôle à partir des métadonnées 
+// de la session. Le rôle est utilisé pour déterminer les autorisations de l'utilisateur dans l'application.
 export const getAuthData = async () => {
     const { userId, sessionClaims } = await auth();
 
@@ -11,6 +14,7 @@ export const getAuthData = async () => {
     };
 };
 
+// Fonction pour ajuster les horaires des leçons à la semaine en cours
 const currentWorkWeek = () => {
     const today = new Date();
     const dayOfWeek = today.getDay();

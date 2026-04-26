@@ -28,19 +28,20 @@ const TeacherForm = ({
     formState: { errors },
   } = useForm({
     resolver: zodResolver(teacherSchema),
-      defaultValues: {
-        username: data?.username ?? "",
-        email: data?.email ?? "",
-        name: data?.name ?? "",
-        surname: data?.surname ?? "",
-        phone: data?.phone ?? "",
-        address: data?.address ?? "",
-        bloodType: data?.bloodType ?? "",
-        birthday: data?.birthday ?? "",
-        sex: data?.sex ?? "",
-        subjects: data?.subjects?.map((s: any) => s.id) ?? [],
-        classes: data?.classes?.map((c: any) => c.id) ?? [],      
-      },
+    // Pré-remplir les champs du formulaire en cas de mise à jour, sinon laisser vides pour la création
+    defaultValues: {
+      username: data?.username ?? "",
+      email: data?.email ?? "",
+      name: data?.name ?? "",
+      surname: data?.surname ?? "",
+      phone: data?.phone ?? "",
+      address: data?.address ?? "",
+      bloodType: data?.bloodType ?? "",
+      birthday: data?.birthday ?? "",
+      sex: data?.sex ?? "",
+      subjects: data?.subjects?.map((s: any) => s.id) ?? [],
+      classes: data?.classes?.map((c: any) => c.id) ?? [],
+    },
   });
 
 
@@ -64,35 +65,35 @@ const TeacherForm = ({
 
   const router = useRouter();
 
-useEffect(() => {
-  if (state.success) {
-    toast.success(`L'enseignant a été ${type === "create" ? "ajoutée avec succès" : "mise à jour avec succès"
+  useEffect(() => {
+    if (state.success) {
+      toast.success(`L'enseignant a été ${type === "create" ? "ajoutée avec succès" : "mise à jour avec succès"
         }`, {
-      style: {
-        background: "dark",
-        color: "#ffffff",
-        fontWeight: "bold",
-        fontSize: "14px",
-      },
-    });
-    setOpen(false);
-    router.refresh();
-  }
+        style: {
+          background: "dark",
+          color: "#ffffff",
+          fontWeight: "bold",
+          fontSize: "14px",
+        },
+      });
+      setOpen(false);
+      router.refresh();
+    }
 
-  if (state.error) {
-    toast.error("Erreur de serveur", {
-      style: {
-        background: "#f87171",
-        color: "#ffffff",
-        fontWeight: "bold",
-        fontSize: "14px",
-      },
-    });
-    router.refresh();
-  }
-}, [state.success, state.error]);
+    if (state.error) {
+      toast.error("Erreur de serveur", {
+        style: {
+          background: "#f87171",
+          color: "#ffffff",
+          fontWeight: "bold",
+          fontSize: "14px",
+        },
+      });
+      router.refresh();
+    }
+  }, [state.success, state.error]);
 
-
+  // Récupérer la liste des matières et des classes pour les afficher dans les selects multiples
   const { subjects, classes } = relatedData;
 
   return (

@@ -5,6 +5,7 @@ const AssignmentsPage = async ({
 }: {
     params: { studentId: string };
 }) => {
+    // Récupérer les devoirs de l'élève en utilisant une fonction d'action qui vérifie que le parent a le droit de voir ces devoirs
     const result = await getStudentAssignmentsForParent(params.studentId);
 
     if (!result.success) {

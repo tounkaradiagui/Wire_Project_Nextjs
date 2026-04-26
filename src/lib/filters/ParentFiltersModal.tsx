@@ -14,6 +14,8 @@ const ParentFiltersModal = ({ classes }: any) => {
     const [sex, setSex] = useState(searchParams.get("sex") || "");
     const [studentName, setStudentName] = useState(searchParams.get("studentName") || "");
 
+    // Fonction pour appliquer les filtres en mettant à jour les paramètres de recherche dans l'URL, ce qui déclenchera une nouvelle requête pour afficher les résultats filtrés,
+    // et réinitialiser la pagination à la page 1
     const applyFilters = () => {
         const params = new URLSearchParams(searchParams.toString());
 

@@ -8,12 +8,16 @@ const Pagination = ({ page, count }: { page: number; count: number }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  // Calculer le nombre total de pages en fonction du nombre total d'éléments et du nombre d'éléments par page, et ne pas afficher la pagination si le nombre total de pages est inférieur ou égal à 1
   const totalPages = Math.ceil(count / ITEM_PER_PAGE);
   if (totalPages <= 1) return null;
 
+  // Déterminer si les boutons "Précédent" et "Suivant" doivent être activés ou désactivés en fonction de la page actuelle et du nombre total de pages
   const hasPrev = page > 1;
   const hasNext = page < totalPages;
 
+  // Fonction pour changer de page, qui met à jour les paramètres de recherche dans l'URL pour refléter la nouvelle page sélectionnée, ce qui permet 
+  // de naviguer entre les pages sans recharger la page entière et de conserver les autres paramètres de recherche intacts
   const changePage = (newPage: number) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("page", newPage.toString());

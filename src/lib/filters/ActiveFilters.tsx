@@ -2,12 +2,14 @@
 
 import { useSearchParams } from "next/navigation";
 
+// Composant pour afficher les filtres actifs basés sur les paramètres de recherche dans l'URL,
+// en utilisant des données de référence pour afficher des valeurs lisibles pour les filtres liés à des entités (ex : classe, enseignant, etc.)
 interface Props {
     classes?: { id: number; name: string }[];
     grades?: { id: number; level: number }[];
     subjects?: { id: number; name: string }[];
     lessons?: { id: number; name: string }[];
-    sessions?: {id: string; date?: Date; lesson?: { name?: string };}[];
+    sessions?: { id: string; date?: Date; lesson?: { name?: string }; }[];
     teachers?: { id: string; name: string; surname?: string }[];
     students?: { id: string; name: string; surname?: string }[];
     parents?: { id: string; name: string; surname?: string }[];
@@ -114,8 +116,8 @@ const ActiveFilters = ({
                     lessons.find((l) => l.id === Number(value))?.name ||
                     "Cours inconnu"
                 );
-                      
-           
+
+
             case "sessionId": {
                 const session = sessions.find((s) => s.id === value);
 
@@ -125,7 +127,7 @@ const ActiveFilters = ({
                     ? new Date(session?.date).toLocaleDateString("fr-FR")
                     : "Date inconnue"} - ${session?.lesson?.name ?? "Cours inconnu"}`;
             }
-            
+
             case "teacherId": {
                 const teacher = teachers.find((t) => t.id === value);
                 return teacher

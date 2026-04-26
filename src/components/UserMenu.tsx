@@ -6,6 +6,8 @@ import { SignOutButton } from "@clerk/nextjs";
 import Image from "next/image";
 import Link from "next/link";
 
+
+// Composant de menu utilisateur pour afficher le nom d'utilisateur, le rôle et une image de profil, avec un menu déroulant pour accéder au profil et se déconnecter
 type Props = {
     username?: string | null;
     roleLabel: string;

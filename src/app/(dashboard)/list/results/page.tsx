@@ -32,7 +32,7 @@ type ResultList = {
   teacherSurname: string;
 
   subjectName: string;
-  termName: string;   
+  termName: string;
 
   score: number;
   className: string;
@@ -48,6 +48,7 @@ const ResultListPage = async ({
     [key: string]: string | undefined
   };
 }) => {
+  // Résoudre les paramètres de recherche pour les utiliser dans la requête
   const resolvedParams = await searchParams;
   const { page, ...queryParams } = resolvedParams;
 
@@ -55,10 +56,12 @@ const ResultListPage = async ({
 
   const { userId, sessionClaims } = await auth();
   const role = (sessionClaims?.metadata as { role?: string })?.role;
+
+  // Définir les colonnes de la table en fonction du rôle de l'utilisateur
   const columns = [
     { header: "Titre", accessor: "title" },
     { header: "Élève", accessor: "student" },
-    { header: "Matière", accessor: "subject" },  
+    { header: "Matière", accessor: "subject" },
     { header: "Note", accessor: "score" },
 
     {
@@ -73,7 +76,7 @@ const ResultListPage = async ({
       className: "hidden md:table-cell",
     },
 
-    { header: "Trimestre", accessor: "term" }, 
+    { header: "Trimestre", accessor: "term" },
     { header: "Type", accessor: "type" },
 
     {
@@ -86,7 +89,7 @@ const ResultListPage = async ({
       ? [{ header: "Actions", accessor: "actions" }]
       : []),
   ];
-  
+
   const renderRow = (item: ResultList) => (
     <tr
       key={item.id}
@@ -106,7 +109,7 @@ const ResultListPage = async ({
       <td className="hidden md:table-cell">{item.className}</td>
       <td>
         <span className="px-2 py-1 text-xs rounded bg-green-100 text-green-700">
-          {item.termName} 
+          {item.termName}
         </span>
       </td>
       <td>
@@ -133,13 +136,13 @@ const ResultListPage = async ({
                 // href={`/api/bulettin/${studentId}`}
                 href=""
                 target="_blank"
-                
+
               >
                 <button
                   title="Voir le bulletin"
                   className="flex items-center gap-1 px-3 py-1 text-xs rounded-md bg-green-600 text-white hover:bg-green-700"
                 >
-                <IdCard size={16} />
+                  <IdCard size={16} />
                 </button>
                 {/* Présences */}
               </Link>
@@ -276,7 +279,7 @@ const ResultListPage = async ({
     }
   }
 
-  // Tri dynamique
+  // Tri par défaut : par date décroissante
   const allowedSortFields = ["score", "id"];
 
   const sortBy = allowedSortFields.includes(queryParams.sortBy || "")
@@ -290,16 +293,17 @@ const ResultListPage = async ({
     [sortBy!]: sortOrder,
   };
 
-  // Data & sources filters
+  // Récupérer les résultats avec pagination et les données associées nécessaires pour l'affichage
   const [dataRes, count, classes, teachers, students] =
-  await withDB(() => prisma.$transaction([
+    // Récupérer les résultats avec pagination et gestion des erreurs
+    await withDB(() => prisma.$transaction([
 
       prisma.result.findMany({
         where,
         include: {
           student: { select: { id: true, name: true, surname: true } },
-          subject: { select: { id: true, name: true } }, 
-          term: { select: { id: true, name: true } },   
+          subject: { select: { id: true, name: true } },
+          term: { select: { id: true, name: true } },
 
           exam: {
             include: {
@@ -328,54 +332,56 @@ const ResultListPage = async ({
         orderBy,
       }),
 
+      // Récupérer le nombre total de résultats pour la pagination
       prisma.result.count({ where }),
 
+      // Récupérer les classes pour les filtres
       prisma.class.findMany({ select: { id: true, name: true } }),
 
       prisma.teacher.findMany({ select: { id: true, name: true, surname: true } }),
 
       prisma.student.findMany({ select: { id: true, name: true, surname: true } }),
     ])
-  );
+    );
 
-  // Data
+  // Data transformation pour le rendu de la table
   const data: ResultList[] = dataRes
-  .map((item) => {
-    const isExam = !!item.exam;
+    .map((item) => {
+      const isExam = !!item.exam;
 
-    const lesson = item.exam?.lesson || item.assignment?.lesson;
+      const lesson = item.exam?.lesson || item.assignment?.lesson;
 
-    if (!lesson) return null;
+      if (!lesson) return null;
 
-    return {
-      id: item.id,
+      return {
+        id: item.id,
 
-      title: isExam
-        ? item.exam!.title
-        : item.assignment!.title,
+        title: isExam
+          ? item.exam!.title
+          : item.assignment!.title,
 
-      studentName: item.student.name,
-      studentSurname: item.student.surname,
+        studentName: item.student.name,
+        studentSurname: item.student.surname,
 
-      teacherName: lesson.teacher.name,
-      teacherSurname: lesson.teacher.surname,
+        teacherName: lesson.teacher.name,
+        teacherSurname: lesson.teacher.surname,
 
-      subjectName: item.subject.name, 
-      termName: item.term.name,       
+        subjectName: item.subject.name,
+        termName: item.term.name,
 
-      score: item.score,
+        score: item.score,
 
-      className: lesson.class.name,
+        className: lesson.class.name,
 
-      date: isExam
-        ? item.exam!.startTime.toISOString()
-        : item.assignment!.startDate.toISOString(),
+        date: isExam
+          ? item.exam!.startTime.toISOString()
+          : item.assignment!.startDate.toISOString(),
 
-      type: isExam ? "Exam" : "Assignment",
-    };
-  })
-  .filter((item): item is ResultList => item !== null);
- 
+        type: isExam ? "Exam" : "Assignment",
+      };
+    })
+    .filter((item): item is ResultList => item !== null);
+
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
       {/* TOP SECTION */}
@@ -397,7 +403,7 @@ const ResultListPage = async ({
         </div>
       </div>
 
-      {/* List of Results */}
+      {/* List de Resultats */}
       <Table columns={columns} renderRow={renderRow} data={data} />
 
       {/* Pagination */}

@@ -80,6 +80,7 @@ const ExamForm = ({
         }
     }, [state.success, state.error]);
 
+    // Récupérer les classes depuis les données liées tout en assurant que c'est un tableau
     const lessons = Array.isArray(relatedData?.lessons)
         ? relatedData.lessons
         : [];

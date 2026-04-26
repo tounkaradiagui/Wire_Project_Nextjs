@@ -4,9 +4,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import InputField from "../InputField";
 import { studentSchema } from "@/lib/formValidationSchemas";
-import { 
-    Dispatch, SetStateAction, useActionState, 
-    useEffect, useState, startTransition 
+import {
+    Dispatch, SetStateAction, useActionState,
+    useEffect, useState, startTransition
 } from "react";
 import { createStudent, updateStudent } from "@/lib/actions";
 import { useRouter } from "next/navigation";
@@ -16,11 +16,12 @@ import { CldUploadWidget } from "next-cloudinary";
 import ParentSelect from "@/components/ParentSelect";
 
 
+// Définir le type pour les grades, utilisé pour grouper les options dans le select des niveaux
 type Grade = {
-  id: number;
-  name?: string;
-  level: number;
-  cycle: "FIRST" | "SECOND";
+    id: number;
+    name?: string;
+    level: number;
+    cycle: "FIRST" | "SECOND";
 };
 
 const StudentForm = ({
@@ -37,11 +38,12 @@ const StudentForm = ({
     const {
         register,
         handleSubmit,
-        setValue,      
-        watch,          
+        setValue,
+        watch,
         formState: { errors },
     } = useForm({
         resolver: zodResolver(studentSchema),
+        // Pré-remplir les champs du formulaire en cas de mise à jour, sinon laisser vides pour la création
         defaultValues: {
             username: data?.username ?? "",
             email: data?.email ?? "",
@@ -53,7 +55,7 @@ const StudentForm = ({
             sex: data?.sex ?? "",
             gradeId: data?.gradeId ?? undefined,
             classId: data?.classId ?? undefined,
-            parentId: data?.parentId ?? "",  
+            parentId: data?.parentId ?? "",
         },
     });
 
@@ -62,9 +64,10 @@ const StudentForm = ({
         { success: false, error: null as string | null }
     );
 
-    
+
     const grades = Array.isArray(relatedData?.grades) ? relatedData.grades : [];
 
+    // Labels pour les cycles, utilisés dans le select des niveaux
     const cycleLabel = {
         FIRST: "1er Cycle",
         SECOND: "2eme Cycle",
@@ -82,6 +85,7 @@ const StudentForm = ({
         SECOND: [],
     });
 
+    // Gérer l'état de l'image uploadée via Cloudinary
     const [image, setImage] = useState<any>(null);
 
     const onSubmit = handleSubmit(
@@ -200,20 +204,20 @@ const StudentForm = ({
                         >
                             <option value="">Sélectionner</option>
 
-                                {Object.entries(groupedGrades).map(([cycle, grades]) => (
-                                    <optgroup
+                            {Object.entries(groupedGrades).map(([cycle, grades]) => (
+                                <optgroup
                                     key={cycle}
                                     label={cycleLabel[cycle as keyof typeof cycleLabel]}
-                                    >
+                                >
                                     {grades
                                         .sort((a, b) => a.level - b.level)
                                         .map((grade) => (
-                                        <option key={grade.id} value={grade.id}>
-                                            {grade.name ?? `${grade.level}ème Année`}
-                                        </option>
+                                            <option key={grade.id} value={grade.id}>
+                                                {grade.name ?? `${grade.level}ème Année`}
+                                            </option>
                                         ))}
-                                    </optgroup>
-                                ))}
+                                </optgroup>
+                            ))}
 
                             {errors.gradeId && (
                                 <span className="text-[10px] text-red-500">
@@ -245,8 +249,8 @@ const StudentForm = ({
                         <ParentSelect
                             defaultValue={data?.parentId}
                             onSelect={(parent: any) => {
-                                const id = typeof parent === "string" 
-                                    ? parent 
+                                const id = typeof parent === "string"
+                                    ? parent
                                     : parent?.id;
                                 // 🔥 Met à jour RHF directement
                                 setValue("parentId", id ?? "", {
@@ -255,7 +259,7 @@ const StudentForm = ({
                                 });
                             }}
                         />
-                        {/* 🔥 Champ caché géré par RHF */}
+                        {/* Champ caché géré par RHF */}
                         <input type="hidden" {...register("parentId")} />
                         {errors.parentId && (
                             <p className="text-xs text-red-500">{errors.parentId.message}</p>

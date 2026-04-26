@@ -13,6 +13,7 @@ type Props = {
 const EventCalendarContainer = async ({ searchParams }: Props) => {
   const selectedDate = searchParams?.date;
 
+  // Récupérer tous les événements depuis la base de données, en sélectionnant uniquement les champs nécessaires pour l'affichage dans le calendrier
   const events = await prisma.event.findMany({
     select: {
       id: true,
@@ -21,6 +22,7 @@ const EventCalendarContainer = async ({ searchParams }: Props) => {
     },
   });
 
+  // Formater les événements récupérés pour les adapter au format attendu par le composant EventCalendar, en convertissant les dates en format ISO local
   const formattedEvents = events.map(e => ({
     id: e.id,
     title: e.title,

@@ -45,6 +45,8 @@ const FiltersModal = ({ classes, grades }: Props) => {
         setOpen(false);
     };
 
+    // Fonction pour réinitialiser les filtres en supprimant les paramètres de recherche liés aux filtres dans l'URL, 
+    // ce qui affichera tous les résultats sans filtrage,
     const resetFilters = () => {
         const params = new URLSearchParams(searchParams.toString());
 

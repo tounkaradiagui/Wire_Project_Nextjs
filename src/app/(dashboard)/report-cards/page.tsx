@@ -7,6 +7,7 @@ export default async function ReportCardsListPage() {
   const clerkUser = await currentUser()
   if (!clerkUser) redirect("/")
 
+  // Récupérer le profil de l'utilisateur connecté
   const userProfile = await prisma.userProfile.findUnique({
     where: { clerkId: clerkUser.id },
     include: {
@@ -36,10 +37,10 @@ export default async function ReportCardsListPage() {
     where:
       userProfile.role === "TEACHER" && userProfile.teacher
         ? {
-            teacherClasses: {
-              some: { teacherId: userProfile.teacher.id },
-            },
-          }
+          teacherClasses: {
+            some: { teacherId: userProfile.teacher.id },
+          },
+        }
         : undefined,
     include: {
       grade: true,
@@ -95,11 +96,14 @@ export default async function ReportCardsListPage() {
                   PUBLISHED: stats.find((s) => s.status === "PUBLISHED")?._count.id ?? 0,
                 }
 
+                // Calcul du total de bulletins générés (tous statuts confondus) pour cette classe+trimestre, et vérification si tous sont publiés
                 const totalGenerated =
                   countByStatus.GENERATED +
                   countByStatus.VALIDATED +
                   countByStatus.PUBLISHED
 
+                // Si le professeur n'a pas de bulletins générés pour cette classe+trimestre, on affiche "0 généré" et pas de barre de progression. Si des bulletins sont générés, 
+                // on affiche la barre de progression même si aucun n'est publié (dans ce cas la barre sera à 0% et il y aura une étiquette "0 publié")
                 const allPublished =
                   totalGenerated > 0 &&
                   countByStatus.PUBLISHED === cls._count.students
@@ -141,11 +145,10 @@ export default async function ReportCardsListPage() {
                           <div
                             className="h-full bg-green-500 rounded-full transition-all"
                             style={{
-                              width: `${
-                                cls._count.students > 0
-                                  ? (countByStatus.PUBLISHED / cls._count.students) * 100
-                                  : 0
-                              }%`,
+                              width: `${cls._count.students > 0
+                                ? (countByStatus.PUBLISHED / cls._count.students) * 100
+                                : 0
+                                }%`,
                             }}
                           />
                         </div>

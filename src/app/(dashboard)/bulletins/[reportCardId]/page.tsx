@@ -14,6 +14,7 @@ export default async function BulletinDetailPage({ params }: Props) {
   const { reportCardId: reportCardIdStr } = await params
   const reportCardId = Number(reportCardIdStr)
 
+  // Récupérer l'utilisateur connecté et son profil
   const user = await currentUser()
   if (!user) redirect("/")
 
@@ -30,6 +31,7 @@ export default async function BulletinDetailPage({ params }: Props) {
 
   if (!profile) notFound()
 
+  // Récupérer le bulletin avec les relations nécessaires
   const reportCard = await prisma.reportCard.findUnique({
     where: { id: reportCardId },
     include: {
@@ -48,29 +50,33 @@ export default async function BulletinDetailPage({ params }: Props) {
 
   if (!reportCard) notFound()
 
-  // ── Guards d'accès ──
+  // Vérifier les permissions d'accès
   const isAdmin =
     profile.role === "ADMIN" || profile.role === "SUPER_ADMIN"
 
+  // STUDENT → accès à son propre bulletin
   const isOwnerStudent =
     profile.role === "STUDENT" &&
     profile.student?.id === reportCard.studentId
 
+  // PARENT → accès aux bulletins de ses enfants
   const isParentOfStudent =
     profile.role === "PARENT" &&
     profile.parent?.students.some((s) => s.id === reportCard.studentId)
 
+  // TEACHER → accès aux bulletins des classes qu'il enseigne
   const isTeacherOfClass =
     profile.role === "TEACHER" &&
     profile.teacher?.teacherClasses.some(
       (tc) => tc.classId === reportCard.classId
     )
 
+  // Si aucune des conditions n'est remplie → 404 
   if (!isAdmin && !isOwnerStudent && !isParentOfStudent && !isTeacherOfClass) {
     notFound()
   }
 
-  // ── Bulletin non publié → seul l'admin peut voir ──
+  // Bulletin non publié → seul l'admin peut voir ──
   if (reportCard.status !== "PUBLISHED" && !isAdmin) {
     return (
       <div className="p-6 text-center space-y-2">
@@ -84,13 +90,13 @@ export default async function BulletinDetailPage({ params }: Props) {
     )
   }
 
+  // Récupérer les moyennes de la classe pour le même trimestre et l'année scolaire
   const termAverages = await getTermAverages(
     reportCard.studentId,
     reportCard.term.schoolYearId
   )
 
-  // Dans bulletins/[reportCardId]/page.tsx
-
+  // Préparer les données à passer au composant d'affichage 
   const data = {
     generalAverage: reportCard.generalAverage,
     totalCoefficients: reportCard.totalCoefficients ?? 0,
@@ -123,19 +129,18 @@ export default async function BulletinDetailPage({ params }: Props) {
       examScore: sr.examScore,
       continuousScore: sr.continuousScore,
       finalAverage: sr.finalAverage,
-      product: sr.product,        // number | null → OK
+      product: sr.product,
       appreciation: sr.appreciation,
       subject: { name: sr.subject.name },
       teacher: { name: sr.teacher.name, surname: sr.teacher.surname },
     })),
     termAverages,
   }
-  //const data = { ...reportCard, termAverages }
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
-        {/* Retour adapté selon le rôle */}
+        {/* Retour conditionnel */}
         <Link
           href={isAdmin ? `/report-cards/${reportCard.classId}/${reportCard.termId}` : "/bulletins"}
           className="text-sm text-gray-500 hover:text-gray-800 transition-colors

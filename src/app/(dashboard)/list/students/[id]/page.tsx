@@ -15,6 +15,7 @@ const StudentDetailPage = async (props: {
   params: Promise<{ id: string }>;
 }) => {
 
+  // Récupérer l'ID de l'élève à partir des paramètres de l'URL
   const { id } = await props.params;
 
   const { sessionClaims } = await auth();
@@ -77,7 +78,6 @@ const StudentDetailPage = async (props: {
                     {student.birthday
                       ? new Intl.DateTimeFormat("fr-FR").format(student.birthday)
                       : "Date non renseignée"}
-                    {/* {new Intl.DateTimeFormat("fr-FR").format(student.birthday)} */}
                   </span>
                 </div>
                 <div className="w-full md:w-1/3 lg:w-full 2xl:w-1/3 flex items-center gap-2">
@@ -121,7 +121,7 @@ const StudentDetailPage = async (props: {
                 />
               </div>
               <div>
-                <h1 className="text-2xl font-semibold">{student.grade.cycle === "FIRST" ? "1er Cycle" : "Second Cycle"}</h1>
+                <h1 className="text-2xl font-semibold">{student.grade.cycle === "FIRST" ? "1er Cycle" : "2eme Cycle"}</h1>
                 <span className="text-sm opacity-90">Niveau</span>
               </div>
             </div>
@@ -196,7 +196,7 @@ const StudentDetailPage = async (props: {
             </Link>
           </div>
         </div>
-        {/* Teacher performance */}
+        {/* Performance */}
         <Performance isAnimationActive={true} />
         {/* Announcement */}
         <Announcements />

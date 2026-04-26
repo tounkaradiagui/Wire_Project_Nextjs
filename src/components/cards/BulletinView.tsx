@@ -44,7 +44,7 @@ type Props = {
     termAverages: { termOrder: number; average: number | null }[]
   }
 }
-
+// Formatage des nombres avec 2 décimales ou "—" si null/undefined
 const fmt = (n: number | null | undefined) =>
   n != null ? n.toFixed(2) : "—"
 

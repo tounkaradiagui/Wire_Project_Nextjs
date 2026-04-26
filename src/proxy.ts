@@ -15,7 +15,28 @@ const publicErrorPages = createRouteMatcher([
     '/errors/server-error',
 ]);
 
+const MAINTENANCE_MODE = process.env.MAINTENANCE_MODE === "true"
+const MAINTENANCE_BYPASS = process.env.MAINTENANCE_BYPASS_SECRET
+
 export default clerkMiddleware(async (auth, req) => {
+
+    // ── Mode maintenance ──
+    if (MAINTENANCE_MODE) {
+        const bypassCookie = req.cookies.get("maintenance_bypass")?.value
+        const bypassQuery = req.nextUrl.searchParams.get("bypass")
+
+        // Autoriser le bypass via cookie ou query param secret
+        const hasAccess =
+            bypassCookie === MAINTENANCE_BYPASS ||
+            bypassQuery === MAINTENANCE_BYPASS
+
+        // Laisser passer la page maintenance elle-même
+        const isMaintenancePage = req.nextUrl.pathname === "/maintenance"
+
+        if (!hasAccess && !isMaintenancePage) {
+            return NextResponse.redirect(new URL("/maintenance", req.url))
+        }
+    }
 
     // ✅ Laisser passer les pages d'erreur sans vérification
     if (publicErrorPages(req)) {
@@ -26,7 +47,7 @@ export default clerkMiddleware(async (auth, req) => {
 
     // Normalise en minuscules pour matcher le routeAccessMap
     const role = (
-    (sessionClaims?.metadata as { role?: string } | undefined)?.role ?? ''
+        (sessionClaims?.metadata as { role?: string } | undefined)?.role ?? ''
     ).toLowerCase()
 
     // const role =

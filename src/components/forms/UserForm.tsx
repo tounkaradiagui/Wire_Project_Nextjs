@@ -17,11 +17,11 @@ import { toast } from "react-toastify";
 
 const UserForm = ({ setOpen, type, data, relatedData }:
   {
-  type: "create" | "update";
-  data?: any;
-  setOpen: Dispatch<SetStateAction<boolean>>;
-  relatedData?: any;
-}
+    type: "create" | "update";
+    data?: any;
+    setOpen: Dispatch<SetStateAction<boolean>>;
+    relatedData?: any;
+  }
 ) => {
   const router = useRouter();
 
@@ -41,6 +41,7 @@ const UserForm = ({ setOpen, type, data, relatedData }:
     }
   );
 
+  // Gérer la soumission du formulaire 
   const onSubmit = handleSubmit((formData) => {
     startTransition(() => {
       formAction({
@@ -53,8 +54,7 @@ const UserForm = ({ setOpen, type, data, relatedData }:
   useEffect(() => {
     if (state.success) {
       toast.success(
-        `Utilisateur ${
-          type === "create" ? "créé" : "mis à jour"
+        `Utilisateur ${type === "create" ? "créé" : "mis à jour"
         } avec succès`,
         {
           style: {
@@ -185,8 +185,8 @@ const UserForm = ({ setOpen, type, data, relatedData }:
           {isPending
             ? "Enregistrement..."
             : type === "create"
-            ? "Créer l'utilisateur"
-            : "Mettre à jour"}
+              ? "Créer l'utilisateur"
+              : "Mettre à jour"}
         </button>
       </form>
     </div>

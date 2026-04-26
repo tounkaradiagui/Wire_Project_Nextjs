@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 
 
 export type FormContainerProps = {
+  // Le nom de la table ciblée par le formulaire, utilisé pour déterminer les champs à afficher et les données à récupérer pour les listes déroulantes
   table:
   | "teacher"
   | "student"
@@ -29,9 +30,11 @@ const FormContainer = async ({ table, type, data, id, role }: FormContainerProps
   let relatedData = {};
 
 
-  // Fetch related data based on the table type
+  // Récupérer les données liées nécessaires pour le formulaire en fonction de la table ciblée et du type d'opération (create, update, delete), 
+  // en tenant compte des rôles et permissions de l'utilisateur connecté pour filtrer les données si nécessaire
   if (type !== "delete") {
     switch (table) {
+      // Données nécessaires pour les formulaires liés aux matières (ex : pour associer un enseignant à une matière)
       case "subject": {
         const subjectTeachers =
           await prisma.teacher.findMany({
@@ -47,6 +50,7 @@ const FormContainer = async ({ table, type, data, id, role }: FormContainerProps
         break;
       }
 
+      // Données nécessaires pour les formulaires liés aux classes (ex : pour associer un enseignant et une matière à une classe)
       case "class": {
         const classGrades = await prisma.grade.findMany({
           select: {
@@ -76,6 +80,7 @@ const FormContainer = async ({ table, type, data, id, role }: FormContainerProps
         break;
       }
 
+      // Données nécessaires pour les formulaires liés aux enseignants (ex : pour associer une matière et une classe à un enseignant)
       case "teacher": {
         const { userId, sessionClaims } = await auth();
         const role = (sessionClaims?.metadata as { role?: string })?.role;
@@ -146,7 +151,7 @@ const FormContainer = async ({ table, type, data, id, role }: FormContainerProps
         break;
       }
 
-
+      // Données nécessaires pour les formulaires liés aux élèves et aux parents (ex : pour associer une classe à un élève ou un parent)
       case "student": {
         const studentGrades = await prisma.grade.findMany({
           select: {
@@ -182,6 +187,7 @@ const FormContainer = async ({ table, type, data, id, role }: FormContainerProps
         break;
       }
 
+      // Données nécessaires pour les formulaires liés aux examens (ex : pour associer un cours à un examen)
       case "exam": {
         const { userId, sessionClaims } = await auth();
         const role = (sessionClaims?.metadata as { role?: string })?.role;
@@ -200,6 +206,7 @@ const FormContainer = async ({ table, type, data, id, role }: FormContainerProps
         break;
       }
 
+      // Données nécessaires pour les formulaires liés aux devoirs (ex : pour associer un cours à un devoir)
       case "assignment": {
         const assignmentLessons = await prisma.lesson.findMany({
           select: {
@@ -211,6 +218,7 @@ const FormContainer = async ({ table, type, data, id, role }: FormContainerProps
         break;
       }
 
+      // Données nécessaires pour les formulaires liés aux annonces et événements 
       case "announcement": {
         const announcements = await prisma.announcement.findMany({
           include: {
@@ -267,6 +275,8 @@ const FormContainer = async ({ table, type, data, id, role }: FormContainerProps
         break;
       }
 
+
+      // Données nécessaires pour les formulaires liés aux cours (ex : pour associer un enseignant et une matière à un cours)
       case "lesson": {
         const { userId, sessionClaims } = await auth();
         const role = (sessionClaims?.metadata as { role?: string })?.role;
@@ -321,13 +331,13 @@ const FormContainer = async ({ table, type, data, id, role }: FormContainerProps
               },
             });
 
-            const weekDays = [
-              { value: 1, label: "Lundi" },
-              { value: 2, label: "Mardi" },
-              { value: 3, label: "Mercredi" },
-              { value: 4, label: "Jeudi" },
-              { value: 5, label: "Vendredi" },
-            ];
+        const weekDays = [
+          { value: 1, label: "Lundi" },
+          { value: 2, label: "Mardi" },
+          { value: 3, label: "Mercredi" },
+          { value: 4, label: "Jeudi" },
+          { value: 5, label: "Vendredi" },
+        ];
 
         relatedData = {
           subjects: lessonSubjects,
@@ -338,78 +348,79 @@ const FormContainer = async ({ table, type, data, id, role }: FormContainerProps
         break;
       }
 
-    case "result": {
-      const { userId, sessionClaims } = await auth();
-      const role = (sessionClaims?.metadata as { role?: string })?.role;
+      // Données nécessaires pour les formulaires liés aux résultats (ex : pour associer un élève, un cours et un examen à un résultat)
+      case "result": {
+        const { userId, sessionClaims } = await auth();
+        const role = (sessionClaims?.metadata as { role?: string })?.role;
 
-      // 🔹 Élèves
-      const students = await prisma.student.findMany({
-        select: {
-          id: true,
-          name: true,
-          surname: true,
-        },
-      });
+        // 🔹 Élèves
+        const students = await prisma.student.findMany({
+          select: {
+            id: true,
+            name: true,
+            surname: true,
+          },
+        });
 
-      // 🔹 Exams (filtrés si teacher)
-      const exams = await prisma.exam.findMany({
-        where: {
-          ...(role === "teacher"
-            ? {
+        // 🔹 Exams (filtrés si teacher)
+        const exams = await prisma.exam.findMany({
+          where: {
+            ...(role === "teacher"
+              ? {
                 lesson: {
                   teacherId: userId!,
                 },
               }
-            : {}),
-        },
-        select: {
-          id: true,
-          title: true,
-          lesson: {
-            select: {
-              subjectId: true,
+              : {}),
+          },
+          select: {
+            id: true,
+            title: true,
+            lesson: {
+              select: {
+                subjectId: true,
+              },
             },
           },
-        },
-      });
+        });
 
-      // 🔹 Assignments (filtrés si teacher)
-      const assignments = await prisma.assignment.findMany({
-        where: {
-          ...(role === "teacher"
-            ? {
+        // 🔹 Assignments (filtrés si teacher)
+        const assignments = await prisma.assignment.findMany({
+          where: {
+            ...(role === "teacher"
+              ? {
                 lesson: {
                   teacherId: userId!,
                 },
               }
-            : {}),
-        },
-        select: {
-          id: true,
-          title: true,
-          lesson: {
-            select: {
-              subjectId: true,
+              : {}),
+          },
+          select: {
+            id: true,
+            title: true,
+            lesson: {
+              select: {
+                subjectId: true,
+              },
             },
           },
-        },
-      });
+        });
 
-      // 🔹 Terms (TRÈS IMPORTANT)
-      const terms = await prisma.term.findMany({
-        orderBy: {
-          order: "asc",
-        },
-        select: {
-          id: true,
-          name: true,
-        },
-      });
+        // 🔹 Terms (TRÈS IMPORTANT)
+        const terms = await prisma.term.findMany({
+          orderBy: {
+            order: "asc",
+          },
+          select: {
+            id: true,
+            name: true,
+          },
+        });
 
-      // 🔹 Subjects (optionnel mais recommandé pour UI)
-      const subjects =
-        role === "teacher"
-          ? await prisma.subject.findMany({
+        // 🔹 Subjects (optionnel mais recommandé pour UI)
+        const subjects =
+          role === "teacher"
+            ? await prisma.subject.findMany({
               where: {
                 lessons: {
                   some: {
@@ -420,28 +431,29 @@ const FormContainer = async ({ table, type, data, id, role }: FormContainerProps
               select: {
                 id: true,
                 name: true,
-                code:true,
+                code: true,
               },
             })
-          : await prisma.subject.findMany({
+            : await prisma.subject.findMany({
               select: {
                 id: true,
                 name: true,
                 code: true,
               },
-          });
+            });
 
-              relatedData = {
-                students,
-                exams,
-                assignments,
-                terms,      
-                subjects,   
-              };
+        relatedData = {
+          students,
+          exams,
+          assignments,
+          terms,
+          subjects,
+        };
 
-              break;
+        break;
       }
 
+      // Cas de séances de cours (ex : pour associer un cours, une date et une salle à une séance)
       case "session": {
         const { userId, sessionClaims } = await auth();
         const role = (sessionClaims?.metadata as { role?: string })?.role;
@@ -473,6 +485,8 @@ const FormContainer = async ({ table, type, data, id, role }: FormContainerProps
         break;
       }
 
+
+      // Les cas des absences et retards (ex : pour associer une séance, un élève et un statut à une absence)
       case "attendance": {
         const { userId, sessionClaims } = await auth();
         const role = (sessionClaims?.metadata as { role?: string })?.role;

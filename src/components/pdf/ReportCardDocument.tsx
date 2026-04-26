@@ -7,10 +7,8 @@ import {
   Font,
 } from "@react-pdf/renderer"
 
-// ─────────────────────────────────────────────
-// TYPE (adapté depuis Prisma include)
-// ─────────────────────────────────────────────
 
+// Données nécessaires pour générer le rapport de fin d'année
 type ReportCardData = {
   generalAverage: number
   totalCoefficients: number
@@ -51,17 +49,11 @@ type ReportCardData = {
   termAverages: { termOrder: number; average: number | null }[]
 }
 
-// ─────────────────────────────────────────────
-// HELPERS
-// ─────────────────────────────────────────────
-
+// Formater les nombres avec 2 décimales ou afficher "—" si la valeur est nulle ou indéfinie
 const fmt = (n: number | null) =>
   n !== null && n !== undefined ? n.toFixed(2) : "—"
 
-// ─────────────────────────────────────────────
-// STYLES
-// ─────────────────────────────────────────────
-
+// Géerer les styles du document PDF
 const S = StyleSheet.create({
   page: {
     fontFamily: "Helvetica",
@@ -188,10 +180,7 @@ const S = StyleSheet.create({
   },
 })
 
-// ─────────────────────────────────────────────
-// COMPOSANT PRINCIPAL
-// ─────────────────────────────────────────────
-
+// Composant principal pour générer le document PDF du bulletin de notes
 export function ReportCardDocument({ data }: { data: ReportCardData }) {
   const { student, class: cls, term, subjectReports, termAverages } = data
 

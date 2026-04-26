@@ -7,8 +7,10 @@ import prisma from "@/lib/prisma";
 
 const StudentPage = async () => {
 
+  // Récupérer l'id de l'utilisateur connecté
   const { userId } = await auth();
 
+  // Récupérer la classe de l'élève connecté
   const classItem = await prisma.class.findMany({
     where: {
       students: { some: { id: userId! } },

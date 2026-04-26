@@ -1,6 +1,7 @@
 import "@/lib/pdf/polyfill"
 import { jsPDF } from "jspdf"
 
+// Types pour les rapports de matières (doivent correspondre à ce que le backend envoie)
 type SubjectReport = {
   id: number
   subject: { name: string }
@@ -13,6 +14,7 @@ type SubjectReport = {
   appreciation: string | null
 }
 
+// Types pour les données du PDF (doivent correspondre à ce que le backend envoie)
 type PdfData = {
   generalAverage: number
   totalCoefficients: number
@@ -44,16 +46,18 @@ type PdfData = {
 const fmt = (n: number | null | undefined) =>
   n != null ? n.toFixed(2) : "—"
 
+// Générer un PDF à partir des données du rapport de fin d'année
 export function generateReportCardPdf(data: PdfData): Uint8Array {
+  // Créer un nouveau document PDF au format A4 portrait
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" })
 
+  // Définir les dimensions et marges de la page pour faciliter les calculs de positionnement
   const pageW = 210
   const margin = 14
   const contentW = pageW - margin * 2
   let y = 14
 
-  // ─── HELPERS ───────────────────────────────────────
-
+  // Utilitaire pour changer rapidement de police et taille
   const sf = (style: "normal" | "bold", size: number) => {
     doc.setFont("helvetica", style)
     doc.setFontSize(size)

@@ -4,8 +4,7 @@ import prisma from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { ReportCardStatus } from "@prisma/client"
 
-// TYPES
-
+// TYPE POUR LES BULLETINS PAR MATIÈRE (SubjectReportInput)
 type SubjectReportInput = {
   subjectId: number
   teacherId: string
@@ -20,18 +19,16 @@ type SubjectReportInput = {
 }
 
 // HELPERS
-
 function avg(scores: number[]): number | null {
   if (!scores.length) return null
   return scores.reduce((a, b) => a + b, 0) / scores.length
 }
 
 // GÉNÉRER LES BULLETINS D'UNE CLASSE
-// 
 export async function generateReportCards(
-    classId: number,
-    termId: number
-    ): Promise<{ success: boolean; message: string; count?: number }> {
+  classId: number,
+  termId: number
+): Promise<{ success: boolean; message: string; count?: number }> {
   try {
     // 1. Récupérer les élèves de la classe
     const students = await prisma.student.findMany({
@@ -87,14 +84,8 @@ export async function generateReportCards(
             .filter((r) => r.assignmentId !== null)
             .map((r) => r.score)
 
-          const continuousScore = avg(assignmentScores)  // même calcul
+          const continuousScore = avg(assignmentScores)
           const assignmentScore = continuousScore
-
-          // const continuousScore = avg(
-          //   subjectResults
-          //     .filter((r) => r.assignmentId !== null)
-          //     .map((r) => r.score)
-          // )
 
           // Règle : si les deux existent → (exam + continuous) / 2
           const finalAverage =
@@ -102,9 +93,7 @@ export async function generateReportCards(
               ? (examScore + continuousScore) / 2
               : examScore ?? continuousScore ?? 0
 
-          // const product = finalAverage * subject.coefficient
-
-          // ✅ Après — fallback à 1 si coefficient null
+          // Après — fallback à 1 si coefficient null
           const coef = subject.coefficient ?? 1
           const product = finalAverage * coef
 
@@ -115,11 +104,13 @@ export async function generateReportCards(
 
           if (coef === 0) return null
 
+          // Gérer les cas où il n'y a pas de note du tout (examScore et continuousScore null) → décider si on affiche la matière 
+          // avec 0 ou si on ne l'affiche pas du tout dans le bulletin
           return {
             subjectId: subject.id,
             teacherId,
             coefficient: coef,
-            classAverage: null,                   
+            classAverage: null,
             examScore,
             continuousScore,
             assignmentScore,
@@ -130,37 +121,41 @@ export async function generateReportCards(
         })
         .filter(Boolean) as SubjectReportInput[]
 
+      // Total des coefficients
       const totalCoefficients = subjectReports.reduce(
         (a, s) => a + s.coefficient,
         0
       )
+
+      // Calcul du total des points (somme des produits) pour calculer la moyenne générale ensuite
       const totalPoints = subjectReports.reduce((a, s) => a + s.product, 0)
       const generalAverage =
         totalCoefficients > 0 ? totalPoints / totalCoefficients : 0
 
+      // Créer les SubjectReports liés au bulletin de l'élève
       const createSubjectReports = subjectReports.map((sr) => ({
-        coefficient:      sr.coefficient,
-        classAverage:     sr.classAverage,
-        examScore:        sr.examScore,
-        continuousScore:  sr.continuousScore,
-        assignmentScore:  sr.assignmentScore,
-        finalAverage:     sr.finalAverage,
-        product:          sr.product,
-        appreciation:     sr.appreciation ?? null,
-        subject:  { connect: { id: sr.subjectId } },
-        teacher:  { connect: { id: sr.teacherId } },
+        coefficient: sr.coefficient,
+        classAverage: sr.classAverage,
+        examScore: sr.examScore,
+        continuousScore: sr.continuousScore,
+        assignmentScore: sr.assignmentScore,
+        finalAverage: sr.finalAverage,
+        product: sr.product,
+        appreciation: sr.appreciation ?? null,
+        subject: { connect: { id: sr.subjectId } },
+        teacher: { connect: { id: sr.teacherId } },
       }))
 
-      // Upsert ReportCard
+      // Upsert du bulletin de l'élève pour le trimestre (si existe déjà → update, sinon → create)
       await prisma.reportCard.upsert({
         where: {
           studentId_termId: { studentId: student.id, termId },
         },
         create: {
-          student:      { connect: { id: student.id } },
-          class:        { connect: { id: classId } },
-          term:         { connect: { id: termId } },
-          schoolYear:   { connect: { id: term.schoolYearId } },
+          student: { connect: { id: student.id } },
+          class: { connect: { id: classId } },
+          term: { connect: { id: termId } },
+          schoolYear: { connect: { id: term.schoolYearId } },
           totalCoefficients,
           totalPoints,
           generalAverage,
@@ -183,7 +178,7 @@ export async function generateReportCards(
           },
         },
       })
-      
+
     })
 
     await Promise.all(upsertPromises)
@@ -206,7 +201,6 @@ export async function generateReportCards(
 
 
 // CALCULER RANGS + STATS CLASSE
-
 async function computeRanksAndClassStats(classId: number, termId: number) {
   const reportCards = await prisma.reportCard.findMany({
     where: { classId, termId },
@@ -214,6 +208,7 @@ async function computeRanksAndClassStats(classId: number, termId: number) {
     orderBy: { generalAverage: "desc" },
   })
 
+  // Calculer les statistiques de la classe (moyenne générale la plus élevée, la plus basse et la moyenne générale de la classe)
   const averages = reportCards.map((report) => report.generalAverage)
   const classHighest = Math.max(...averages)
   const classLowest = Math.min(...averages)
@@ -253,27 +248,25 @@ async function computeRanksAndClassStats(classId: number, termId: number) {
 }
 
 // VALIDER LES BULLETINS (VALIDATED)
-
 export async function validateReportCards(
-    classId: number,
-    termId: number
-    ): Promise<{ success: boolean; message: string }> {
-    try {
-        await prisma.reportCard.updateMany({
-        where: { classId, termId, status: ReportCardStatus.GENERATED },
-        data: { status: ReportCardStatus.VALIDATED },
-        })
+  classId: number,
+  termId: number
+): Promise<{ success: boolean; message: string }> {
+  try {
+    await prisma.reportCard.updateMany({
+      where: { classId, termId, status: ReportCardStatus.GENERATED },
+      data: { status: ReportCardStatus.VALIDATED },
+    })
 
-        revalidatePath(`/admin/report-cards/${classId}/${termId}`)
-        return { success: true, message: "Bulletins validés." }
-    } catch (error) {
-        console.error("[validateReportCards]", error)
-        return { success: false, message: "Erreur lors de la validation." }
-    }
+    revalidatePath(`/admin/report-cards/${classId}/${termId}`)
+    return { success: true, message: "Bulletins validés." }
+  } catch (error) {
+    console.error("[validateReportCards]", error)
+    return { success: false, message: "Erreur lors de la validation." }
+  }
 }
 
 // PUBLIER LES BULLETINS (PUBLISHED)
-
 export async function publishReportCards(
   classId: number,
   termId: number
@@ -297,7 +290,6 @@ export async function publishReportCards(
 
 
 // RÉCUPÉRER UN BULLETIN COMPLET (pour PDF)
-
 export async function getReportCardById(reportCardId: number) {
   return prisma.reportCard.findUniqueOrThrow({
     where: { id: reportCardId },
@@ -319,7 +311,6 @@ export async function getReportCardById(reportCardId: number) {
 }
 
 // RÉCUPÉRER LES MOYENNES DES AUTRES TRIMESTRES
-
 export async function getTermAverages(
   studentId: string,
   schoolYearId: number

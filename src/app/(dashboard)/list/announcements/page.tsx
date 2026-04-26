@@ -40,8 +40,7 @@ const AnnouncementListPage = async ({
     ...(role === "admin" || role === "super_admin" ? [{ header: "Actions", accessor: "actions" }] : []),
   ];
 
-  // URL PARAMS CONDITION
-
+  // Filtrer les annonces selon le rôle de l'utilisateur
   const query: Prisma.AnnouncementWhereInput = {};
 
   if (queryParams) {
@@ -58,6 +57,7 @@ const AnnouncementListPage = async ({
     }
   }
 
+  // Conditions spécifiques selon le rôle
   const roleConditions = {
     teacher: { lessons: { some: { teacherId: currentUserId! } } },
     student: { students: { some: { id: currentUserId! } } },
@@ -73,6 +73,7 @@ const AnnouncementListPage = async ({
     ];
   }
 
+  // Récupérer les annonces avec pagination
   const [data, count] = await prisma.$transaction([
     prisma.announcement.findMany({
       where: query,
@@ -145,7 +146,7 @@ const AnnouncementListPage = async ({
         </div>
       </div>
 
-      {/* List of Annoncement */}
+      {/* Liste des annonces */}
       <Table<AnnouncementList>
         columns={columns}
         renderRow={renderRow}

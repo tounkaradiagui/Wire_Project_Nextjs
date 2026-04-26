@@ -10,6 +10,7 @@ import {
   MessageSquare,
   Mail,
 } from "lucide-react";
+import Link from "next/link";
 
 interface UserCardsProps {
   type:
@@ -73,6 +74,7 @@ const UserCards = async ({ type }: UserCardsProps) => {
     student: prisma.student,
     teacher: prisma.teacher,
     parent: prisma.parent,
+    subject: prisma.subject,
   };
 
   let dynamicCount = 0;
@@ -85,6 +87,7 @@ const UserCards = async ({ type }: UserCardsProps) => {
     console.error("Prisma count failed:", error);
   }
 
+  // Récupérer les métadonnées de la carte en fonction du type, y compris le titre, l'icône et la couleur de fond à utiliser pour la carte
   const meta = cardData[type];
 
   return (
@@ -101,7 +104,9 @@ const UserCards = async ({ type }: UserCardsProps) => {
       </div>
 
       <button className="mt-2 text-sm bg-white/10 hover:bg-white/20 cursor-pointer transition-colors duration-300 rounded-md px-3 py-1 flex items-center justify-center">
-        Voir plus →
+        <Link href={`/list/${type}s`}>
+          Voir plus →
+        </Link>
       </button>
     </div>
   );

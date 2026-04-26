@@ -1,62 +1,9 @@
 import { Prisma } from "@prisma/client";
 
-/**
- * Filtre automatiquement les élèves visibles selon le rôle
- * L'enseignant ne peut voir la liste des élèves de ses classes 
- * Filtrage automatique pour enseignant
- */
-// export const studentRoleFilter = (
-//     role: string | undefined,
-//     userId: string | null
-// ): Prisma.StudentWhereInput => {
-//     if (role === "teacher" && userId) {
-//         return {
-//             class: {
-//                 lessons: {
-//                     some: {
-//                         teacherId: userId,
-//                     },
-//                 },
-//             },
-//         };
-//     }
-
-//     return {}; // admin = tout voir
-// };
-
-// export const studentRoleFilter = (role?: string, userId?: string) => {
-//     switch (role) {
-//         case "admin":
-//             return {};
-
-//         case "teacher":
-//             return {
-//                 class: {
-//                     lessons: {
-//                         some: {
-//                             teacherId: userId!,
-//                         },
-//                     },
-//                 },
-//             };
-
-//         case "parent":
-//             return {
-//                 parentId: userId!,
-//             };
-
-//         case "student":
-//             return {
-//                 id: userId!,
-//             };
-
-//         default:
-//             return {
-//                 id: "__no_access__",
-//             };
-//     }
-// };
-
+// Ce fichier contient des fonctions de filtrage basées sur les rôles pour les différentes entités de l'application
+//  (étudiants, résultats, devoirs, présences, parents). Ces fonctions génèrent des conditions de requête Prisma pour limiter l'accès aux données
+//  en fonction du rôle de l'utilisateur connecté. Par exemple, un enseignant ne verra que les étudiants de ses classes, tandis qu'un parent ne 
+// verra que ses enfants. Les administrateurs ont accès à toutes les données.
 export const studentRoleFilter = (
     role?: string,
     userId?: string | null
@@ -150,20 +97,20 @@ export const assignmentRoleFilter = (
  * Filtre des présences
  */
 export const attendanceRoleFilter = (
-  role: string | undefined,
-  userId: string | null
+    role: string | undefined,
+    userId: string | null
 ): Prisma.AttendanceWhereInput => {
-  if (role === "teacher" && userId) {
-    return {
-      session: {
-        lesson: {
-          teacherId: userId,
-        },
-      },
-    };
-  }
+    if (role === "teacher" && userId) {
+        return {
+            session: {
+                lesson: {
+                    teacherId: userId,
+                },
+            },
+        };
+    }
 
-  return {};
+    return {};
 };
 
 export const parentRoleFilter = (

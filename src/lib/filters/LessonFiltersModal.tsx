@@ -9,6 +9,8 @@ const LessonFiltersModal = ({
     teachers,
     subjects,
 }: any) => {
+    // Utiliser les hooks de Next.js pour accéder au routeur et aux paramètres de recherche dans l'URL, ce qui permettra de lire 
+    // les filtres actuellement appliqués et de les mettre à jour lorsque l'utilisateur applique de nouveaux filtres
     const router = useRouter();
     const searchParams = useSearchParams();
 

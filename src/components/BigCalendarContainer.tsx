@@ -9,6 +9,7 @@ const BigCalendarContainer = async ({
   type: "teacherId" | "classId";
   id: string | number;
 }) => {
+  // Calculer le début et la fin de la semaine actuelle pour filtrer les sessions à afficher dans le calendrier
   const now = new Date();
 
   // Lundi
@@ -21,6 +22,7 @@ const BigCalendarContainer = async ({
   endOfWeek.setDate(startOfWeek.getDate() + 6);
   endOfWeek.setHours(23, 59, 59, 999);
 
+  // Récupérer les sessions de la semaine actuelle pour le professeur ou la classe spécifiée, en incluant les informations sur le cours associé à chaque session
   const dataRes = await prisma.session.findMany({
     where: {
       lesson: {
@@ -42,13 +44,12 @@ const BigCalendarContainer = async ({
     },
   });
 
+  // Transformer les données récupérées pour les adapter au format attendu par le composant BigCalendar, puis ajuster les horaires des sessions pour les faire correspondre à la semaine actuelle
   const data = dataRes.map((session) => ({
     title: session.lesson.name,
     start: session.startTime,
     end: session.endTime,
   }));
-
-  const schedule = adjustScheduleToCurrentWeek(data);
 
   return (
     <div>

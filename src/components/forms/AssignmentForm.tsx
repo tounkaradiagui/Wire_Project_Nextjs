@@ -37,6 +37,7 @@ const AssignmentForm = ({
         }
     );
 
+    // Gérer les messages de succès et d'erreur après la soumission du formulaire, en affichant des notifications toast et en rafraîchissant la page après une action réussie
     const [serverError, setServerError] = useState<string | null>(null);
 
     const onSubmit = handleSubmit((data) => {
@@ -80,6 +81,7 @@ const AssignmentForm = ({
         }
     }, [state.success, state.error, type, router, setOpen]);
 
+    // Récupérer la liste des cours pour le sélecteur de cours, en vérifiant que relatedData.lessons est un tableau avant de l'utiliser pour éviter les erreurs
     const lessons = Array.isArray(relatedData?.lessons)
         ? relatedData.lessons
         : [];
@@ -174,8 +176,8 @@ const AssignmentForm = ({
                     disabled={isPending}
                     className={`p-2 rounded-md text-white transition
                     ${isPending
-                        ? "bg-gray-400 cursor-not-allowed"
-                        : "bg-blue-500 hover:bg-blue-600 cursor-pointer"}
+                            ? "bg-gray-400 cursor-not-allowed"
+                            : "bg-blue-500 hover:bg-blue-600 cursor-pointer"}
                     `}
                 >
                     {isPending

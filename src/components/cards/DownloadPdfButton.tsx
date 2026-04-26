@@ -5,21 +5,24 @@ import { useState } from "react"
 export function DownloadPdfButton({ reportCardId }: { reportCardId: number }) {
   const [loading, setLoading] = useState(false)
 
+  // Gérer le clic pour télécharger le PDF
   const handleDownload = async () => {
     setLoading(true)
     try {
+      // Appeler l'API pour générer le PDF
       const res = await fetch(`/api/report-cards/${reportCardId}/pdf`)
       if (!res.ok) throw new Error("Erreur PDF")
 
+      // Télécharger le PDF
       const blob = await res.blob()
-      const url  = URL.createObjectURL(blob)
-      const a    = document.createElement("a")
-      a.href     = url
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
       a.download = `bulletin-${reportCardId}.pdf`
       a.click()
       URL.revokeObjectURL(url)
     } catch (err) {
-      console.error(err)
+      console.error("Erreur", err)
       alert("Impossible de générer le PDF.")
     } finally {
       setLoading(false)

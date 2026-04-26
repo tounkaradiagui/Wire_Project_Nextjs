@@ -8,6 +8,7 @@ const AttendancePage = async ({
 }) => {
     const { id } = await params;
 
+    // Récupérer la session avec les données nécessaires pour l'affichage de la page d'assiduité
     const session = await prisma.session.findUnique({
         where: { id },
         include: {

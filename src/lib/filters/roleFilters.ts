@@ -70,7 +70,7 @@ export const studentRoleFilter = (
 };
 
 
-//  
+// Labels lisibles pour les rôles, utilisées dans l'interface utilisateur pour afficher le rôle de l'utilisateur de manière plus compréhensible
 export const ROLE_LABELS: Record<string, string> = {
     admin: "Administrateur",
     teacher: "Enseignant",

@@ -1,6 +1,8 @@
 import { useState, useTransition } from "react"
 import { updateReportCardAppreciation } from "@/lib/actions/report-cards"
 
+
+// Liste des décisions possibles pour le rapport de fin d'année
 const DECISIONS = [
   "Passant(e) en classe supérieure",
   "Redoublant(e)",
@@ -14,6 +16,7 @@ export function DecisionForm({ reportCardId }: { reportCardId: number }) {
   const [saved, setSaved] = useState(false)
   const [isPending, startTransition] = useTransition()
 
+  // Fonction pour gérer la mise à jour de la décision
   const handleUpdate = (field: "decision", value: string) => {
     setSaved(false)
     startTransition(async () => {

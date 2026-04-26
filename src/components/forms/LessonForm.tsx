@@ -34,6 +34,7 @@ const LessonForm = ({
         formState: { errors },
     } = useForm({
         resolver: zodResolver(lessonSchema),
+        // Pré-remplir les champs du formulaire en cas de mise à jour
         defaultValues: {
             name: data?.name ?? "",
             startDate: data?.startDate ?? "",
@@ -41,9 +42,10 @@ const LessonForm = ({
             weekDay: data?.weekDay ?? "",
             startHour: data?.startHour ?? "",
             endHour: data?.endHour ?? "",
-            }
+        }
     });
 
+    // Gérer l'état de l'action de création ou de mise à jour du cours
     const [state, formAction, isPending] = useActionState(
         type === "create" ? createLesson : updateLesson,
         { success: false, error: null as string | null, }
@@ -200,20 +202,20 @@ const LessonForm = ({
                         >
                             <option value="">Sélectionner un jour</option>
                             {relatedData?.weekDays?.map((d: any) => (
-                            <option key={d.value} value={d.value}>
-                                {d.label}
-                            </option>
+                                <option key={d.value} value={d.value}>
+                                    {d.label}
+                                </option>
                             ))}
                         </select>
 
                         {errors.weekDay && (
                             <span className="text-[11px] text-red-500">
-                            {errors.weekDay.message?.toString()}
+                                {errors.weekDay.message?.toString()}
                             </span>
                         )}
                     </div>
 
-                   <div className="flex flex-col gap-2 md:w-1/4">
+                    <div className="flex flex-col gap-2 md:w-1/4">
                         <label>Heure de début</label>
                         <select
                             {...register("startHour", { valueAsNumber: true })}
@@ -221,9 +223,9 @@ const LessonForm = ({
                         >
                             <option value="">Heure</option>
                             {Array.from({ length: 24 }).map((_, i) => (
-                            <option key={i} value={i}>
-                                {i.toString().padStart(2, "0")}:00
-                            </option>
+                                <option key={i} value={i}>
+                                    {i.toString().padStart(2, "0")}:00
+                                </option>
                             ))}
                         </select>
                     </div>
@@ -236,9 +238,9 @@ const LessonForm = ({
                         >
                             <option value="">Heure</option>
                             {Array.from({ length: 24 }).map((_, i) => (
-                            <option key={i} value={i}>
-                                {i.toString().padStart(2, "0")}:00
-                            </option>
+                                <option key={i} value={i}>
+                                    {i.toString().padStart(2, "0")}:00
+                                </option>
                             ))}
                         </select>
                     </div>

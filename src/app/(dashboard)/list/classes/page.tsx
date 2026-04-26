@@ -9,7 +9,6 @@ import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { auth } from "@clerk/nextjs/server";
 import {
-  Eye,
   Filter,
   ArrowUpDown
 } from "lucide-react";
@@ -73,10 +72,9 @@ const ClassListPage = async ({
 
   const teacherId = searchParams.teacherId;
 
-  // URL PARAMS CONDITION
-
   const query: Prisma.ClassWhereInput = {};
 
+  // Si un teacherId est présent dans les paramètres d'URL, ajouter une condition pour filtrer les classes associées à cet enseignant
   if (teacherId) {
     query.teacherClasses = {
       some: {
@@ -85,6 +83,7 @@ const ClassListPage = async ({
     };
   }
 
+  // Ajouter des conditions de recherche basées sur les paramètres d'URL
   if (queryParams) {
     for (const [key, value] of Object.entries(queryParams)) {
       if (value !== undefined) {
@@ -99,6 +98,7 @@ const ClassListPage = async ({
     }
   }
 
+  // Ajouter des conditions spécifiques selon le rôle de l'utilisateur
   const [data, count] = await prisma.$transaction([
     prisma.class.findMany({
       where: query,
@@ -142,7 +142,7 @@ const ClassListPage = async ({
         </div>
       </div>
 
-      {/* List of Classes */}
+      {/* List de Classes */}
       <Table<ClassList> columns={columns} renderRow={renderRow} data={data} />
 
       {/* Pagination */}

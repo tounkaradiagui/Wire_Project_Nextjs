@@ -108,7 +108,6 @@ const StudentListPage = async ({
               </button>
             </Link>
             <div title="Supprimer l'élève">
-              {/* <FormContainer table="student" type="update" data={item} /> */}
               <FormContainer table="student" type="delete" id={item.id} />
             </div>
           </div>
@@ -220,7 +219,7 @@ const StudentListPage = async ({
         </div>
       </div>
 
-      {/* List of Students */}
+      {/* List des élèves */}
       <Table columns={columns} renderRow={renderRow} data={data} />
 
       {/* Pagination */}

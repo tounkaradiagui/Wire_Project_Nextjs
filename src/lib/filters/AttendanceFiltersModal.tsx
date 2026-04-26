@@ -10,6 +10,8 @@ const AttendanceFiltersModal = ({ classes, teachers, sessions }: any) => {
 
     const [open, setOpen] = useState(false);
 
+    // Gérer les états locaux pour chaque filtre (classe, enseignant, séance, statut, date) en initialisant les valeurs à partir des 
+    // paramètres de recherche actuels dans l'URL, ce qui permet de pré-remplir les filtres avec les valeurs actuellement appliquées
     const [classId, setClassId] = useState(searchParams.get("classId") || "");
     const [teacherId, setTeacherId] = useState(searchParams.get("teacherId") || "");
     const [sessionId, setSessionId] = useState(searchParams.get("sessionId") || "");
@@ -91,12 +93,12 @@ const AttendanceFiltersModal = ({ classes, teachers, sessions }: any) => {
                             value={sessionId}
                             onChange={(e) => setSessionId(e.target.value)}
                             className="w-full border p-2 rounded"
-                            >
+                        >
                             <option value="">Toutes les séances</option>
 
                             {sessions?.map((s: any) => (
                                 <option key={s.id} value={s.id}>
-                                     {s.date
+                                    {s.date
                                         ? new Date(s.date).toLocaleDateString("fr-FR")
                                         : "Date inconnue"}{" "}
                                     - {s.lesson?.name ?? "Cours inconnu"}

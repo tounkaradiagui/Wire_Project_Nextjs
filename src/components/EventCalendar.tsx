@@ -12,7 +12,7 @@ type Value = ValuePiece | [ValuePiece, ValuePiece];
 export type Event = {
   id: number;
   title: string;
-  startDate: string; // YYYY-MM-DD
+  startDate: string;
 };
 
 type Props = {

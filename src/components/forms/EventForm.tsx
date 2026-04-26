@@ -79,6 +79,7 @@ const EventForm = ({
     }
   }, [state.success, state.error, type, router, setOpen]);
 
+  // Récupérer les classes depuis les données liées tout en assurant que c'est un tableau
   const classes = relatedData?.eventClasses || [];
 
   return (

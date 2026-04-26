@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-// Clerk user Schema
+// Le schema
 export const userSchema = z.object({
   id: z.string().optional(),
   firstName: z
@@ -47,14 +47,14 @@ export const userSchema = z.object({
 
 export type UserSchemaInput = z.infer<typeof userSchema>;
 
-// Subject Schema
+// 
 export const subjectSchema = z.object({
   id: z.coerce.number().optional(),
   code: z.string().optional(),
   coefficient: z.coerce
-  .number()
-  .min(0, "Le coefficient doit être positif")
-  .optional(),
+    .number()
+    .min(0, "Le coefficient doit être positif")
+    .optional(),
   name: z
     .string()
     .min(1, {

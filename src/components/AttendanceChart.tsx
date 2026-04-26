@@ -25,7 +25,7 @@ const AttendanceChart = ({ data }: { data: AttendanceChartData[] }) => {
   const roundedMax = Math.ceil(maxValue / 10) * 10;
 
   return (
-    <div className="w-full h-[300px]">
+    <div className="w-full h-75">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 5, right: 0, left: 0, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" />
