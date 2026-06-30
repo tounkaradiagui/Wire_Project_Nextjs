@@ -807,14 +807,14 @@ export const createTeacher = async (
             });
         }
 
-        // 🔍 Actor
+        // Actor
         const actor = await prisma.userProfile.findUnique({
             where: { clerkId: actorClerkId! },
         });
 
         if (!actor) throw new Error("UserProfile introuvable");
 
-        // 🧾 Audit
+        // Audit
         await logAction({
             action: AuditAction.CREATE_TEACHER,
             entityType: "Teacher",
@@ -837,7 +837,7 @@ export const createTeacher = async (
     } catch (error) {
         console.error("createTeacher error:", error);
 
-        // 🔥 rollback Clerk
+        // rollback Clerk
         if (createdUserId) {
             await clerk.users.deleteUser(createdUserId);
         }
@@ -865,7 +865,7 @@ export const updateTeacher = async (
     });
 
     try {
-        // 🔍 BEFORE
+        // BEFORE
         const existingTeacher = await prisma.teacher.findUnique({
             where: { id: data.id },
         });
@@ -880,7 +880,7 @@ export const updateTeacher = async (
             surname: existingTeacher.surname,
         };
 
-        // ✅ username unique
+        // username unique
         const available = await isUsernameAvailableForUpdate(
             clerk,
             data.username,
@@ -894,7 +894,7 @@ export const updateTeacher = async (
             };
         }
 
-        // 🔐 Clerk update
+        // Clerk update
         await clerk.users.updateUser(data.id, {
             username: data.username,
             ...(data.password && { password: data.password }),
@@ -902,7 +902,7 @@ export const updateTeacher = async (
             lastName: data.surname,
         });
 
-        // 🔁 Update userProfile
+        // Update userProfile
         const teacherProfile = await prisma.teacher.findUnique({
             where: { id: data.id },
             select: { userProfileId: true },
@@ -919,7 +919,7 @@ export const updateTeacher = async (
             },
         });
 
-        // 🧑‍🏫 Update teacher
+        // Update teacher
         const updatedTeacher = await prisma.teacher.update({
             where: { id: data.id },
             data: {
@@ -990,7 +990,7 @@ export const updateTeacher = async (
             });
         }
 
-        // 🔍 Actor (admin connecté)
+        // Actor (admin connecté)
         const actor = await prisma.userProfile.findUnique({
             where: { clerkId: userId! },
         });
@@ -1003,7 +1003,7 @@ export const updateTeacher = async (
             surname: updatedTeacher.surname,
         };
 
-        // 🧾 Audit
+        // Audit
         await logAction({
             action: AuditAction.UPDATE_TEACHER,
             entityType: "Teacher",
@@ -1056,7 +1056,7 @@ export const deleteTeacher = async (
             surname: teacher.surname,
         }
 
-        // ✅ soft delete
+        // soft delete
         await prisma.teacher.update({
             where: { id },
             data: {
@@ -1171,7 +1171,7 @@ export const createStudent = async (
         const cardNumber = await generateUniqueCardNumber();
         const { token, expiresAt } = generateCardData();
 
-        // 2. Create student
+        // Create student
         const student = await prisma.student.create({
             data: {
                 id: user.id,
@@ -1229,9 +1229,9 @@ export const createStudent = async (
 
         return { success: true, error: null }
     } catch (error) {
-        console.error("createStudent error:", error); // 🔥 toujours logger
+        console.error("createStudent error:", error);
 
-        // 🔥 Cleanup Clerk en premier dans tous les cas
+        // Cleanup Clerk en premier dans tous les cas
         if (createdUserId) {
             try {
                 await clerk.users.deleteUser(createdUserId);
@@ -1247,7 +1247,7 @@ export const createStudent = async (
             };
         }
 
-        // 🔥 Afficher l'erreur Prisma exacte en dev
+        // Afficher l'erreur Prisma exacte en dev
         if (process.env.NODE_ENV === "development") {
             return {
                 success: false,
@@ -1284,7 +1284,7 @@ export const updateStudent = async (
     try {
         const { parentId, classId, gradeId } = data
 
-        // 🔍 Student existant
+        // Student existant
         const existingStudent = await prisma.student.findUnique({
             where: { id: data.id },
         })
@@ -1293,7 +1293,7 @@ export const updateStudent = async (
             return { success: false, error: "Élève introuvable." }
         }
 
-        // ✅ Vérifier parent
+        // Vérifier parent
         if (parentId) {
             const parentExists = await prisma.parent.findUnique({
                 where: { id: parentId },
@@ -1307,7 +1307,7 @@ export const updateStudent = async (
             }
         }
 
-        // ✅ Vérifier classe
+        // Vérifier classe
         if (classId) {
             const classExists = await prisma.class.findUnique({
                 where: { id: classId },
@@ -1321,7 +1321,7 @@ export const updateStudent = async (
             }
         }
 
-        // ✅ Vérifier grade
+        // Vérifier grade
         if (gradeId) {
             const gradeExists = await prisma.grade.findUnique({
                 where: { id: gradeId },
@@ -1335,7 +1335,7 @@ export const updateStudent = async (
             }
         }
 
-        // 🔥 BEFORE (audit)
+        // BEFORE (audit)
         const before = {
             username: existingStudent.username,
             name: existingStudent.name,
@@ -1358,7 +1358,7 @@ export const updateStudent = async (
                 error: "Ce nom d'utilisateur est déjà pris. Choisissez-en un autre.",
             }
         }
-        // 🔐 Clerk update
+        // Clerk update
         await clerk.users.updateUser(data.id!, {
             username: data.username,
             ...(data.password && { password: data.password }),
@@ -1366,7 +1366,7 @@ export const updateStudent = async (
             lastName: data.surname,
         })
 
-        // 🔐 UserProfile update
+        // UserProfile update
         await prisma.userProfile.update({
             where: { id: existingStudent.userProfileId },
             data: {
@@ -1379,7 +1379,7 @@ export const updateStudent = async (
         const { token, expiresAt } = generateCardData();
         const cardNumber = await generateUniqueCardNumber();
 
-        // 🔥 Student update (SAFE CONNECT)
+        // Student update (SAFE CONNECT)
         const student = await prisma.student.update({
             where: { id: data.id },
             data: {
@@ -1411,14 +1411,14 @@ export const updateStudent = async (
             },
         })
 
-        // 🔍 Actor (audit)
+        // Actor (audit)
         const actor = await prisma.userProfile.findUnique({
             where: { clerkId: userId },
         })
 
         if (!actor) throw new Error("UserProfile introuvable")
 
-        // 🔥 AFTER (audit)
+        // AFTER (audit)
         const after = {
             username: student.username,
             name: student.name,
@@ -1428,7 +1428,7 @@ export const updateStudent = async (
             parentId: student.parentId,
         }
 
-        // 🧾 AUDIT LOG
+        // AUDIT LOG
         await logAction({
             action: AuditAction.UPDATE_STUDENT,
             entityType: "Student",
@@ -1697,14 +1697,14 @@ export const createParent = async (
         })
 
 
-        // 🔥 récupérer userProfile (admin qui crée)
+        // récupérer userProfile (admin qui crée)
         const actor = await prisma.userProfile.findUnique({
             where: { clerkId: userId! },
         })
 
         if (!actor) throw new Error("UserProfile introuvable")
 
-        // ✅ AUDIT
+        // AUDIT
         await logAction({
             action: AuditAction.CREATE_PARENT,
             entityType: "Parent",
@@ -2081,7 +2081,7 @@ export const createLesson = async (
             throw new Error("UserProfile introuvable")
         }
 
-        // ✅ LOG propre
+        // LOG propre
         await logAction({
             action: AuditAction.CREATE_LESSON,
             entityType: "Lesson",
@@ -2505,15 +2505,15 @@ export const createSession = async (
             return { success: false, error: "Rôle interdit." };
         }
 
-        // ✅ Normaliser la date (jour pur)
+        // Normaliser la date (jour pur)
         const baseDate = new Date(data.date);
         baseDate.setHours(0, 0, 0, 0);
 
-        // ✅ Extraire heures une seule fois
+        // Extraire heures une seule fois
         const startInput = new Date(data.startTime);
         const endInput = new Date(data.endTime);
 
-        // ✅ Construire heures liées au jour
+        // Construire heures liées au jour
         const startTime = new Date(baseDate);
         startTime.setHours(startInput.getHours(), startInput.getMinutes(), 0, 0);
 
@@ -2531,7 +2531,7 @@ export const createSession = async (
             };
         }
 
-        // ✅ Récupérer le lesson
+        // Récupérer le lesson
         const lesson = await prisma.lesson.findUnique({
             where: { id: data.lessonId },
         });
@@ -2543,7 +2543,7 @@ export const createSession = async (
             };
         }
 
-        // 👨‍🏫 Vérification ownership
+        // Vérification ownership
         if (role === "teacher" && lesson.teacherId !== userId) {
             return {
                 success: false,
@@ -2551,7 +2551,7 @@ export const createSession = async (
             };
         }
 
-        // ✅ Normaliser aussi les dates du lesson
+        // Normaliser aussi les dates du lesson
         const lessonStart = lesson.startDate
             ? new Date(lesson.startDate)
             : null;
@@ -2570,14 +2570,14 @@ export const createSession = async (
             };
         }
 
-        // ✅ Définir la journée
+        // Définir la journée
         const startOfDay = new Date(baseDate);
         startOfDay.setHours(0, 0, 0, 0);
 
         const endOfDay = new Date(baseDate);
         endOfDay.setHours(23, 59, 59, 999);
 
-        // 🚫 Vérifier conflits
+        // Vérifier conflits
         const conflict = await prisma.session.findFirst({
             where: {
                 isDeleted: false,
@@ -2607,7 +2607,7 @@ export const createSession = async (
             };
         }
 
-        // ✅ Création
+        // Création
         const createdSession = await prisma.session.create({
             data: {
                 date: baseDate,
@@ -2621,14 +2621,14 @@ export const createSession = async (
             },
         })
 
-        // 🔥 récupérer userProfile
+        // récupérer userProfile
         const userProfile = await prisma.userProfile.findUnique({
             where: { clerkId: userId },
         })
 
         if (!userProfile) throw new Error("UserProfile introuvable")
 
-        // 🔥 AUDIT
+        // AUDIT
         await logAction({
             action: AuditAction.CREATE_SESSION,
             entityType: "Session",
@@ -2686,7 +2686,7 @@ export const updateSession = async (
             return { success: false, error: "ID de la session manquant." };
         }
 
-        // ✅ Récupérer session
+        // Récupérer session
         const session = await prisma.session.findUnique({
             where: { id: data.id },
             include: { lesson: true },
@@ -2698,7 +2698,7 @@ export const updateSession = async (
 
         const lesson = session.lesson;
 
-        // 👨‍🏫 Ownership
+        // Ownership
         if (role === "teacher" && lesson.teacherId !== userId) {
             return {
                 success: false,
@@ -2706,11 +2706,11 @@ export const updateSession = async (
             };
         }
 
-        // ✅ Normaliser date
+        // Normaliser date
         const baseDate = new Date(data.date);
         baseDate.setHours(0, 0, 0, 0);
 
-        // ✅ Extraire heures
+        // Extraire heures
         const startInput = new Date(data.startTime);
         const endInput = new Date(data.endTime);
 
@@ -2731,7 +2731,7 @@ export const updateSession = async (
             };
         }
 
-        // ✅ Normaliser période lesson
+        // Normaliser période lesson
         const lessonStart = lesson.startDate
             ? new Date(lesson.startDate)
             : null;
@@ -2751,14 +2751,14 @@ export const updateSession = async (
             };
         }
 
-        // ✅ Intervalle journée
+        // Intervalle journée
         const startOfDay = new Date(baseDate);
         startOfDay.setHours(0, 0, 0, 0);
 
         const endOfDay = new Date(baseDate);
         endOfDay.setHours(23, 59, 59, 999);
 
-        // 🚫 Vérifier conflits (exclure session actuelle)
+        // Vérifier conflits (exclure session actuelle)
         const conflict = await prisma.session.findFirst({
             where: {
                 id: { not: data.id },
@@ -2789,14 +2789,14 @@ export const updateSession = async (
             };
         }
 
-        // 🔥 récupérer userProfile
+        // récupérer userProfile
         const userProfile = await prisma.userProfile.findUnique({
             where: { clerkId: userId },
         })
 
         if (!userProfile) throw new Error("UserProfile introuvable")
 
-        // 🔥 BEFORE
+        // BEFORE
         const before = {
             date: session.date,
             startTime: session.startTime,
@@ -2804,7 +2804,7 @@ export const updateSession = async (
             room: session.room,
         }
 
-        // ✅ update
+        // update
         const updatedSession = await prisma.session.update({
             where: { id: data.id },
             data: {
@@ -2815,7 +2815,7 @@ export const updateSession = async (
             },
         })
 
-        // 🔥 AFTER
+        // AFTER
         const after = {
             date: updatedSession.date,
             startTime: updatedSession.startTime,
@@ -2823,7 +2823,7 @@ export const updateSession = async (
             room: updatedSession.room,
         }
 
-        // 🔥 AUDIT
+        // AUDIT
         await logAction({
             action: AuditAction.UPDATE_SESSION,
             entityType: "Session",
@@ -2883,17 +2883,14 @@ export const deleteSession = async (
                     },
                 },
             }
-            // include: {
-            //     lesson: true,
-            //     attendances: true,
-            // },
+
         });
 
         if (!session || session.isDeleted) {
             return { success: false, error: "Séance introuvable." };
         }
 
-        // 👨‍🏫 Ownership check
+        // Ownership check
         if (role === "teacher" && session.lesson.teacherId !== userId) {
             return {
                 success: false,
@@ -2901,7 +2898,7 @@ export const deleteSession = async (
             };
         }
 
-        // 🚨 Empêcher suppression si des présences existent
+        // Empêcher suppression si des présences existent
         if (session.attendances.length > 0) {
             return {
                 success: false,
@@ -2910,14 +2907,14 @@ export const deleteSession = async (
             };
         }
 
-        // 🔥 récupérer userProfile
+        // récupérer userProfile
         const userProfile = await prisma.userProfile.findUnique({
             where: { clerkId: userId },
         })
 
         if (!userProfile) throw new Error("UserProfile introuvable")
 
-        // 🔥 BEFORE
+        // BEFORE
         const before = {
             date: session.date,
             startTime: session.startTime,
@@ -2927,7 +2924,7 @@ export const deleteSession = async (
             classId: session.classId,
         }
 
-        // ✅ soft delete
+        // soft delete
         await prisma.session.update({
             where: { id },
             data: {
@@ -2936,7 +2933,7 @@ export const deleteSession = async (
             },
         })
 
-        // 🔥 AUDIT
+        // AUDIT
         await logAction({
             action: AuditAction.DELETE_SESSION,
             entityType: "Session",
@@ -2974,12 +2971,12 @@ export const createAssignment = async (
     const role = (sessionClaims?.metadata as { role?: string })?.role;
 
     try {
-        // 🔐 Autorisation
+        // Autorisation
         if (!["teacher", "admin"].includes(role ?? "")) {
             return { success: false, error: "Vous n’êtes pas autorisé à effectuer cette action." };
         }
 
-        // 🕒 Validation des dates
+        // Validation des dates
         const startDate = new Date(data.startDate);
         const dueDate = new Date(data.dueDate);
 
@@ -2991,7 +2988,7 @@ export const createAssignment = async (
             return { success: false, error: "La date de remise doit être postérieure à la date de début." };
         }
 
-        // 👨‍🏫 Vérifier que le prof possède la leçon
+        // Vérifier que le prof possède la leçon
         if (role === "teacher") {
             const teacherLesson = await prisma.lesson.findFirst({
                 where: {
@@ -3005,7 +3002,7 @@ export const createAssignment = async (
             }
         }
 
-        // ✅ Création
+        // Création
         await prisma.assignment.create({
             data: {
                 title: data.title,
@@ -3031,17 +3028,17 @@ export const updateAssignment = async (
     const role = (sessionClaims?.metadata as { role?: string })?.role;
 
     try {
-        // 🔐 Autorisation
+        // Autorisation
         if (!["teacher", "admin"].includes(role ?? "")) {
             return { success: false, error: "Vous n’êtes pas autorisé à effectuer cette action." };
         }
 
-        // 🆔 ID obligatoire
+        // ID obligatoire
         if (!data.id) {
             return { success: false, error: "ID requis" };
         }
 
-        // 🕒 Validation des dates
+        // Validation des dates
         const startDate = new Date(data.startDate);
         const dueDate = new Date(data.dueDate);
 
@@ -3053,7 +3050,7 @@ export const updateAssignment = async (
             return { success: false, error: "La date de remise doit être postérieure à la date de début." };
         }
 
-        // 👨‍🏫 Vérifier que le prof possède la leçon
+        // Vérifier que le prof possède la leçon
         if (role === "teacher") {
             const teacherLesson = await prisma.lesson.findFirst({
                 where: {
@@ -3067,7 +3064,7 @@ export const updateAssignment = async (
             }
         }
 
-        // ✅ Mise à jour
+        // Mise à jour
         await prisma.assignment.update({
             where: {
                 id: data.id,
@@ -3136,7 +3133,7 @@ export const createResult = async (
             }
         }
 
-        // 🔥 Récupérer la leçon liée
+        // Récupérer la leçon liée
         const lesson = await prisma.lesson.findFirst({
             where: {
                 teacherId: userId,
@@ -3183,7 +3180,6 @@ export const createResult = async (
 
                 appreciation: data.appreciation || null,
 
-                // 🔥 FIX RELATION
                 term: {
                     connect: { id: data.termId },
                 },
@@ -3267,7 +3263,7 @@ export const updateResult = async (
             return { success: false, error: "Accès refusé" };
         }
 
-        // 🔥 sécurité métier
+        // Sécurité métier
         if (!data.examId && !data.assignmentId) {
             return {
                 success: false,
@@ -3275,7 +3271,7 @@ export const updateResult = async (
             };
         }
 
-        // 🔥 BEFORE
+        // BEFORE
         const before = {
             score: existingResult.score,
             appreciation: existingResult.appreciation,
@@ -3287,12 +3283,12 @@ export const updateResult = async (
                 score: data.score,
                 appreciation: data.appreciation || null,
 
-                // 🔥 TERM relation
+                // TERM relation
                 term: {
                     connect: { id: data.termId },
                 },
 
-                // 🔥 RESET RELATIONS
+                // RESET RELATIONS
                 exam: data.examId
                     ? { connect: { id: data.examId } }
                     : { disconnect: true },
@@ -3303,7 +3299,7 @@ export const updateResult = async (
             },
         });
 
-        // 🔥 AFTER
+        // AFTER
         const after = {
             score: updatedResult.score,
             appreciation: updatedResult.appreciation,
@@ -3389,7 +3385,7 @@ export const deleteResult = async (
             return { success: false, error: "Accès refusé" }
         }
 
-        // 🔥 BEFORE snapshot
+        // BEFORE snapshot
         const before = {
             score: existingResult.score,
             studentId: existingResult.studentId,
@@ -3398,11 +3394,7 @@ export const deleteResult = async (
         }
 
         await prisma.result.delete({
-            where: { id },
-            // data: {
-            //     isDeleted: true,
-            //     deletedAt: new Date(),
-            // },
+            where: { id }
         })
 
         await logAction({
@@ -3507,7 +3499,7 @@ export const createAttendance = async (
             },
         })
 
-        // 🔥 AUDIT
+        // AUDIT
         await logAction({
             action: AuditAction.CREATE_ATTENDANCE,
             entityType: "Attendance",
@@ -3792,10 +3784,10 @@ export const getStudentAttendancesForParent = async (studentId: string) => {
         where: {
             isDeleted: false,
 
-            // 🔥 FILTRE PRINCIPAL (OBLIGATOIRE)
+            // FILTRE PRINCIPAL (OBLIGATOIRE)
             studentId: studentId,
 
-            // 🔐 sécurité parent
+            // Sécurité parent
             student: {
                 parentId: userId!,
             },
@@ -3896,9 +3888,7 @@ export const getExams = async (studentId?: string) => {
                 },
             },
         },
-        // orderBy: {
-        //     startTime: "asc",
-        // },
+
         include: {
             lesson: {
                 select: {
@@ -3936,7 +3926,6 @@ export const createAnnouncement = async (
 
         return { success: true, error: null };
     } catch (error) {
-        // console.error("Create Announcement Error ❌", error);
         return {
             success: false,
             error: "Une erreur est survenue lors de la création de l'annonce.",
@@ -3979,7 +3968,6 @@ export const updateAnnouncement = async (
 
         return { success: true, error: null };
     } catch (error) {
-        // console.error("Update Announcement Error ❌", error);
         return {
             success: false,
             error: "Une erreur est survenue lors de la mise à jour de l'annonce.",
@@ -4018,7 +4006,6 @@ export const deleteAnnouncement = async (
 
         return { success: true, error: null };
     } catch (error) {
-        // console.error("Delete Announcement Error ❌", error);
         return {
             success: false,
             error: "Une erreur est survenue lors de la suppression de l'annonce.",
@@ -4054,7 +4041,6 @@ export const createEvent = async (
 
         return { success: true, error: null };
     } catch (error) {
-        // console.error("Create Event Error ❌", error);
         return {
             success: false,
             error: "Une erreur est survenue lors de la création de l'annonce.",
@@ -4098,7 +4084,6 @@ export const updateEvent = async (
 
         return { success: true, error: null };
     } catch (error) {
-        // console.error("Update Event Error ❌", error);
         return {
             success: false,
             error: "Une erreur est survenue lors de la mise à jour de l'annonce.",
@@ -4137,7 +4122,6 @@ export const deleteEvent = async (
 
         return { success: true, error: null };
     } catch (error) {
-        // console.error("Delete Event Error ❌", error);
         return {
             success: false,
             error: "Une erreur est survenue lors de la suppression de l'annonce.",

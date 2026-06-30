@@ -6,7 +6,7 @@ import { StatusBadge } from "@/components/cards/StatusBadge"
 import { DecisionForm } from "@/components/forms/DecisionForm"
 
 
-// Aactoriser avec la table des bulletins trimestriels de la page d'accueil (ReportCardSummaryTable) 
+// Factoriser avec la table des bulletins trimestriels de la page d'accueil (ReportCardSummaryTable) 
 // en créant un composant ReportCardTable commun qui prendrait en props les colonnes à afficher et les actions possibles selon le rôle de l'utilisateur
 type Row = {
   student: {

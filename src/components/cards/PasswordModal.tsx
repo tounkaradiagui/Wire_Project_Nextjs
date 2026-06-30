@@ -1,10 +1,9 @@
 "use client"
 
 import { useState, useTransition } from "react"
-import { changePassword } from "@/lib/actions/change-password"  // ← Server Action
+import { changePassword } from "@/lib/actions/change-password"
 
 export function PasswordModal() {
-    // ── Supprimer useUser et useClerk complètement ──
     const [open, setOpen] = useState(false)
     const [isPending, startTransition] = useTransition()
     const [error, setError] = useState<string | null>(null)
@@ -43,7 +42,6 @@ export function PasswordModal() {
         }
 
         startTransition(async () => {
-            // ── Appel Server Action (bypass re-auth Clerk) ──
             const result = await changePassword(
                 form.currentPassword,
                 form.newPassword,
