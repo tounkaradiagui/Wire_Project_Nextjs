@@ -743,7 +743,7 @@ export const createTeacher = async (
             },
         });
 
-        // 🧑‍🏫 Teacher
+        // Teacher
         const createdTeacher = await prisma.teacher.create({
             data: {
                 id: user.id,
@@ -761,10 +761,7 @@ export const createTeacher = async (
             },
         });
 
-        // =========================
-        // 🔥 SUBJECTS FIX
-        // =========================
-
+// Subject
         const subjectIds = Array.isArray(data.subjects)
             ? data.subjects
             : data.subjects
@@ -814,7 +811,7 @@ export const createTeacher = async (
 
         if (!actor) throw new Error("UserProfile introuvable");
 
-        // 🧾 Audit
+        // Audit
         await logAction({
             action: AuditAction.CREATE_TEACHER,
             entityType: "Teacher",
@@ -837,7 +834,7 @@ export const createTeacher = async (
     } catch (error) {
         console.error("createTeacher error:", error);
 
-        // 🔥 rollback Clerk
+        // rollback Clerk
         if (createdUserId) {
             await clerk.users.deleteUser(createdUserId);
         }
