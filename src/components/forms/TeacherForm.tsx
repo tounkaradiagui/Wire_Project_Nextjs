@@ -58,6 +58,7 @@ const TeacherForm = ({
 
   const onSubmit = handleSubmit((data) => {
     // console.log(data)
+    console.log("FORM DATA", data);
     startTransition(() => {
       formAction({ ...data, image: image?.secure_url });
     });
@@ -81,14 +82,7 @@ const TeacherForm = ({
     }
 
     if (state.error) {
-      toast.error("Erreur de serveur", {
-        style: {
-          background: "#f87171",
-          color: "#ffffff",
-          fontWeight: "bold",
-          fontSize: "14px",
-        },
-      });
+      toast.error(state.error);
       router.refresh();
     }
   }, [state.success, state.error]);

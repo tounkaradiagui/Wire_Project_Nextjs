@@ -1,17 +1,16 @@
 import { PrismaClient } from "@prisma/client";
 
-export async function seedSchoolYears(prisma: PrismaClient) {
+export async function seedSchoolYears(schoolId: string, prisma: PrismaClient) {
     const currentYear = new Date().getFullYear();
-    const nextYear = currentYear + 1;
+    const name = `${currentYear}-${currentYear + 1}`;
 
-    const name = `${currentYear}-${nextYear}`;
-
+    // ✅ Scoper la recherche par école
     const existing = await prisma.schoolYear.findFirst({
-        where: { name },
+        where: { name, schoolId: schoolId },
     });
 
     if (existing) {
-        console.log("SchoolYear already exists:", name);
+        console.log("SchoolYear déjà existante :", name);
         return existing;
     }
 
@@ -19,10 +18,10 @@ export async function seedSchoolYears(prisma: PrismaClient) {
         data: {
             name,
             isActive: true,
+            schoolId: schoolId,
         },
     });
 
-    console.log("Created SchoolYear:", schoolYear.name);
-
+    console.log("✅ SchoolYear créée :", schoolYear.name);
     return schoolYear;
 }

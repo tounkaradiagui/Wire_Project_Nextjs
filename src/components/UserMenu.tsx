@@ -2,12 +2,10 @@
 
 import { useState, useRef, useEffect } from "react";
 import { LogOut, User, ChevronDown } from "lucide-react";
-import { SignOutButton } from "@clerk/nextjs";
+import { useClerk } from "@clerk/nextjs";
 import Image from "next/image";
 import Link from "next/link";
 
-
-// Composant de menu utilisateur pour afficher le nom d'utilisateur, le rôle et une image de profil, avec un menu déroulant pour accéder au profil et se déconnecter
 type Props = {
     username?: string | null;
     roleLabel: string;
@@ -16,9 +14,10 @@ type Props = {
 
 const UserMenu = ({ username, roleLabel, imageUrl }: Props) => {
     const [open, setOpen] = useState(false);
+    const [signingOut, setSigningOut] = useState(false);
     const ref = useRef<HTMLDivElement>(null);
+    const { signOut } = useClerk();
 
-    // Fermer au clic extérieur
     useEffect(() => {
         const handler = (e: MouseEvent) => {
             if (ref.current && !ref.current.contains(e.target as Node)) {
@@ -29,9 +28,15 @@ const UserMenu = ({ username, roleLabel, imageUrl }: Props) => {
         return () => document.removeEventListener("mousedown", handler);
     }, []);
 
+    const handleSignOut = async () => {
+        setSigningOut(true);
+        await signOut();
+        // Rechargement complet du navigateur, pas une navigation SPA
+        window.location.href = "/sign-in";
+    };
+
     return (
         <div ref={ref} className="relative">
-            {/* Trigger */}
             <button
                 onClick={() => setOpen((prev) => !prev)}
                 className="flex items-center gap-2 cursor-pointer hover:bg-gray-100 px-2 py-1 rounded-md transition"
@@ -52,7 +57,6 @@ const UserMenu = ({ username, roleLabel, imageUrl }: Props) => {
                 <ChevronDown size={16} className="text-gray-500" />
             </button>
 
-            {/* Dropdown */}
             {open && (
                 <div className="absolute right-0 mt-2 w-52 bg-white border rounded-md shadow-lg z-50">
                     <div className="px-4 py-3 border-b">
@@ -61,20 +65,20 @@ const UserMenu = ({ username, roleLabel, imageUrl }: Props) => {
                     </div>
 
                     <Link href="/profile">
-                        <button
-                            className="w-full flex items-center gap-2 px-4 py-2 text-sm hover:bg-gray-100"
-                        >
+                        <button className="w-full flex items-center gap-2 px-4 py-2 text-sm hover:bg-gray-100">
                             <User size={16} />
                             Mon profil
                         </button>
                     </Link>
 
-                    <SignOutButton>
-                        <button className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50">
-                            <LogOut size={16} />
-                            Déconnexion
-                        </button>
-                    </SignOutButton>
+                    <button
+                        onClick={handleSignOut}
+                        disabled={signingOut}
+                        className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
+                    >
+                        <LogOut size={16} />
+                        {signingOut ? "Déconnexion..." : "Déconnexion"}
+                    </button>
                 </div>
             )}
         </div>

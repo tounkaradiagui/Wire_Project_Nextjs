@@ -1,15 +1,20 @@
 import { PrismaClient, CycleEnum } from "@prisma/client";
 
-export async function seedGradesAndClasses(prisma: PrismaClient) {
 
+export async function seedGradesAndClasses(
+    schoolId: string, prisma: PrismaClient) {
     const getCycle = (level: number): CycleEnum =>
         level <= 6 ? CycleEnum.FIRST : CycleEnum.SECOND;
 
     for (let level = 1; level <= 9; level++) {
-
-        // Upsert Grade
+        // ✅ where utilise le compound unique (level + schoolId)
         const grade = await prisma.grade.upsert({
-            where: { level },
+            where: {
+                level_schoolId: {
+                    level,
+                    schoolId: schoolId,
+                },
+            },
             update: {
                 cycle: getCycle(level),
             },
@@ -17,10 +22,11 @@ export async function seedGradesAndClasses(prisma: PrismaClient) {
                 level,
                 name: `${level}ème Année`,
                 cycle: getCycle(level),
+                schoolId: schoolId,
             },
         });
 
-        // Upsert Class 
+        // ✅ Class : ajout de schoolId
         await prisma.class.upsert({
             where: {
                 name_gradeId: {
@@ -33,7 +39,10 @@ export async function seedGradesAndClasses(prisma: PrismaClient) {
                 name: `${level}ème Année`,
                 capacity: 60,
                 gradeId: grade.id,
+                schoolId: schoolId,
             },
         });
     }
+
+    console.log("✅ Grades et classes seedés.");
 }

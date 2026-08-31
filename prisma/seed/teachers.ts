@@ -1,12 +1,11 @@
 import { PrismaClient } from "@prisma/client";
 import { randomName } from "./utils";
 
-export async function seedTeachers(prisma: PrismaClient) {
+export async function seedTeachers(schoolId: string, prisma: PrismaClient) {
   for (let i = 1; i <= 15; i++) {
     const sex = i % 2 === 0 ? "FEMALE" : "MALE";
     const { name, surname } = randomName(sex);
 
-    // Créer UserProfile d'abord
     await prisma.userProfile.create({
       data: {
         id: `teacher${i}`,
@@ -17,10 +16,10 @@ export async function seedTeachers(prisma: PrismaClient) {
         role: "TEACHER",
         isActive: true,
         isBanned: false,
+        schoolId: schoolId,
       },
     });
 
-    // Créer Teacher lié
     await prisma.teacher.create({
       data: {
         id: `teacher${i}`,
@@ -31,7 +30,10 @@ export async function seedTeachers(prisma: PrismaClient) {
         address: "Bamako",
         bloodType: "O+",
         userProfileId: `teacher${i}`,
+        schoolId: schoolId,
       },
     });
   }
+
+  console.log("Enseignants seedés.");
 }

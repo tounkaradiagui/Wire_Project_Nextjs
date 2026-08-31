@@ -7,7 +7,15 @@ const matchers = Object.keys(routeAccessMap).map(route => ({
     allowRoles: routeAccessMap[route]
 }));
 
-// 🔥 Pages d'erreur publiques (accessibles sans auth)
+// Routes publiques — jamais bloquées même sans session
+const publicRoutes = createRouteMatcher([
+    '/',
+    '/sign-in',
+    '/ecoles(.*)',
+    '/errors(.*)',
+    '/maintenance',
+]);
+
 const publicErrorPages = createRouteMatcher([
     '/errors/connection-error',
     '/errors/unauthorized',
@@ -15,56 +23,42 @@ const publicErrorPages = createRouteMatcher([
     '/errors/server-error',
 ]);
 
-const MAINTENANCE_MODE = process.env.MAINTENANCE_MODE === "true"
-const MAINTENANCE_BYPASS = process.env.MAINTENANCE_BYPASS_SECRET
+const MAINTENANCE_MODE = process.env.MAINTENANCE_MODE === "true";
+const MAINTENANCE_BYPASS = process.env.MAINTENANCE_BYPASS_SECRET;
 
 export default clerkMiddleware(async (auth, req) => {
-
-    // ── Mode maintenance ──
+    // ── Mode maintenance ──────────────────────────────────────
     if (MAINTENANCE_MODE) {
-        const bypassCookie = req.cookies.get("maintenance_bypass")?.value
-        const bypassQuery = req.nextUrl.searchParams.get("bypass")
+        const bypassCookie = req.cookies.get("maintenance_bypass")?.value;
+        const bypassQuery = req.nextUrl.searchParams.get("bypass");
+        const hasAccess = bypassCookie === MAINTENANCE_BYPASS || bypassQuery === MAINTENANCE_BYPASS;
+        const isMaintPage = req.nextUrl.pathname === "/maintenance";
 
-        // Autoriser le bypass via cookie ou query param secret
-        const hasAccess =
-            bypassCookie === MAINTENANCE_BYPASS ||
-            bypassQuery === MAINTENANCE_BYPASS
-
-        // Laisser passer la page maintenance elle-même
-        const isMaintenancePage = req.nextUrl.pathname === "/maintenance"
-
-        if (!hasAccess && !isMaintenancePage) {
-            return NextResponse.redirect(new URL("/maintenance", req.url))
+        if (!hasAccess && !isMaintPage) {
+            return NextResponse.redirect(new URL("/maintenance", req.url));
         }
     }
 
-    // ✅ Laisser passer les pages d'erreur sans vérification
-    if (publicErrorPages(req)) {
+    // Routes publiques → laisser passer sans vérification
+    if (publicRoutes(req) || publicErrorPages(req)) {
         return NextResponse.next();
     }
 
     const { sessionClaims } = await auth();
 
-    // Normalise en minuscules pour matcher le routeAccessMap
     const role = (
         (sessionClaims?.metadata as { role?: string } | undefined)?.role ?? ''
-    ).toLowerCase()
-
-    // const role =
-    //     (sessionClaims?.metadata as { role?: string } | undefined)?.role ?? '';
+    ).toLowerCase();
 
     for (const { matcher, allowRoles } of matchers) {
         if (matcher(req)) {
-            // 🚨 Pas de session → page de connexion
+            // Pas de session → page de connexion
             if (!sessionClaims) {
-                return NextResponse.redirect(new URL('/', req.url));
+                return NextResponse.redirect(new URL('/sign-in', req.url));
             }
-
-            // 🚫 Rôle non autorisé → unauthorized au lieu du dashboard du rôle
+            // Rôle non autorisé
             if (!allowRoles.includes(role)) {
-                return NextResponse.redirect(
-                    new URL('/errors/unauthorized', req.url)
-                );
+                return NextResponse.redirect(new URL('/errors/unauthorized', req.url));
             }
         }
     }

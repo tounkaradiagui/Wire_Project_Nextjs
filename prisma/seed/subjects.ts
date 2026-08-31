@@ -1,24 +1,38 @@
 import { PrismaClient } from "@prisma/client";
-import prisma from '@/lib/prisma';
 
-export async function seedSubjects(prisma: PrismaClient) {
-    const subjects = [
-        "Mathématiques",
-        "Physique / Chimie",
-        "Histoire / Géographie",
-        "Anglais",
-        "EPS",
-        "Biologie",
-        "Informatique",
-        "Chant",
-        "Français",
-        "Lecture",
-        "Calcul",
-        "Éducation civique",
-        "Dessin",
-    ];
+const SUBJECTS = [
+    "Mathématiques",
+    "Physique / Chimie",
+    "Histoire / Géographie",
+    "Anglais",
+    "EPS",
+    "Biologie",
+    "Informatique",
+    "Chant",
+    "Français",
+    "Lecture",
+    "Calcul",
+    "Éducation civique",
+    "Dessin",
+];
 
-    for (const name of subjects) {
-        await prisma.subject.create({ data: { name } });
+export async function seedSubjects(schoolId: string, prisma: PrismaClient) {
+    for (const name of SUBJECTS) {
+        // upsert sur le compound unique (name + schoolId) pour idempotence
+        await prisma.subject.upsert({
+            where: {
+                name_schoolId: {
+                    name,
+                    schoolId: schoolId,
+                },
+            },
+            update: {},
+            create: {
+                name,
+                schoolId: schoolId,
+            },
+        });
     }
+
+    console.log("✅ Matières seedées.");
 }

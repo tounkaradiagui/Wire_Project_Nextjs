@@ -1,12 +1,11 @@
 import { PrismaClient } from "@prisma/client";
 import { randomName } from "./utils";
 
-export async function seedParents(prisma: PrismaClient) {
+export async function seedParents(schoolId: string, prisma: PrismaClient) {
   for (let i = 1; i <= 7; i++) {
     const sex = i % 2 === 0 ? "FEMALE" : "MALE";
     const { name, surname } = randomName(sex);
 
-    // Créer UserProfile
     await prisma.userProfile.create({
       data: {
         id: `parent${i}`,
@@ -17,10 +16,10 @@ export async function seedParents(prisma: PrismaClient) {
         role: "PARENT",
         isActive: true,
         isBanned: false,
+        schoolId: schoolId,
       },
     });
 
-    // Créer Parent lié
     await prisma.parent.create({
       data: {
         id: `parent${i}`,
@@ -31,7 +30,10 @@ export async function seedParents(prisma: PrismaClient) {
         phone: `223700${i}`,
         address: "Bamako",
         userProfileId: `parent${i}`,
+        schoolId: schoolId,
       },
     });
   }
+
+  console.log("Parents seedés.");
 }

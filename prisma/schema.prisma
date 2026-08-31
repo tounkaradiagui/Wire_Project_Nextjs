@@ -8,14 +8,281 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+// SCHOOL — Racine du tenant multi-école
+// ════════════════════════════════════════════════════════════════════════════
+
+model School {
+  // ── Identité ─────────────────────────────────────────────────────────────
+  id   String @id @default(cuid())
+  slug String @unique // URL-friendly, ex: "lycee-sainte-marie" → /ecoles/lycee-sainte-marie
+  name String
+
+  // ── Localisation ─────────────────────────────────────────────────────────
+  city     String
+  country  String
+  address  String?
+  timezone String  @default("Africa/Abidjan") // Pour gestion des horaires/séances
+
+  // ── Contact ──────────────────────────────────────────────────────────────
+  email   String?
+  phone   String?
+  website String?
+
+  // Responsable de l'établissement
+  contactName  String?
+  contactEmail String?
+  contactPhone String?
+
+  // ── Médias ───────────────────────────────────────────────────────────────
+  logoUrl   String? // Logo carré (affiché dans les cards)
+  bannerUrl String? // Bannière large (affiché en header de la page école)
+
+  // ── Description & informations publiques ─────────────────────────────────
+  description String? @db.Text
+  foundedYear Int? // Année de fondation
+  maxStudents Int? // Capacité max selon le plan
+  language    String  @default("fr") // Langue principale de l'école
+
+  status     SchoolStatus @default(PENDING) // PENDING → doit être validée par super_admin
+  isVerified Boolean      @default(false) // Validé par super_admin après SchoolRegistrationRequest
+
+  // ── Paramètres internes (JSON flexible) ──────────────────────────────────
+  // Ex: { "gradingScale": 20, "semesterMode": false, "allowParentMessages": true }
+  settings Json?
+
+  // ── Relations vers les entités scopées ───────────────────────────────────
+  userProfiles              UserProfile[]
+  admins                    Admin[]
+  teachers                  Teacher[]
+  students                  Student[]
+  parents                   Parent[]
+  classes                   Class[]
+  grades                    Grade[]
+  subjects                  Subject[]
+  schoolYears               SchoolYear[]
+  events                    Event[]
+  announcements             Announcement[]
+  teacherApplications       TeacherApplication[]
+  subscriptions             Subscription[]
+  schoolRegistrationRequest SchoolRegistrationRequest? // L'origine de la création de cette école
+
+  // ── Soft delete / lifecycle ───────────────────────────────────────────────
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  deletedAt       DateTime?
+  isDeleted       Boolean          @default(false)
+  schoolProvision SchoolProvision?
+
+  @@index([status])
+  @@index([slug])
+}
+
+model Subscription {
+  id String @id @default(cuid())
+
+  schoolId String
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  // Plan choisi
+  plan SubscriptionPlan @default(STANDARD)
+
+  // Etat de l'abonnement
+  status SubscriptionStatus @default(TRIAL)
+
+  // Durée
+  startsAt DateTime @default(now())
+  endsAt   DateTime
+
+  // Période d'essai
+  trialEndsAt DateTime?
+
+  // Prix payé
+  amount Decimal? @db.Decimal(10, 2)
+
+  currency String @default("USD")
+
+  // Référence paiement
+  transactionId String?
+
+  invoiceNumber String?
+
+  paymentProvider String?
+
+  // Paiement automatique
+  autoRenew Boolean @default(false)
+
+  nextBillingDate DateTime?
+
+  cancelAtPeriodEnd Boolean @default(false)
+
+  // Création / modification
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  schoolProvision SchoolProvision?
+
+  @@index([schoolId])
+  @@index([status])
+  @@index([plan])
+}
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  EXPIRED
+  CANCELLED
+  SUSPENDED
+}
+
+enum SubscriptionPlan {
+  FREE // Plan gratuit (fonctionnalités limitées)
+  STANDARD // Plan standard (fonctionnalités de base)
+  PREMIUM // Toutes les fonctionnalités (bulletins avancés, stats, etc.)
+  ENTREPRISE // Fonctionnalités plus avancées (API, intégrations, etc.)
+}
+
+enum SchoolStatus {
+  PENDING // Demande reçue, en attente de validation super_admin
+  ACTIVE // École opérationnelle
+  SUSPENDED // Abonnement expiré ou violation
+  INACTIVE // Fermée volontairement
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// SCHOOL REGISTRATION REQUEST — Demande publique de création d'espace
+// ════════════════════════════════════════════════════════════════════════════
+
+model SchoolRegistrationRequest {
+  id String @id @default(cuid())
+
+  // ── Informations sur l'école demandée ─────────────────────────────────
+  schoolName    String
+  city          String
+  country       String
+  studentsCount Int?
+  message       String? @db.Text
+
+  // ── Contact du demandeur ─────────────────────────────────────────────
+  contactName String
+  email       String
+  phone       String?
+
+  // ── Traitement par le super_admin ────────────────────────────────────
+  status     RequestStatus @default(PENDING)
+  reviewedAt DateTime? // Quand le super_admin a traité la demande
+  reviewNote String? // Note interne du super_admin (raison rejet, etc.)
+
+  // ── École créée après validation ─────────────────────────────────────
+  // Rempli si status = VALIDATED, pour tracer le lien entre la demande et l'école créée
+  createdSchoolId String? @unique
+  createdSchool   School? @relation(fields: [createdSchoolId], references: [id])
+
+  // Qui a traité la demande
+  processedById String?
+  processedBy   UserProfile? @relation(fields: [processedById], references: [id])
+
+  clerkUserId String?
+
+  adminCreated Boolean @default(false)
+
+  subscriptionCreated Boolean @default(false)
+
+  completedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  updatedAt       DateTime         @updatedAt
+  schoolProvision SchoolProvision?
+}
+
+model SchoolProvision {
+  id String @id @default(cuid())
+
+  requestId String                    @unique
+  request   SchoolRegistrationRequest @relation(fields: [requestId], references: [id])
+
+  schoolId String @unique
+  school   School @relation(fields: [schoolId], references: [id])
+
+  subscriptionId String?       @unique
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id])
+
+  clerkUserId String
+
+  generatedPassword String?
+
+  completedAt DateTime?
+
+  emailSent   Boolean   @default(false)
+  emailSentAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+}
+
+enum RequestStatus {
+  PENDING
+  VALIDATED
+  REJECTED
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// TEACHER APPLICATION — Candidature enseignant (soumise depuis la landing page)
+// ════════════════════════════════════════════════════════════════════════════
+
+model TeacherApplication {
+  id String @id @default(cuid())
+
+  // École cible (référence réelle si l'école est dans la plateforme)
+  schoolId String
+  school   School @relation(fields: [schoolId], references: [id])
+
+  // Informations du candidat
+  fullName    String
+  email       String
+  phone       String
+  coverLetter String @db.Text
+  cvUrl       String
+  cvFileName  String
+
+  // Traitement
+  status     ApplicationStatus @default(PENDING)
+  reviewedAt DateTime?
+  reviewNote String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  @@index([email])
+  @@index([schoolId])
+  @@index([status])
+}
+
+enum ApplicationStatus {
+  PENDING
+  REVIEWED
+  ACCEPTED
+  REJECTED
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// USER PROFILE — Profil global lié à Clerk (toutes les entités en dépendent)
+// ════════════════════════════════════════════════════════════════════════════
+
 model UserProfile {
   id        String  @id @default(cuid())
   clerkId   String  @unique
   role      Role
   username  String  @unique
+  email     String? @unique
   firstName String
   lastName  String
   image     String?
+
+  // Clé du tenant — null UNIQUEMENT pour SUPER_ADMIN (cross-école)
+  schoolId String?
+  school   School? @relation(fields: [schoolId], references: [id])
 
   teacher   Teacher?
   parent    Parent?
@@ -28,22 +295,44 @@ model UserProfile {
   bannedAt  DateTime?
   deletedAt DateTime?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt                  DateTime                    @default(now())
+  updatedAt                  DateTime                    @updatedAt
+  schoolRegistrationRequests SchoolRegistrationRequest[]
+
+  @@index([schoolId])
+  @@index([role])
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+// ADMIN — Administrateur d'une école (≠ SUPER_ADMIN)
+// ════════════════════════════════════════════════════════════════════════════
+
 model Admin {
-  id       String  @id
+  id       String  @id // = clerkId
   username String  @unique
+  name     String?
+  surname  String?
   email    String? @unique
+  phone    String?
+
+  // 🆕
+  schoolId String
+  school   School @relation(fields: [schoolId], references: [id])
 
   userProfileId String      @unique
   userProfile   UserProfile @relation(fields: [userProfileId], references: [id])
 
   createdAt DateTime  @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
   deletedAt DateTime?
   isDeleted Boolean   @default(false)
+
+  @@index([schoolId])
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// PARENT
+// ════════════════════════════════════════════════════════════════════════════
 
 model Parent {
   id       String    @id
@@ -58,46 +347,70 @@ model Parent {
   birthday DateTime?
   students Student[]
 
+  schoolId String
+  school   School @relation(fields: [schoolId], references: [id])
+
   userProfileId String      @unique
   userProfile   UserProfile @relation(fields: [userProfileId], references: [id])
 
   createdAt DateTime  @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
   deletedAt DateTime?
   isDeleted Boolean   @default(false)
+
+  @@index([schoolId])
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+// STUDENT
+// ════════════════════════════════════════════════════════════════════════════
+
 model Student {
-  id                String       @id
-  username          String       @unique
+  id                String    @id
+  username          String    @unique
   name              String
   surname           String
-  email             String?      @unique
-  phone             String?      @unique
-  verificationToken String       @unique @default(cuid())
-  cardExpiresAt     DateTime     @default(now())
-  cardNumber        String       @unique @db.VarChar(7)
+  email             String?   @unique
+  phone             String?   @unique
+  verificationToken String    @unique @default(cuid())
+  cardExpiresAt     DateTime  @default(now())
+  cardNumber        String    @unique @db.VarChar(7)
   address           String
   image             String?
   bloodType         String
   sex               UserSex
   birthday          DateTime?
-  createdAt         DateTime     @default(now())
   parentId          String
   gradeId           Int
   classId           Int
-  attendances       Attendance[]
-  results           Result[]
-  reportCards       ReportCard[]
-  class             Class        @relation(fields: [classId], references: [id])
-  grade             Grade        @relation(fields: [gradeId], references: [id])
-  parent            Parent       @relation(fields: [parentId], references: [id])
+
+  // 🆕
+  schoolId String
+  school   School @relation(fields: [schoolId], references: [id])
+
+  attendances Attendance[]
+  results     Result[]
+  reportCards ReportCard[]
+  class       Class        @relation(fields: [classId], references: [id])
+  grade       Grade        @relation(fields: [gradeId], references: [id])
+  parent      Parent       @relation(fields: [parentId], references: [id])
 
   userProfileId String      @unique
   userProfile   UserProfile @relation(fields: [userProfileId], references: [id])
 
+  createdAt DateTime  @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
   deletedAt DateTime?
   isDeleted Boolean   @default(false)
+
+  @@index([schoolId])
+  @@index([classId])
+  @@index([gradeId])
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// TEACHER
+// ════════════════════════════════════════════════════════════════════════════
 
 model Teacher {
   id            String    @id
@@ -112,6 +425,10 @@ model Teacher {
   birthday      DateTime?
   userProfileId String    @unique
 
+  // 🆕
+  schoolId String
+  school   School @relation(fields: [schoolId], references: [id])
+
   sex            UserSex
   lessons        Lesson[]
   subjects       TeacherSubject[]
@@ -123,18 +440,43 @@ model Teacher {
   userProfile UserProfile @relation(fields: [userProfileId], references: [id])
 
   createdAt DateTime  @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
   deletedAt DateTime?
   isDeleted Boolean   @default(false)
+
+  @@index([schoolId])
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// GRADE — Niveau scolaire (scopé par école)
+// ════════════════════════════════════════════════════════════════════════════
 
 model Grade {
   id       Int       @id @default(autoincrement())
-  level    Int       @unique
-  name     String    @unique
+  level    Int
+  name     String
   cycle    CycleEnum
   classes  Class[]
   students Student[]
+
+  // Level et name ne sont plus globalement uniques : deux écoles peuvent avoir "6ème"
+  schoolId String
+  school   School @relation(fields: [schoolId], references: [id])
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+  deletedAt DateTime?
+  isDeleted Boolean?  @default(false)
+
+  @@unique([level, schoolId])
+  @@unique([name, schoolId])
+  @@index([schoolId])
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// CLASS — Classe (scopée via Grade → School, + index direct)
+// ════════════════════════════════════════════════════════════════════════════
 
 model Class {
   id             Int            @id @default(autoincrement())
@@ -150,14 +492,34 @@ model Class {
   sessions       Session[]
   reportCards    ReportCard[]
 
-  @@unique([name, gradeId])
+  // 🆕 — index direct pour les requêtes admin sans passer par Grade
+  schoolId String
+  school   School @relation(fields: [schoolId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  deletedAt DateTime?
+  isDeleted Boolean   @default(false)
+
+  @@unique([name, gradeId]) // Unicité déjà scopée via gradeId → schoolId
+  @@index([schoolId])
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+// SUBJECT — Matière (scopée par école)
+// ════════════════════════════════════════════════════════════════════════════
+
 model Subject {
-  id             Int              @id @default(autoincrement())
-  code           String?
-  coefficient    Float?
-  name           String           @unique
+  id          Int     @id @default(autoincrement())
+  code        String?
+  coefficient Float?
+  name        String
+
+  // 🆕 — deux écoles peuvent avoir une matière "Mathématiques"
+  schoolId String
+  school   School @relation(fields: [schoolId], references: [id])
+
   lessons        Lesson[]
   results        Result[]
   teachers       TeacherSubject[]
@@ -168,7 +530,77 @@ model Subject {
 
   deletedAt DateTime?
   isDeleted Boolean   @default(false)
+
+  @@unique([name, schoolId])
+  @@index([schoolId])
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// SCHOOL YEAR — Année scolaire (scopée par école)
+// ════════════════════════════════════════════════════════════════════════════
+
+model SchoolYear {
+  id       Int     @id @default(autoincrement())
+  name     String // "2025-2026"
+  isActive Boolean @default(true)
+
+  // 🆕
+  schoolId String
+  school   School @relation(fields: [schoolId], references: [id])
+
+  terms       Term[]
+  reportCards ReportCard[]
+
+  createdAt DateTime @default(now())
+
+  @@unique([name, schoolId]) // Une seule année "2025-2026" par école
+  @@index([schoolId])
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// EVENT & ANNOUNCEMENT — Scopés par école (+ classe optionnelle)
+// ════════════════════════════════════════════════════════════════════════════
+
+model Event {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  startTime   DateTime
+  endTime     DateTime
+  classId     Int?
+  class       Class?   @relation(fields: [classId], references: [id])
+
+  // 🆕
+  schoolId String
+  school   School @relation(fields: [schoolId], references: [id])
+
+  @@index([schoolId])
+}
+
+model Announcement {
+  id          Int      @id @default(autoincrement())
+  title       String
+  date        DateTime
+  description String?
+  classId     Int?
+  class       Class?   @relation(fields: [classId], references: [id])
+
+  // 🆕
+  schoolId String
+  school   School @relation(fields: [schoolId], references: [id])
+
+  @@index([schoolId])
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// MODÈLES INCHANGÉS (héritage du tenant via leurs relations)
+// ════════════════════════════════════════════════════════════════════════════
+// Term, Lesson, Exam, Assignment, Result, Session, Attendance,
+// ReportCard, SubjectReport, TeacherSubject, TeacherClass, AuditLog
+// n'ont PAS de schoolId direct : ils héritent du scope via
+// Teacher.schoolId / Class.schoolId / Subject.schoolId etc.
+// Ajouter schoolId dessus serait redondant sauf pour du reporting cross-école
+// côté super_admin (peut être ajouté plus tard si besoin de perf).
 
 model TeacherSubject {
   teacherId String
@@ -254,29 +686,23 @@ model Assignment {
 model Result {
   id Int @id @default(autoincrement())
 
-  // NOTE
   score Float
 
-  // RELATIONS PRINCIPALES
   studentId String
   subjectId Int
   teacherId String
   termId    Int
 
-  // CONTEXTE (optionnel)
   examId       Int?
   assignmentId Int?
 
-  // META
   appreciation String?
   rank         Int?
 
-  // RELATIONS
-  term    Term    @relation(fields: [termId], references: [id])
-  student Student @relation(fields: [studentId], references: [id])
-  subject Subject @relation(fields: [subjectId], references: [id])
-  teacher Teacher @relation(fields: [teacherId], references: [id])
-
+  term       Term        @relation(fields: [termId], references: [id])
+  student    Student     @relation(fields: [studentId], references: [id])
+  subject    Subject     @relation(fields: [subjectId], references: [id])
+  teacher    Teacher     @relation(fields: [teacherId], references: [id])
   exam       Exam?       @relation(fields: [examId], references: [id])
   assignment Assignment? @relation(fields: [assignmentId], references: [id])
 
@@ -336,75 +762,10 @@ model Attendance {
   @@unique([studentId, sessionId])
 }
 
-model Event {
-  id          Int      @id @default(autoincrement())
-  title       String
-  description String
-  startTime   DateTime
-  endTime     DateTime
-  classId     Int?
-  class       Class?   @relation(fields: [classId], references: [id])
-}
-
-model Announcement {
-  id          Int      @id @default(autoincrement())
-  title       String
-  date        DateTime
-  description String?
-  classId     Int?
-  class       Class?   @relation(fields: [classId], references: [id])
-}
-
-model AuditLog {
-  id String @id @default(cuid())
-
-  // 🔥 Action principale
-  action AuditAction
-
-  // 🔍 Cible de l'action
-  entityType String
-  entityId   String?
-
-  // 👤 Qui a fait l'action
-  performedById String?
-  performedBy   UserProfile? @relation(fields: [performedById], references: [id])
-
-  role Role?
-
-  // 🌐 Contexte technique
-  ipAddress String?
-  userAgent String?
-  requestId String?
-
-  // 🧠 Description lisible
-  description String?
-
-  // 📊 Données structurées
-  metadata Json?
-
-  // 🔄 Diff avant / après
-  before Json?
-  after  Json?
-
-  // 🗑 Soft delete tracking
-  isSoftDelete Boolean @default(false)
-
-  // ⏱ Timestamp
-  createdAt DateTime @default(now())
-
-  // ⚡ Index pour performance
-  @@index([createdAt])
-  @@index([action])
-  @@index([entityType])
-  @@index([entityId])
-  @@index([performedById])
-  @@index([role])
-}
-
 model Term {
   id        Int      @id @default(autoincrement())
-  name      String // "Trimestre 1"
-  order     Int // 1, 2, 3
+  name      String
+  order     Int
   startDate DateTime
   endDate   DateTime
   isClosed  Boolean  @default(false)
@@ -419,18 +780,6 @@ model Term {
   updatedAt DateTime @updatedAt
 }
 
-model SchoolYear {
-  id       Int     @id @default(autoincrement())
-  name     String // "2025-2026"
-  isActive Boolean @default(true)
-
-  terms       Term[]
-  reportCards ReportCard[]
-
-  createdAt DateTime @default(now())
-}
-
-// Bulletin par élève, par trimestre
 model ReportCard {
   id           Int    @id @default(autoincrement())
   studentId    String
@@ -438,22 +787,20 @@ model ReportCard {
   termId       Int
   schoolYearId Int
 
-  generalAverage Float // Moyenne générale pondérée (calculée et figée)
-  rank           Int // Rang dans la classe
-  totalStudents  Int // Effectif au moment du calcul
-  appreciation   String? // Appréciation globale (conseil de classe)
-  decision       String? // Passage, redoublement, félicitations...
-
+  generalAverage    Float
+  rank              Int
+  totalStudents     Int
+  appreciation      String?
+  decision          String?
   status            ReportCardStatus @default(DRAFT)
   generatedAt       DateTime?
   closedAt          DateTime?
   publishedAt       DateTime?
   totalCoefficients Float?
   totalPoints       Float?
-
-  classHighest Float?
-  classLowest  Float?
-  classAverage Float?
+  classHighest      Float?
+  classLowest       Float?
+  classAverage      Float?
 
   student    Student    @relation(fields: [studentId], references: [id])
   class      Class      @relation(fields: [classId], references: [id])
@@ -465,32 +812,26 @@ model ReportCard {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([studentId, termId]) // 1 bulletin par élève par trimestre
+  @@unique([studentId, termId])
 }
 
-// Ligne du bulletin : 1 ligne par matière
 model SubjectReport {
   id           Int    @id @default(autoincrement())
   reportCardId Int
   subjectId    Int
   teacherId    String
 
-  coefficient Float // Snapshot du coefficient au moment du calcul
-
-  // Notes détaillées (figées)
-  examScore       Float? // Moyenne des examens
-  assignmentScore Float? // Moyenne des devoirs
-  finalAverage    Float // Moyenne pondérée finale de la matière
+  coefficient     Float
+  examScore       Float?
+  assignmentScore Float?
+  finalAverage    Float
   continuousScore Float?
   product         Float?
-
-  // Stats de la classe (figées au moment de la génération)
-  classMin     Float?
-  classMax     Float?
-  classAverage Float?
-
-  appreciation String? // Appréciation du prof pour cette matière
-  rank         Int? // Rang dans la matière (optionnel)
+  classMin        Float?
+  classMax        Float?
+  classAverage    Float?
+  appreciation    String?
+  rank            Int?
 
   reportCard ReportCard @relation(fields: [reportCardId], references: [id], onDelete: Cascade)
   subject    Subject    @relation(fields: [subjectId], references: [id])
@@ -502,72 +843,120 @@ model SubjectReport {
   @@unique([reportCardId, subjectId])
 }
 
+model AuditLog {
+  id String @id @default(cuid())
+
+  action AuditAction
+
+  entityType String
+  entityId   String?
+
+  performedById String?
+  performedBy   UserProfile? @relation(fields: [performedById], references: [id])
+
+  role Role?
+
+  ipAddress String?
+  userAgent String?
+  requestId String?
+
+  description String?
+  metadata    Json?
+  before      Json?
+  after       Json?
+
+  isSoftDelete Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([action])
+  @@index([entityType])
+  @@index([entityId])
+  @@index([performedById])
+  @@index([role])
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// ENUMS
+// ════════════════════════════════════════════════════════════════════════════
+
 enum ReportCardStatus {
-  DRAFT // En cours de génération
-  GENERATED // Calculé, pas encore validé
-  VALIDATED // Validé par l'admin / conseil de classe
-  PUBLISHED // Visible par les parents et élèves
+  DRAFT
+  GENERATED
+  VALIDATED
+  PUBLISHED
 }
 
 enum AuditAction {
-  // USER
   CREATE_USER
   UPDATE_USER
   DELETE_USER
   BAN_USER
   UNBAN_USER
 
-  // STUDENT
   CREATE_STUDENT
   UPDATE_STUDENT
   DELETE_STUDENT
 
-  // TEACHER
   CREATE_TEACHER
   UPDATE_TEACHER
   DELETE_TEACHER
 
-  // PARENT
+  APPROVE_SCHOOL_REQUEST
+  CREATE_ADMIN
+  CREATE_SUBSCRIPTION
+
   CREATE_PARENT
   UPDATE_PARENT
   DELETE_PARENT
 
-  // SUBJECT
   CREATE_SUBJECT
   UPDATE_SUBJECT
   DELETE_SUBJECT
 
-  // LESSON
+  CREATE_CLASS
+  UPDATE_CLASS
+  DELETE_CLASS
+
   CREATE_LESSON
   UPDATE_LESSON
   DELETE_LESSON
 
-  // ASSIGNMENT
   CREATE_ASSIGNMENT
   UPDATE_ASSIGNMENT
   DELETE_ASSIGNMENT
 
-  // EXAM
   CREATE_EXAM
   UPDATE_EXAM
   DELETE_EXAM
 
-  // RESULT
   CREATE_RESULT
   UPDATE_RESULT
   DELETE_RESULT
 
-  // SESSION
   CREATE_SESSION
   UPDATE_SESSION
   DELETE_SESSION
 
-  // ATTENDANCE
   CREATE_ATTENDANCE
   UPDATE_ATTENDANCE
   DELETE_ATTENDANCE
 
-  // SOFT DELETE
+  // 🆕 Actions multi-école
+  CREATE_SCHOOL
+  UPDATE_SCHOOL
+  CREATE_SCHOOL_REQUEST
+  UPDATE_SCHOOL_REQUEST
+  DELETE_SCHOOL_REQUEST
+  DELETE_SCHOOL
+  SUSPEND_SCHOOL
+  ACTIVATE_SCHOOL
+  VALIDATE_SCHOOL_REQUEST
+  REJECT_SCHOOL_REQUEST
+  ACCEPT_APPLICATION
+  REJECT_APPLICATION
+
   SOFT_DELETE
   RESTORE
 }

@@ -63,6 +63,11 @@ const UsersListPage = async ({
       accessor: "createdAt",
       className: "hidden md:table-cell",
     },
+    {
+      header: "Ecole",
+      accessor: "school",
+      className: "hidden md:table-cell",
+    },
     { header: "Statut", accessor: "isActive" },
     ...(role === "super_admin"
       ? [{ header: "Actions", accessor: "actions" }]
@@ -92,6 +97,9 @@ const UsersListPage = async ({
       </td>
       <td className="hidden md:table-cell">
         {new Date(item.createdAt).toLocaleDateString()}
+      </td>
+      <td className="hidden md:table-cell">
+        {item.schoolId}
       </td>
       <td>
         <span

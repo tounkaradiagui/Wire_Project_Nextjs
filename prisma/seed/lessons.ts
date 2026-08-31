@@ -25,4 +25,6 @@ export async function seedLessons(prisma: PrismaClient) {
             });
         }
     }
+
+    console.log("✅ Leçons seedées.");
 }

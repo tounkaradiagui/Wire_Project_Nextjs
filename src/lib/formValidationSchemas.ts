@@ -465,3 +465,113 @@ export const attendanceSchema = z
 
 export type AttendanceSchemaInput = z.infer<typeof attendanceSchema>;
 // End Attendance schma
+
+/**
+ * À fusionner avec votre fichier lib/formValidationsSchema.ts existant.
+ * Ces schémas couvrent les nouveaux formulaires de la page d'accueil publique :
+ * - candidature enseignant
+ * - demande de création d'espace école
+ * - demande de démo
+ */
+
+const MAX_FILE_SIZE_MB = 5;
+const MAX_FILE_SIZE = MAX_FILE_SIZE_MB * 1024 * 1024;
+const ACCEPTED_CV_TYPES = [
+  "application/pdf",
+  "image/png",
+  "image/jpeg",
+  "image/jpg",
+  "image/webp",
+];
+
+const phoneRegex = /^[+]?[0-9\s().-]{8,20}$/;
+
+/** Validation du fichier CV. Utilisé côté client (File) — côté serveur, on revalide la taille/type via FormData. */
+export const cvFileSchema = z
+  .instanceof(File, { message: "Le CV est requis." })
+  .refine((file) => file.size > 0, "Le CV est requis.")
+  .refine(
+    (file) => file.size <= MAX_FILE_SIZE,
+    `Le fichier ne doit pas dépasser ${MAX_FILE_SIZE_MB} Mo.`
+  )
+  .refine(
+    (file) => ACCEPTED_CV_TYPES.includes(file.type),
+    "Formats acceptés : PDF, JPG, PNG ou WEBP."
+  );
+
+export const teacherApplicationSchema = z.object({
+  schoolId: z.string().min(1, "École invalide."),
+  fullName: z
+    .string()
+    .trim()
+    .min(3, "Le nom complet doit contenir au moins 3 caractères.")
+    .max(120, "Le nom complet est trop long."),
+  phone: z
+    .string()
+    .trim()
+    .regex(phoneRegex, "Numéro de téléphone invalide."),
+  email: z.string().trim().email("Adresse email invalide."),
+  coverLetter: z
+    .string()
+    .trim()
+    .min(50, "La lettre de motivation doit contenir au moins 50 caractères.")
+    .max(3000, "La lettre de motivation est trop longue (3000 caractères max)."),
+  cv: cvFileSchema,
+});
+
+export type TeacherApplicationInput = z.infer<typeof teacherApplicationSchema>;
+
+/** Variante serveur : le CV est déjà uploadé, on ne reçoit que son URL/clé. */
+export const teacherApplicationServerSchema = teacherApplicationSchema
+  .omit({ cv: true })
+  .extend({
+    cvUrl: z.string().min(1, "Le CV est requis."),
+    cvFileName: z.string().min(1),
+  });
+
+export type TeacherApplicationServerInput = z.infer<
+  typeof teacherApplicationServerSchema
+>;
+
+export const schoolRegistrationRequestSchema = z.object({
+  schoolName: z.string().trim().min(2, "Le nom de l'école est requis."),
+  city: z.string().trim().min(2, "La ville est requise."),
+  country: z.string().trim().min(2, "Le pays est requis."),
+  contactName: z.string().trim().min(3, "Le nom du contact est requis."),
+  email: z.string().trim().email("Adresse email invalide."),
+  phone: z
+    .string()
+    .trim()
+    .regex(phoneRegex, "Numéro de téléphone invalide.")
+    .optional()
+    .or(z.literal("")),
+  studentsCount: z
+    .coerce.number({ invalid_type_error: "Veuillez indiquer un nombre." })
+    .int()
+    .positive("Le nombre d'élèves doit être positif.")
+    .optional(),
+  message: z.string().trim().max(1000).optional().or(z.literal("")),
+});
+
+export type SchoolRegistrationRequestInput = z.infer<
+  typeof schoolRegistrationRequestSchema
+>;
+
+export const demoRequestSchema = z.object({
+  fullName: z.string().trim().min(3, "Le nom complet est requis."),
+  email: z.string().trim().email("Adresse email invalide."),
+  phone: z
+    .string()
+    .trim()
+    .regex(phoneRegex, "Numéro de téléphone invalide.")
+    .optional()
+    .or(z.literal("")),
+  schoolName: z.string().trim().min(2, "Le nom de l'école est requis."),
+  preferredDate: z.string().optional(),
+});
+
+export type DemoRequestInput = z.infer<typeof demoRequestSchema>;
+
+export const schoolSearchSchema = z.object({
+  query: z.string().trim().max(120).optional().default(""),
+});

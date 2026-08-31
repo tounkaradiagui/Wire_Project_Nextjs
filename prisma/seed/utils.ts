@@ -1,18 +1,18 @@
 export const MALE_NAMES = [
     "Moussa", "Ibrahim", "Oumar", "Amadou", "Mamadou",
     "Boubacar", "Seydou", "Youssouf", "Abdoulaye", "Modibo", "Diagui",
-    "Sambou", "Boubou"
+    "Sambou", "Boubou",
 ];
 
 export const FEMALE_NAMES = [
     "Aïcha", "Fatoumata", "Aminata", "Mariam", "Kadidia",
-    "Hawa", "Ramata", "Fanta", "Nafissatou", "Sira"
+    "Hawa", "Ramata", "Fanta", "Nafissatou", "Sira",
 ];
 
 export const LAST_NAMES = [
     "Traoré", "Diallo", "Coulibaly", "Keïta", "Konaté",
     "Camara", "Diarra", "Sanogo", "Sidibé", "Touré",
-    "Tounkara", "Djenepo", "Sacko", "Diallo"
+    "Tounkara", "Djenepo", "Sacko",
 ];
 
 export function randomElement<T>(arr: T[]): T {

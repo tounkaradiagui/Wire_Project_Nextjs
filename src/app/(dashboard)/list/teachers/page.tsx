@@ -39,8 +39,24 @@ const TeacherListPage = async ({
 
   const p = page ? parseInt(page) : 1;
 
-  const { sessionClaims } = await auth();
+  const {userId, sessionClaims } = await auth();
+
   const role = (sessionClaims?.metadata as { role?: string })?.role;
+
+  const currentUser = await prisma.userProfile.findUnique({
+    where: {
+      clerkId: userId!,
+    },
+    select: {
+      schoolId: true,
+    },
+  });
+
+  if (!currentUser?.schoolId && role !== "super_admin") {
+    throw new Error("School introuvable");
+  }
+
+  const schoolId = currentUser?.schoolId;
 
   const columns = [
     {
@@ -136,7 +152,7 @@ const TeacherListPage = async ({
               <Eye size={16} />
             </button>
           </Link>
-          {(role === "admin" || role === "super_admin") && (
+          {(role === "admin") && (
             <>
               <FormContainer table="teacher" type="update" data={item} />
               <FormContainer table="teacher" type="delete" id={item.id} />
@@ -154,6 +170,10 @@ const TeacherListPage = async ({
   const query: Prisma.TeacherWhereInput = {
     isDeleted: false,
   };
+
+  if (role !== "super_admin") {
+    query.schoolId = schoolId!;
+  }
 
   if (queryParams) {
     for (const [key, value] of Object.entries(queryParams)) {
@@ -242,10 +262,21 @@ const TeacherListPage = async ({
     prisma.teacher.count({ where: query }),
 
     prisma.class.findMany({
-      select: { id: true, name: true },
-    }),
+        where:
+            role === "super_admin"
+                ? {}
+                : { schoolId: schoolId! },
+        select: {
+            id: true,
+            name: true,
+        },
+    }),    
 
     prisma.subject.findMany({
+        where:
+            role === "super_admin"
+                ? {}
+                : { schoolId: schoolId! },
       select: { id: true, name: true },
     }),
   ]);

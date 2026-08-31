@@ -11,6 +11,7 @@ import {
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { deleteSession, deleteEvent, deleteAnnouncement, deleteAttendance, deleteResult, deleteAssignment, deleteLesson, deleteTeacher, deleteClass, deleteSubject, deleteStudent, deleteExam, deleteParent } from "@/lib/actions";
+import { deleteSchoolRequest, deleteSchool } from "@/lib/actions/schools";
 import { FormContainerProps } from "./FormContainer";
 import {
   Plus,
@@ -34,6 +35,8 @@ const deleteActionMap = {
   announcement: deleteAnnouncement,
   event: deleteEvent,
   session: deleteSession,
+  school: deleteSchool,
+  schoolRequest: deleteSchoolRequest,
 };
 
 // Import dynamique des formulaires pour éviter de charger tous les composants de formulaire à la fois, ce qui améliore les performances et réduit le temps de chargement initial de la page
@@ -90,6 +93,14 @@ const UserForm = dynamic(() => import("./forms/UserForm"), {
 });
 
 const SessionForm = dynamic(() => import("./forms/SessionForm"), {
+  loading: () => <h1>Chargement...</h1>,
+});
+
+const SchoolForm = dynamic(() => import("./forms/SchoolForm"), {
+  loading: () => <h1>Chargement...</h1>,
+});
+
+const SchoolProvisionForm = dynamic(() => import("./forms/SchoolProvisionForm"), {
   loading: () => <h1>Chargement...</h1>,
 });
 
@@ -220,6 +231,24 @@ const forms: {
 
   session: (setOpen, type, data, relatedData) => (
     <SessionForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
+
+  school: (setOpen, type, data, relatedData) => (
+    <SchoolForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
+
+  schoolProvision: (setOpen, type, data, relatedData) => (
+    <SchoolProvisionForm
       type={type}
       data={data}
       setOpen={setOpen}

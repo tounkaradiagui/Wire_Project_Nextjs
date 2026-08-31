@@ -19,7 +19,11 @@ export type FormContainerProps = {
   | "event"
   | "user"
   | "session"
-  | "announcement";
+  | "announcement"
+  | "school"
+  | "schoolRequest"
+  | "teacherApplication"
+  | "schoolProvision";
   type: "create" | "update" | "delete";
   data?: Record<string, unknown>;
   id?: number | string;
@@ -29,75 +33,120 @@ export type FormContainerProps = {
 const FormContainer = async ({ table, type, data, id, role }: FormContainerProps) => {
   let relatedData = {};
 
+  const { userId } = await auth();
+
+  if (!userId) {
+    throw new Error("Utilisateur non authentifié.");
+  }
+
+  const actor = await prisma.userProfile.findUnique({
+    where: {
+      clerkId: userId,
+    },
+    select: {
+      id: true,
+      role: true,
+      schoolId: true,
+    },
+  });
+
+  if (!actor?.schoolId) {
+    throw new Error("Aucune école associée à cet utilisateur.");
+  }
+
 
   // Récupérer les données liées nécessaires pour le formulaire en fonction de la table ciblée et du type d'opération (create, update, delete), 
   // en tenant compte des rôles et permissions de l'utilisateur connecté pour filtrer les données si nécessaire
   if (type !== "delete") {
     switch (table) {
-      // Données nécessaires pour les formulaires liés aux matières (ex : pour associer un enseignant à une matière)
+      // Données nécessaires pour les formulaires liés aux matières
+      // (ex : associer un enseignant à une matière)
       case "subject": {
-        const subjectTeachers =
-          await prisma.teacher.findMany({
-            select: {
-              id: true,
-              name: true,
-              surname: true,
-            },
+          const subjectTeachers = await prisma.teacher.findMany({
+              where: {
+                  schoolId: actor.schoolId,
+                  isDeleted: false,
+              },
+              select: {
+                  id: true,
+                  name: true,
+                  surname: true,
+              },
+              orderBy: [
+                  { name: "asc" },
+                  { surname: "asc" },
+              ],
           });
-        relatedData = {
-          teachers: subjectTeachers
-        };
-        break;
+
+          relatedData = {
+              teachers: subjectTeachers,
+          };
+
+          break;
       }
 
-      // Données nécessaires pour les formulaires liés aux classes (ex : pour associer un enseignant et une matière à une classe)
+
+      // Données nécessaires pour les formulaires liés aux classes
+      // (ex : associer un niveau à une classe)
       case "class": {
-        const classGrades = await prisma.grade.findMany({
-          select: {
-            id: true,
-            level: true,
-            name: true,
-            cycle: true,
-          },
-          orderBy: {
-            level: "asc",
-          },
-        });
+          const classGrades = await prisma.grade.findMany({
+              where: {
+                  schoolId: actor.schoolId,
+                  isDeleted: false,
+              },
+              select: {
+                  id: true,
+                  level: true,
+                  name: true,
+                  cycle: true,
+              },
+              orderBy: {
+                  level: "asc",
+              },
+          });
 
-        const classTeachers = await prisma.teacher.findMany({
-          select: {
-            id: true,
-            name: true,
-            surname: true,
-          },
-        });
+          const classTeachers = await prisma.teacher.findMany({
+              where: {
+                  schoolId: actor.schoolId,
+                  isDeleted: false,
+              },
+              select: {
+                  id: true,
+                  name: true,
+                  surname: true,
+              },
+              orderBy: [
+                  { name: "asc" },
+                  { surname: "asc" },
+              ],
+          });
 
-        relatedData = {
-          teachers: classTeachers,
-          grades: classGrades,
-        };
+          relatedData = {
+              teachers: classTeachers,
+              grades: classGrades,
+          };
 
-        break;
+          break;
       }
 
       // Données nécessaires pour les formulaires liés aux enseignants (ex : pour associer une matière et une classe à un enseignant)
       case "teacher": {
-        const { userId, sessionClaims } = await auth();
-        const role = (sessionClaims?.metadata as { role?: string })?.role;
+        const schoolId = actor?.schoolId;
 
         let subjects;
         let classes;
 
         if (role === "teacher") {
-          // 👨‍🏫 Teacher → seulement ses matières
+
           subjects = await prisma.subject.findMany({
             where: {
+              schoolId,
+              isDeleted: false,
               teachers: {
                 some: {
                   teacherId: userId!,
                 },
               },
-              isDeleted: false,
             },
             select: {
               id: true,
@@ -107,6 +156,7 @@ const FormContainer = async ({ table, type, data, id, role }: FormContainerProps
 
           classes = await prisma.class.findMany({
             where: {
+              schoolId,
               lessons: {
                 some: {
                   teacherId: userId!,
@@ -122,10 +172,39 @@ const FormContainer = async ({ table, type, data, id, role }: FormContainerProps
             },
           });
 
-        } else {
-          // 👑 ADMIN / SUPER_ADMIN → tout voir
+        } else if (role === "admin") {
+
           subjects = await prisma.subject.findMany({
-            where: { isDeleted: false },
+            where: {
+              schoolId,
+              isDeleted: false,
+            },
+            select: {
+              id: true,
+              name: true,
+            },
+          });
+
+          classes = await prisma.class.findMany({
+            where: {
+              schoolId,
+            },
+            select: {
+              id: true,
+              name: true,
+            },
+            orderBy: {
+              name: "asc",
+            },
+          });
+
+        } else {
+
+          // super_admin
+          subjects = await prisma.subject.findMany({
+            where: {
+              isDeleted: false,
+            },
             select: {
               id: true,
               name: true,
@@ -141,11 +220,13 @@ const FormContainer = async ({ table, type, data, id, role }: FormContainerProps
               name: "asc",
             },
           });
+
         }
 
         relatedData = {
           subjects,
           classes,
+          schoolId,
         };
 
         break;
@@ -153,22 +234,50 @@ const FormContainer = async ({ table, type, data, id, role }: FormContainerProps
 
       // Données nécessaires pour les formulaires liés aux élèves et aux parents (ex : pour associer une classe à un élève ou un parent)
       case "student": {
-        const studentGrades = await prisma.grade.findMany({
-          select: {
-            id: true,
-            level: true,
-            name: true,
-            cycle: true,
-          },
-          orderBy: {
-            level: "asc",
-          },
-        });
+        const [studentGrades, studentClasses] = await Promise.all([
+          prisma.grade.findMany({
+            where: {
+              schoolId: actor.schoolId,
+              isDeleted: false,
+            },
+            select: {
+              id: true,
+              level: true,
+              name: true,
+              cycle: true,
+            },
+            orderBy: {
+              level: "asc",
+            },
+          }),
 
-        const studentClasses = await prisma.class.findMany({
-          include: { _count: { select: { students: true } } }
-        });
-        relatedData = { classes: studentClasses, grades: studentGrades };
+          prisma.class.findMany({
+            where: {
+              schoolId: actor.schoolId,
+              isDeleted: false,
+            },
+            include: {
+              _count: {
+                select: {
+                  students: {
+                    where: {
+                      isDeleted: false,
+                    },
+                  },
+                },
+              },
+            },
+            orderBy: {
+              name: "asc",
+            },
+          }),
+        ]);
+
+        relatedData = {
+          classes: studentClasses,
+          grades: studentGrades,
+        };
+
         break;
       }
 
@@ -604,6 +713,44 @@ const FormContainer = async ({ table, type, data, id, role }: FormContainerProps
           sessions,
           statuses,
           actors,
+        };
+
+        break;
+      }
+
+
+      case "school": {
+        const plans = [
+          { value: "FREE", label: "Gratuit" },
+          { value: "STANDARD", label: "Standard" },
+          { value: "PREMIUM", label: "Premium" },
+          { value: "ENTERPRISE", label: "Entreprise" },
+        ];
+
+        const statuses = [
+          { value: "ACTIVE", label: "Active" },
+          { value: "PENDING", label: "En attente" },
+          { value: "SUSPENDED", label: "Suspendue" },
+          { value: "INACTIVE", label: "Inactive" },
+        ];
+
+        const languages = [
+          { value: "fr", label: "Français" },
+          { value: "en", label: "Anglais" },
+        ];
+
+        const timezones = [
+          { value: "Africa/Bamako", label: "Africa/Bamako" },
+          { value: "Africa/Abidjan", label: "Africa/Abidjan" },
+          { value: "Africa/Dakar", label: "Africa/Dakar" },
+          { value: "Africa/Conakry", label: "Africa/Conakry" },
+        ];
+
+        relatedData = {
+          plans,
+          statuses,
+          languages,
+          timezones,
         };
 
         break;

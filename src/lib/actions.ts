@@ -19,9 +19,9 @@ function timeToDate(time: string) {
     return date;
 }
 
-// Generate a base username
-function generateBaseUsername(firstName: string, lastName: string) {
-    return `${firstName}_${lastName}`
+// Generate a base username à partir du prénom uniquement
+function generateBaseUsername(firstName: string) {
+    return firstName
         .toLowerCase()
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "")
@@ -29,20 +29,38 @@ function generateBaseUsername(firstName: string, lastName: string) {
         .slice(0, 30);
 }
 
+// Génère un suffixe numérique aléatoire de 1 ou 2 chiffres (1-99)
+function generateRandomSuffix(): string {
+    const num = Math.floor(Math.random() * 99) + 1; // 1 à 99
+    return num.toString();
+}
+
 // Generate a unique username
 async function generateUniqueUsername(
     clerk: any,
     firstName: string,
-    lastName: string
+    lastName: string // conservé en param si utilisé ailleurs, mais plus utilisé ici
 ) {
-    const base = generateBaseUsername(firstName, lastName);
+    const base = generateBaseUsername(firstName);
 
-    let counter = 0;
+    let attempt = 0;
+    const triedSuffixes = new Set<string>();
 
-    while (counter < 20) {
-        const username = counter === 0 ? base : `${base}${counter}`;
+    while (attempt < 20) {
+        // Première tentative : prénom seul, sans suffixe
+        let username = base;
 
-        // 🔥 Vérifier dans Clerk, UserProfile ET Student en parallèle
+        if (attempt > 0) {
+            let suffix: string;
+            do {
+                suffix = generateRandomSuffix();
+            } while (triedSuffixes.has(suffix));
+
+            triedSuffixes.add(suffix);
+            username = `${base}${suffix}`;
+        }
+
+        // Vérifier dans Clerk, UserProfile ET Student en parallèle
         const [existingClerk, existingProfile, existingStudent, existingTeacher, existingParent] =
             await Promise.all([
                 clerk.users.getUserList({ username: [username] }),
@@ -59,10 +77,10 @@ async function generateUniqueUsername(
             !existingTeacher &&
             !existingParent
         ) {
-            return username; // ✅ Libre partout
+            return username;
         }
 
-        counter++;
+        attempt++;
     }
 
     throw new Error("Impossible de générer username unique après 20 tentatives");
@@ -142,7 +160,6 @@ export const createUser = async (
 
     const baseUsername = generateBaseUsername(
         data.firstName,
-        data.lastName
     );
 
     let attempt = 0;
@@ -254,7 +271,7 @@ export const updateUser = async (
             firstName: data.firstName,
             lastName: data.lastName,
             username,
-            //   emailAddress: data.email ? [data.email] : undefined,
+            emailAddress: data.email ? [data.email] : undefined,
             ...(data.password && { password: data.password }),
         });
 
@@ -312,7 +329,7 @@ export const toggleUserStatus = async (id: string): Promise<void> => {
         },
     });
 
-    // 🔥 Revoke ALL active sessions if banned
+    // Revoke ALL active sessions if banned
     if (newBanState) {
         const sessionList = await clerk.sessions.getSessionList({
             userId: user.clerkId,
@@ -349,46 +366,99 @@ export const createSubject = async (
     currentState: currentState,
     data: SubjectSchemaInput
 ) => {
-    const { userId } = await auth()
+    const { userId } = await auth();
+
+    if (!userId) {
+        return {
+            success: false,
+            error: "Utilisateur non authentifié.",
+        };
+    }
 
     try {
-        // 🔍 vérifier la matière existante (même supprimée)
+        // ACTOR
+        const actor = await prisma.userProfile.findUnique({
+            where: {
+                clerkId: userId,
+            },
+            select: {
+                id: true,
+                role: true,
+                schoolId: true,
+            },
+        });
+
+        if (!actor) {
+            return {
+                success: false,
+                error: "Profil utilisateur introuvable.",
+            };
+        }
+
+        if (!actor.schoolId) {
+            return {
+                success: false,
+                error: "Aucune école associée à votre compte.",
+            };
+        }
+
+        const schoolId = actor.schoolId;
+
+        // --------------------------------------------------------
+        // Vérifier la matière dans CETTE école
+        // --------------------------------------------------------
+
         const existing = await prisma.subject.findFirst({
             where: {
                 name: data.name,
+                schoolId,
             },
-        })
+        });
 
-        let subject
+        let subject;
 
+        // RESTORE
         if (existing) {
             if (existing.isDeleted) {
-                // ♻️ RESTORE
                 subject = await prisma.subject.update({
-                    where: { id: existing.id },
+                    where: {
+                        id: existing.id,
+                    },
                     data: {
+                        coefficient: data.coefficient ?? null,
+                        code: data.code ?? null,
+                        name: data.name,
                         isDeleted: false,
                         deletedAt: null,
                     },
-                })
+                });
             } else {
                 return {
                     success: false,
-                    error: "Cette matière existe déjà.",
-                }
+                    error: "Cette matière existe déjà dans votre école.",
+                };
             }
-        } else {
-            // ✅ CREATE
+        }
+
+        // --------------------------------------------------------
+        // CREATE
+        // --------------------------------------------------------
+
+        else {
             subject = await prisma.subject.create({
                 data: {
                     coefficient: data.coefficient ?? null,
-                    code: data.code,
+                    code: data.code ?? null,
                     name: data.name,
+                    schoolId,
                 },
-            })
+            });
         }
 
-        // 🔗 relations teachers
+        // --------------------------------------------------------
+        // TEACHERS
+        // --------------------------------------------------------
+
         if (data.teachers?.length) {
             await prisma.teacherSubject.createMany({
                 data: data.teachers.map((teacherId: string) => ({
@@ -396,15 +466,12 @@ export const createSubject = async (
                     subjectId: subject.id,
                 })),
                 skipDuplicates: true,
-            })
+            });
         }
 
-        // 🔥 LOG
-        const actor = await prisma.userProfile.findUnique({
-            where: { clerkId: userId! },
-        })
-
-        if (!actor) throw new Error("UserProfile introuvable")
+        // --------------------------------------------------------
+        // AUDIT
+        // --------------------------------------------------------
 
         await logAction({
             action: AuditAction.CREATE_SUBJECT,
@@ -417,93 +484,204 @@ export const createSubject = async (
             description: `Matière ${subject.name} créée`,
 
             before: null,
+
             after: {
                 name: subject.name,
+                code: subject.code,
+                coefficient: subject.coefficient,
+                schoolId,
                 teachers: data.teachers ?? [],
             },
 
             metadata: {
                 source: "createSubject",
             },
-        })
+        });
 
-        return { success: true, error: null }
+        return {
+            success: true,
+            error: null,
+        };
 
     } catch (error) {
-        // console.log(error)
+        console.error("createSubject error:", error);
+
         return {
             success: false,
-            error: "Une erreur est survenue lors de la création de la matière",
-        }
+            error: "Une erreur est survenue lors de la création de la matière.",
+        };
     }
-}
+};
 
 // Update Subject Action with secure query construction
 export const updateSubject = async (
     currentState: currentState,
     data: SubjectSchemaInput
 ) => {
-    const { userId } = await auth()
+    const { userId } = await auth();
+
+    if (!userId) {
+        return {
+            success: false,
+            error: "Utilisateur non authentifié.",
+        };
+    }
+
+    if (!data.id) {
+        return {
+            success: false,
+            error: "ID de la matière manquant.",
+        };
+    }
 
     try {
-        if (!data.id) {
-            return { success: false, error: "ID de la matière manquant" }
-        }
+        // ACTOR
+        const actor = await prisma.userProfile.findUnique({
+            where: {
+                clerkId: userId,
+            },
+            select: {
+                id: true,
+                role: true,
+                schoolId: true,
+            },
+        });
 
-        const existing = await prisma.subject.findUnique({
-            where: { id: data.id },
-            include: { teachers: true },
-        })
-
-        if (!existing || existing.isDeleted) {
+        if (!actor) {
             return {
                 success: false,
-                error: "Matière introuvable ou supprimée",
+                error: "Profil utilisateur introuvable.",
+            };
+        }
+
+        if (!actor.schoolId) {
+            return {
+                success: false,
+                error: "Aucune école associée à votre compte.",
+            };
+        }
+
+        const schoolId = actor.schoolId;
+
+        // SUBJECT EXISTANT
+        const existing = await prisma.subject.findFirst({
+            where: {
+                id: data.id,
+                schoolId,
+                isDeleted: false,
+            },
+            include: {
+                teachers: true,
+            },
+        });
+
+        if (!existing) {
+            return {
+                success: false,
+                error: "Matière introuvable.",
+            };
+        }
+
+        // Vérifier le nouveau nom
+        const duplicate = await prisma.subject.findFirst({
+            where: {
+                name: data.name,
+                schoolId,
+                isDeleted: false,
+                NOT: {
+                    id: data.id,
+                },
+            },
+        });
+
+        if (duplicate) {
+            return {
+                success: false,
+                error: "Une matière avec ce nom existe déjà dans cette école.",
+            };
+        }
+
+        // Vérifier les enseignants
+        const teacherIds = Array.isArray(data.teachers)
+            ? [...new Set(data.teachers.filter(Boolean))]
+            : [];
+
+        if (teacherIds.length > 0) {
+            const teachersCount = await prisma.teacher.count({
+                where: {
+                    id: {
+                        in: teacherIds,
+                    },
+                    schoolId,
+                    isDeleted: false,
+                },
+            });
+
+            if (teachersCount !== teacherIds.length) {
+                return {
+                    success: false,
+                    error: "Un ou plusieurs enseignants sont invalides ou appartiennent à une autre école.",
+                };
             }
         }
 
+        // BEFORE
         const before = {
             name: existing.name,
-            teachers: existing.teachers.map(t => t.teacherId),
-        }
+            code: existing.code,
+            coefficient: existing.coefficient,
+            schoolId: existing.schoolId,
+            teachers: existing.teachers.map(
+                (teacher) => teacher.teacherId
+            ),
+        };
 
-        // ✏️ update
-        await prisma.subject.update({
-            where: { id: data.id },
-            data: {
-                coefficient: data.coefficient,
-                code: data.code,
-                name: data.name,
-            },
-        })
+        // TRANSACTION
+        const updatedSubject = await prisma.$transaction(
+            async (tx) => {
+                const subject = await tx.subject.update({
+                    where: {
+                        id: data.id,
+                    },
+                    data: {
+                        name: data.name,
+                        code: data.code ?? null,
+                        coefficient: data.coefficient ?? null,
+                    },
+                });
 
-        // 🔄 reset relations
-        await prisma.teacherSubject.deleteMany({
-            where: { subjectId: data.id },
-        })
+                // Supprimer les anciennes relations
+                await tx.teacherSubject.deleteMany({
+                    where: {
+                        subjectId: data.id,
+                    },
+                });
 
-        if (data.teachers?.length) {
-            await prisma.teacherSubject.createMany({
-                data: data.teachers.map((teacherId: string) => ({
-                    teacherId,
-                    subjectId: data.id!,
-                })),
-                skipDuplicates: true,
-            })
-        }
+                // Ajouter les nouvelles
+                if (teacherIds.length > 0) {
+                    await tx.teacherSubject.createMany({
+                        data: teacherIds.map((teacherId) => ({
+                            teacherId,
+                            subjectId: data.id!,
+                        })),
+                        skipDuplicates: true,
+                    });
+                }
 
-        const actor = await prisma.userProfile.findUnique({
-            where: { clerkId: userId! },
-        })
+                return subject;
+            }
+        );
 
-        if (!actor) throw new Error("UserProfile introuvable")
-
+        // AFTER
         const after = {
-            name: data.name,
-            teachers: data.teachers ?? [],
-        }
+            name: updatedSubject.name,
+            code: updatedSubject.code,
+            coefficient: updatedSubject.coefficient,
+            schoolId,
+            teachers: teacherIds,
+        };
 
-        // 🔥 LOG
+        // AUDIT
         await logAction({
             action: AuditAction.UPDATE_SUBJECT,
             entityType: "Subject",
@@ -512,7 +690,7 @@ export const updateSubject = async (
             performedById: actor.id,
             role: actor.role,
 
-            description: `Matière ${data.name} mise à jour`,
+            description: `Matière ${updatedSubject.name} mise à jour`,
 
             before,
             after,
@@ -520,65 +698,131 @@ export const updateSubject = async (
             metadata: {
                 source: "updateSubject",
             },
-        })
+        });
 
-        return { success: true, error: null }
+        return {
+            success: true,
+            error: null,
+        };
 
     } catch (error) {
-        console.log(error)
+        console.error("updateSubject error:", error);
+
         return {
             success: false,
-            error: "Une erreur est survenue lors de la mise à jour de la matière",
-        }
+            error: "Une erreur est survenue lors de la mise à jour de la matière.",
+        };
     }
-}
+};
 
 // Delete Subject
 export const deleteSubject = async (
     currentState: currentState,
     data: FormData
 ) => {
-    const id = Number(data.get("id"))
+    const id = Number(data.get("id"));
 
-    if (!id) {
-        return { success: false, error: "ID invalide" }
+    if (!id || Number.isNaN(id)) {
+        return {
+            success: false,
+            error: "ID de matière invalide.",
+        };
     }
 
-    const { userId } = await auth()
+    const { userId } = await auth();
+
+    if (!userId) {
+        return {
+            success: false,
+            error: "Utilisateur non authentifié.",
+        };
+    }
 
     try {
-        const subject = await prisma.subject.findUnique({
-            where: { id },
+        // --------------------------------------------------------
+        // ACTOR
+        // --------------------------------------------------------
+
+        const actor = await prisma.userProfile.findUnique({
+            where: {
+                clerkId: userId,
+            },
+            select: {
+                id: true,
+                role: true,
+                schoolId: true,
+            },
+        });
+
+        if (!actor) {
+            return {
+                success: false,
+                error: "Profil utilisateur introuvable.",
+            };
+        }
+
+        if (!actor.schoolId) {
+            return {
+                success: false,
+                error: "Aucune école associée à votre compte.",
+            };
+        }
+
+        const schoolId = actor.schoolId;
+
+        // --------------------------------------------------------
+        // SUBJECT
+        // --------------------------------------------------------
+
+        const subject = await prisma.subject.findFirst({
+            where: {
+                id,
+                schoolId,
+                isDeleted: false,
+            },
             include: {
                 teachers: true,
             },
-        })
+        });
 
         if (!subject) {
-            return { success: false, error: "Matière introuvable" }
+            return {
+                success: false,
+                error: "Matière introuvable.",
+            };
         }
+
+        // --------------------------------------------------------
+        // BEFORE
+        // --------------------------------------------------------
 
         const before = {
-            coefficient: subject.coefficient,
-            code: subject.code,
             name: subject.name,
-            teachers: subject.teachers.map(t => t.teacherId),
-        }
+            code: subject.code,
+            coefficient: subject.coefficient,
+            schoolId: subject.schoolId,
+            teachers: subject.teachers.map(
+                (teacher) => teacher.teacherId
+            ),
+        };
 
-        // ✅ soft delete
+        // --------------------------------------------------------
+        // SOFT DELETE
+        // --------------------------------------------------------
+
         await prisma.subject.update({
-            where: { id },
+            where: {
+                id,
+            },
             data: {
                 isDeleted: true,
                 deletedAt: new Date(),
             },
-        })
+        });
 
-        const actor = await prisma.userProfile.findUnique({
-            where: { clerkId: userId! },
-        })
-
-        if (!actor) throw new Error("UserProfile introuvable")
+        // --------------------------------------------------------
+        // AUDIT
+        // --------------------------------------------------------
 
         await logAction({
             action: AuditAction.DELETE_SUBJECT,
@@ -595,31 +839,90 @@ export const deleteSubject = async (
 
             metadata: {
                 source: "deleteSubject",
+                schoolId,
             },
 
             isSoftDelete: true,
-        })
+        });
 
-        return { success: true, error: null }
+        return {
+            success: true,
+            error: null,
+        };
 
     } catch (error) {
-        console.log(error)
+        console.error("deleteSubject error:", error);
+
         return {
             success: false,
-            error: "Erreur de suppression de la matière",
-        }
+            error: "Erreur lors de la suppression de la matière.",
+        };
     }
-}
+};
 
-// Create Class Action 
+// Create Class Action
 export const createClass = async (
-    currentState: currentState,
+    _currentState: currentState,
     data: ClassSchemaInput
 ) => {
+    const { userId } = await auth();
+
+    if (!userId) {
+        return {
+            success: false,
+            error: "Utilisateur non authentifié.",
+        };
+    }
+
     try {
-        // Vérifier le grade
-        const grade = await prisma.grade.findUnique({
-            where: { id: data.gradeId },
+        // ACTOR
+        const actor = await prisma.userProfile.findUnique({
+            where: {
+                clerkId: userId,
+            },
+            select: {
+                id: true,
+                role: true,
+                schoolId: true,
+            },
+        });
+
+        if (!actor?.schoolId) {
+            return {
+                success: false,
+                error: "Aucune école associée à votre compte.",
+            };
+        }
+
+        // VALIDATION
+        if (!data.name?.trim()) {
+            return {
+                success: false,
+                error: "Le nom de la classe est obligatoire.",
+            };
+        }
+
+        if (!data.gradeId) {
+            return {
+                success: false,
+                error: "Le niveau est obligatoire.",
+            };
+        }
+
+        if (!data.capacity || data.capacity <= 0) {
+            return {
+                success: false,
+                error: "La capacité de la classe doit être supérieure à 0.",
+            };
+        }
+
+        // GRADE + SCHOOL
+        const grade = await prisma.grade.findFirst({
+            where: {
+                id: data.gradeId,
+                schoolId: actor.schoolId,
+                isDeleted: false,
+            },
             select: {
                 id: true,
                 level: true,
@@ -628,72 +931,435 @@ export const createClass = async (
         });
 
         if (!grade) {
-            return { success: false, error: "Niveau introuvable" };
+            return {
+                success: false,
+                error: "Niveau introuvable dans votre école.",
+            };
         }
 
-        // Vérifier duplication (important si pas de contrainte unique forte)
+        // EXISTING CLASS
         const existingClass = await prisma.class.findFirst({
             where: {
-                name: data.name,
+                name: data.name.trim(),
+                gradeId: data.gradeId,
+                schoolId: actor.schoolId,
+            },
+        });
+
+        // Restaurer une classe supprimée
+        if (existingClass?.isDeleted) {
+            const restoredClass = await prisma.class.update({
+                where: {
+                    id: existingClass.id,
+                },
+                data: {
+                    isDeleted: false,
+                    deletedAt: null,
+                    capacity: data.capacity,
+                },
+            });
+
+            await logAction({
+                action: AuditAction.CREATE_CLASS,
+                entityType: "Class",
+                entityId: restoredClass.id.toString(),
+
+                performedById: actor.id,
+                role: actor.role,
+
+                description: `Classe ${restoredClass.name} restaurée`,
+
+                before: {
+                    isDeleted: true,
+                },
+
+                after: {
+                    name: restoredClass.name,
+                    capacity: restoredClass.capacity,
+                    gradeId: restoredClass.gradeId,
+                    schoolId: restoredClass.schoolId,
+                    isDeleted: false,
+                },
+
+                metadata: {
+                    source: "createClass",
+                    restored: true,
+                },
+            });
+
+            return {
+                success: true,
+                error: null,
+            };
+        }
+
+        // Classe active déjà existante
+        if (existingClass) {
+            return {
+                success: false,
+                error: "Une classe avec ce nom existe déjà pour ce niveau.",
+            };
+        }
+
+        // CREATE
+        const newClass = await prisma.class.create({
+            data: {
+                name: data.name.trim(),
+                capacity: data.capacity,
+                gradeId: data.gradeId,
+
+                // IMPORTANT
+                schoolId: actor.schoolId,
+            },
+        });
+
+        // AUDIT
+        await logAction({
+            action: AuditAction.CREATE_CLASS,
+            entityType: "Class",
+            entityId: newClass.id.toString(),
+
+            performedById: actor.id,
+            role: actor.role,
+
+            description: `Classe ${newClass.name} créée`,
+
+            before: null,
+
+            after: {
+                name: newClass.name,
+                capacity: newClass.capacity,
+                gradeId: newClass.gradeId,
+                schoolId: newClass.schoolId,
+            },
+
+            metadata: {
+                source: "createClass",
+            },
+        });
+
+        return {
+            success: true,
+            error: null,
+        };
+    } catch (error) {
+        console.error("createClass error:", error);
+
+        return {
+            success: false,
+            error: "Erreur de création de la classe.",
+        };
+    }
+};
+
+// Update Class Action
+export const updateClass = async (
+    _currentState: currentState,
+    data: ClassSchemaInput
+) => {
+    const { userId } = await auth();
+
+    if (!userId) {
+        return {
+            success: false,
+            error: "Utilisateur non authentifié.",
+        };
+    }
+
+    if (!data.id) {
+        return {
+            success: false,
+            error: "ID de la classe manquant.",
+        };
+    }
+
+    try {
+        // ACTOR
+        const actor = await prisma.userProfile.findUnique({
+            where: {
+                clerkId: userId,
+            },
+            select: {
+                id: true,
+                role: true,
+                schoolId: true,
+            },
+        });
+
+        if (!actor?.schoolId) {
+            return {
+                success: false,
+                error: "Aucune école associée à votre compte.",
+            };
+        }
+
+        // EXISTING CLASS
+        const existingClass = await prisma.class.findFirst({
+            where: {
+                id: data.id,
+                schoolId: actor.schoolId,
+                isDeleted: false,
+            },
+        });
+
+        if (!existingClass) {
+            return {
+                success: false,
+                error: "Classe introuvable.",
+            };
+        }
+
+        // GRADE
+        const grade = await prisma.grade.findFirst({
+            where: {
+                id: data.gradeId,
+                schoolId: actor.schoolId,
+                isDeleted: false,
+            },
+            select: {
+                id: true,
+                level: true,
+                cycle: true,
+            },
+        });
+
+        if (!grade) {
+            return {
+                success: false,
+                error: "Niveau introuvable dans votre école.",
+            };
+        }
+
+        // DUPLICATE
+        const duplicate = await prisma.class.findFirst({
+            where: {
+                name: data.name.trim(),
+                gradeId: data.gradeId,
+                schoolId: actor.schoolId,
+                isDeleted: false,
+
+                NOT: {
+                    id: data.id,
+                },
+            },
+        });
+
+        if (duplicate) {
+            return {
+                success: false,
+                error: "Une classe avec ce nom existe déjà pour ce niveau.",
+            };
+        }
+
+        // BEFORE
+        const before = {
+            name: existingClass.name,
+            capacity: existingClass.capacity,
+            gradeId: existingClass.gradeId,
+        };
+
+        // UPDATE
+        const updatedClass = await prisma.class.update({
+            where: {
+                id: existingClass.id,
+            },
+            data: {
+                name: data.name.trim(),
+                capacity: data.capacity,
                 gradeId: data.gradeId,
             },
         });
 
-        if (existingClass) {
+        // AFTER
+        const after = {
+            name: updatedClass.name,
+            capacity: updatedClass.capacity,
+            gradeId: updatedClass.gradeId,
+        };
+
+        // AUDIT
+        await logAction({
+            action: AuditAction.UPDATE_CLASS,
+            entityType: "Class",
+            entityId: updatedClass.id.toString(),
+
+            performedById: actor.id,
+            role: actor.role,
+
+            description: `Classe ${updatedClass.name} mise à jour`,
+
+            before,
+            after,
+
+            metadata: {
+                source: "updateClass",
+            },
+        });
+
+        return {
+            success: true,
+            error: null,
+        };
+    } catch (error) {
+        console.error("updateClass error:", error);
+
+        return {
+            success: false,
+            error: "Erreur de mise à jour de la classe.",
+        };
+    }
+};
+
+// Delete Class Action
+export const deleteClass = async (
+    _currentState: currentState,
+    data: FormData
+) => {
+    const { userId } = await auth();
+
+    if (!userId) {
+        return {
+            success: false,
+            error: "Utilisateur non authentifié.",
+        };
+    }
+
+    const idValue = data.get("id");
+
+    if (!idValue) {
+        return {
+            success: false,
+            error: "ID de la classe manquant.",
+        };
+    }
+
+    const id = Number(idValue);
+
+    if (!Number.isInteger(id) || id <= 0) {
+        return {
+            success: false,
+            error: "ID de classe invalide.",
+        };
+    }
+
+    try {
+
+        // ACTOR
+
+        const actor = await prisma.userProfile.findUnique({
+            where: {
+                clerkId: userId,
+            },
+            select: {
+                id: true,
+                role: true,
+                schoolId: true,
+            },
+        });
+
+        if (!actor?.schoolId) {
             return {
                 success: false,
-                error: "Une classe avec ce nom existe déjà pour ce niveau",
+                error: "Aucune école associée à votre compte.",
             };
         }
 
 
-        // Créer la classe
-        await prisma.class.create({
-            data: {
-                name: data.name,
-                capacity: data.capacity,
-                gradeId: data.gradeId,
-            },
-        })
+        // CLASS
 
-        return { success: true, error: null }
-    } catch (error) {
-        // console.log("createClass error:", error)
-        return { success: false, error: "Erreur de création de la classe" }
-    }
-}
-
-export const updateClass = async (currentState: currentState, data: ClassSchemaInput) => {
-    try {
-        await prisma.class.update({
+        const existingClass = await prisma.class.findFirst({
             where: {
-                id: data.id
+                id,
+                schoolId: actor.schoolId,
+                isDeleted: false,
+            },
+            include: {
+                _count: {
+                    select: {
+                        students: true,
+                    },
+                },
+            },
+        });
+
+        if (!existingClass) {
+            return {
+                success: false,
+                error: "Classe introuvable.",
+            };
+        }
+
+
+        // PROTECTION
+
+        if (existingClass._count.students > 0) {
+            return {
+                success: false,
+                error:
+                    "Impossible de supprimer cette classe car elle contient encore des élèves.",
+            };
+        }
+
+
+        // BEFORE
+
+        const before = {
+            name: existingClass.name,
+            capacity: existingClass.capacity,
+            gradeId: existingClass.gradeId,
+            schoolId: existingClass.schoolId,
+        };
+
+
+        // SOFT DELETE
+
+        const deletedClass = await prisma.class.update({
+            where: {
+                id: existingClass.id,
+            },
+            data: {
+                isDeleted: true,
+                deletedAt: new Date(),
+            },
+        });
+
+
+        // AUDIT
+
+        await logAction({
+            action: AuditAction.DELETE_CLASS,
+            entityType: "Class",
+            entityId: deletedClass.id.toString(),
+
+            performedById: actor.id,
+            role: actor.role,
+
+            description: `Classe ${deletedClass.name} supprimée`,
+
+            before,
+
+            after: null,
+
+            metadata: {
+                source: "deleteClass",
             },
 
-            data
+            isSoftDelete: true,
         });
-        return { success: true, error: null }
 
+        return {
+            success: true,
+            error: null,
+        };
     } catch (error) {
-        // console.log(error)
-        return { success: false, error: "Erreur de mise à jour de la classe" };
+        console.error("deleteClass error:", error);
+
+        return {
+            success: false,
+            error: "Erreur de suppression de la classe.",
+        };
     }
 };
-
-export const deleteClass = async (currentState: currentState, data: FormData) => {
-    const id = data.get("id") as string;
-    try {
-        await prisma.class.delete({
-            where: {
-                id: parseInt(id)
-            }
-        });
-        return { success: true, error: null }
-
-    } catch (error) {
-        return { success: false, error: "Erreur de suppression de la classe" };
-    }
-}
 
 // Create Teacher Action
 export const createTeacher = async (
@@ -704,114 +1370,149 @@ export const createTeacher = async (
 
     const { userId: actorClerkId } = await auth();
 
+    if (!actorClerkId) {
+        return {
+            success: false,
+            error: "Utilisateur non authentifié.",
+        };
+    }
+
+    const actor = await prisma.userProfile.findUnique({
+        where: {
+            clerkId: actorClerkId,
+        },
+        select: {
+            id: true,
+            role: true,
+            schoolId: true,
+        },
+    });
+
+    if (!actor || !actor.schoolId) {
+        return {
+            success: false,
+            error: "Aucune école associée à votre compte.",
+        };
+    }
+
     const clerk = createClerkClient({
         secretKey: process.env.CLERK_SECRET_KEY!,
     });
 
     try {
-        // 🔤 Username unique
         const username = await generateUniqueUsername(
             clerk,
             data.name,
             data.surname
         );
 
-        // 👤 Clerk user
         const user = await clerk.users.createUser({
             username,
-            password: data.password,
             firstName: data.name,
             lastName: data.surname,
+            password: data.password,
             publicMetadata: {
                 role: "teacher",
+                schoolId: actor.schoolId,
                 status: "active",
             },
         });
 
         createdUserId = user.id;
 
-        // 👤 UserProfile
-        const profile = await prisma.userProfile.create({
-            data: {
-                clerkId: user.id,
-                role: "TEACHER",
-                username,
-                firstName: data.name,
-                lastName: data.surname,
-                isActive: true,
-                isBanned: false,
-            },
-        });
-
-        // Teacher
-        const createdTeacher = await prisma.teacher.create({
-            data: {
-                id: user.id,
-                username,
-                name: data.name,
-                surname: data.surname,
-                email: data.email ?? null,
-                phone: data.phone ?? null,
-                address: data.address,
-                image: data.image ?? null,
-                bloodType: data.bloodType,
-                sex: data.sex,
-                birthday: data.birthday ?? null,
-                userProfileId: profile.id,
-            },
-        });
-
-// Subject
-        const subjectIds = Array.isArray(data.subjects)
-            ? data.subjects
-            : data.subjects
-                ? [data.subjects]
-                : [];
-
-        const validSubjectIds = subjectIds
-            .filter((id): id is string => !!id && !isNaN(Number(id)))
-            .map((id) => Number(id));
-
-        if (validSubjectIds.length > 0) {
-            await prisma.teacherSubject.createMany({
-                data: validSubjectIds.map((id) => ({
-                    teacherId: user.id, // ✅ OK
-                    subjectId: id,
-                })),
-            });
+        if (!actor.schoolId) {
+            return {
+                success: false,
+                error: "Aucune école associée à votre compte.",
+            };
         }
 
-        // =========================
-        // 🔥 CLASSES FIX
-        // =========================
+        const createdTeacher = await prisma.$transaction(
+            async (tx) => {
+                const profile = await tx.userProfile.create({
+                    data: {
+                        clerkId: user.id,
+                        schoolId: actor.schoolId!,
+                        role: "TEACHER",
+                        username,
+                        firstName: data.name,
+                        lastName: data.surname,
+                        isActive: true,
+                        isBanned: false,
+                    },
+                });
 
-        const classIds = Array.isArray(data.classes)
-            ? data.classes
-            : data.classes
-                ? [data.classes]
-                : [];
+                const teacher = await tx.teacher.create({
+                    data: {
+                        id: user.id,
+                        schoolId: actor.schoolId,
 
-        const validClassIds = classIds
-            .filter((id): id is number => !!id && !isNaN(Number(id)))
-            .map((id) => Number(id));
+                        username,
 
-        if (validClassIds.length > 0) {
-            await prisma.teacherClass.createMany({
-                data: validClassIds.map((classId) => ({
-                    teacherId: user.id, // ✅ OK
-                    classId,
-                })),
-            });
-        }
+                        name: data.name,
+                        surname: data.surname,
 
-        // 🔍 Actor
-        const actor = await prisma.userProfile.findUnique({
-            where: { clerkId: actorClerkId! },
-        });
+                        email: data.email ?? null,
+                        phone: data.phone ?? null,
+                        address: data.address,
 
-        if (!actor) throw new Error("UserProfile introuvable");
+                        image: data.image ?? null,
 
-        // Audit
+                        bloodType: data.bloodType,
+                        sex: data.sex,
+                        birthday: data.birthday ?? null,
+
+                        userProfileId: profile.id,
+                    },
+                });
+
+                const subjectIds = Array.isArray(data.subjects)
+                    ? data.subjects
+                    : data.subjects
+                        ? [data.subjects]
+                        : [];
+
+                const validSubjectIds = subjectIds
+                    .filter((id): id is string => !!id && !isNaN(Number(id)))
+                    .map(Number);
+
+                if (validSubjectIds.length > 0) {
+                    await tx.teacherSubject.createMany({
+                        data: validSubjectIds.map(subjectId => ({
+                            teacherId: teacher.id,
+                            subjectId,
+                        })),
+                        skipDuplicates: true,
+                    });
+                }
+
+                const classIds = Array.isArray(data.classes)
+                    ? data.classes
+                    : data.classes
+                        ? [data.classes]
+                        : [];
+
+                const validClassIds = classIds
+                    .filter((id): id is number => !!id && !isNaN(Number(id)))
+                    .map(Number);
+
+                if (validClassIds.length > 0) {
+                    await tx.teacherClass.createMany({
+                        data: validClassIds.map(classId => ({
+                            teacherId: teacher.id,
+                            classId,
+                        })),
+                        skipDuplicates: true,
+                    });
+                }
+
+                return teacher;
+            },
+            {
+                timeout: 30000,
+            }
+        );
+
         await logAction({
             action: AuditAction.CREATE_TEACHER,
             entityType: "Teacher",
@@ -830,18 +1531,22 @@ export const createTeacher = async (
             },
         });
 
-        return { success: true, error: null };
-    } catch (error) {
-        console.error("createTeacher error:", error);
-
-        // rollback Clerk
+        return {
+            success: true,
+            error: null,
+        };
+    } catch (error: any) {
         if (createdUserId) {
-            await clerk.users.deleteUser(createdUserId);
+            await clerk.users.deleteUser(createdUserId).catch(() => { });
         }
 
         return {
             success: false,
-            error: "Une erreur est survenue lors de la création du professeur.",
+            error:
+                error?.errors?.[0]?.longMessage ||
+                error?.errors?.[0]?.message ||
+                error?.message ||
+                "Erreur inconnue.",
         };
     }
 };
@@ -851,10 +1556,21 @@ export const updateTeacher = async (
     _currentState: { success: boolean; error: string | null },
     data: TeacherSchemaInput
 ) => {
-    const { userId } = await auth();
 
     if (!data.id) {
-        return { success: false, error: "ID manquant" };
+        return {
+            success: false,
+            error: "ID manquant.",
+        };
+    }
+
+    const { userId } = await auth();
+
+    if (!userId) {
+        return {
+            success: false,
+            error: "Utilisateur non authentifié.",
+        };
     }
 
     const clerk = createClerkClient({
@@ -862,13 +1578,42 @@ export const updateTeacher = async (
     });
 
     try {
-        // 🔍 BEFORE
-        const existingTeacher = await prisma.teacher.findUnique({
-            where: { id: data.id },
+
+        // Actor
+        const actor = await prisma.userProfile.findUnique({
+            where: {
+                clerkId: userId,
+            },
+            select: {
+                id: true,
+                role: true,
+                schoolId: true,
+            },
+        });
+
+        if (!actor?.schoolId) {
+            return {
+                success: false,
+                error: "Aucune école trouvée.",
+            };
+        }
+
+        // Teacher
+        const existingTeacher = await prisma.teacher.findFirst({
+            where: {
+                id: data.id,
+                isDeleted: false,
+                ...(actor.role !== "SUPER_ADMIN"
+                    ? { schoolId: actor.schoolId }
+                    : {}),
+            },
         });
 
         if (!existingTeacher) {
-            return { success: false, error: "Teacher introuvable" };
+            return {
+                success: false,
+                error: "Professeur introuvable.",
+            };
         }
 
         const before = {
@@ -877,7 +1622,7 @@ export const updateTeacher = async (
             surname: existingTeacher.surname,
         };
 
-        // ✅ username unique
+        // Username
         const available = await isUsernameAvailableForUpdate(
             clerk,
             data.username,
@@ -891,139 +1636,151 @@ export const updateTeacher = async (
             };
         }
 
-        // 🔐 Clerk update
+        // Clerk
         await clerk.users.updateUser(data.id, {
             username: data.username,
-            ...(data.password && { password: data.password }),
             firstName: data.name,
             lastName: data.surname,
-        });
-
-        // 🔁 Update userProfile
-        const teacherProfile = await prisma.teacher.findUnique({
-            where: { id: data.id },
-            select: { userProfileId: true },
-        });
-
-        if (!teacherProfile) throw new Error("Teacher introuvable");
-
-        await prisma.userProfile.update({
-            where: { id: teacherProfile.userProfileId },
-            data: {
-                username: data.username,
-                firstName: data.name,
-                lastName: data.surname,
+            ...(data.password && {
+                password: data.password,
+            }),
+            publicMetadata: {
+                role: "teacher",
+                schoolId: actor.schoolId,
+                status: "active",
             },
         });
 
-        // 🧑‍🏫 Update teacher
-        const updatedTeacher = await prisma.teacher.update({
-            where: { id: data.id },
-            data: {
-                username: data.username,
-                name: data.name,
-                surname: data.surname,
-                email: data.email ?? null,
-                phone: data.phone ?? null,
-                address: data.address,
-                image: data.image ?? null,
-                bloodType: data.bloodType,
-                sex: data.sex,
-                birthday: data.birthday ?? null,
-            },
-        });
+        // Transaction
+        const updatedTeacher = await prisma.$transaction(async (tx) => {
 
-        // =========================
-        // 🔥 SUBJECTS
-        // =========================
-
-        await prisma.teacherSubject.deleteMany({
-            where: { teacherId: data.id },
-        });
-
-        const subjectIds = Array.isArray(data.subjects)
-            ? data.subjects
-            : data.subjects
-                ? [data.subjects]
-                : [];
-
-        const validSubjectIds = subjectIds
-            .filter((id): id is string => !!id && !isNaN(Number(id)))
-            .map((id) => Number(id));
-
-        if (validSubjectIds.length > 0) {
-            await prisma.teacherSubject.createMany({
-                data: validSubjectIds.map((id) => ({
-                    teacherId: data.id!,
-                    subjectId: id,
-                })),
+            await tx.userProfile.update({
+                where: {
+                    id: existingTeacher.userProfileId,
+                },
+                data: {
+                    username: data.username,
+                    firstName: data.name,
+                    lastName: data.surname,
+                    schoolId: actor.schoolId,
+                },
             });
-        }
-
-        // =========================
-        // 🔥 CLASSES
-        // =========================
-
-        await prisma.teacherClass.deleteMany({
-            where: { teacherId: data.id },
-        });
-
-        const classIds = Array.isArray(data.classes)
-            ? data.classes
-            : data.classes
-                ? [data.classes]
-                : [];
-
-        const validClassIds = classIds
-            .filter((id): id is number => !!id && !isNaN(Number(id)))
-            .map((id) => Number(id));
-
-        if (validClassIds.length > 0) {
-            await prisma.teacherClass.createMany({
-                data: validClassIds.map((classId) => ({
-                    teacherId: data.id!,
-                    classId,
-                })),
+            const teacher = await tx.teacher.update({
+                where: {
+                    id: data.id,
+                },
+                data: {
+                    username: data.username,
+                    name: data.name,
+                    surname: data.surname,
+                    email: data.email ?? null,
+                    phone: data.phone ?? null,
+                    address: data.address,
+                    image: data.image ?? null,
+                    bloodType: data.bloodType,
+                    sex: data.sex,
+                    birthday: data.birthday ?? null,
+                },
             });
-        }
 
-        // 🔍 Actor (admin connecté)
-        const actor = await prisma.userProfile.findUnique({
-            where: { clerkId: userId! },
+            // SUBJECTS
+            await tx.teacherSubject.deleteMany({
+                where: {
+                    teacherId: data.id,
+                },
+            });
+
+            const subjectIds = (
+                Array.isArray(data.subjects)
+                    ? data.subjects
+                    : data.subjects
+                        ? [data.subjects]
+                        : []
+            )
+                .filter((id): id is string => !!id && !isNaN(Number(id)))
+                .map(Number);
+
+            if (subjectIds.length) {
+                await tx.teacherSubject.createMany({
+                    data: subjectIds.map((subjectId) => ({
+                        teacherId: data.id!,
+                        subjectId,
+                    })),
+                });
+            }
+
+            // CLASSES
+            await tx.teacherClass.deleteMany({
+                where: {
+                    teacherId: data.id,
+                },
+            });
+
+            const classIds = (
+                Array.isArray(data.classes)
+                    ? data.classes
+                    : data.classes
+                        ? [data.classes]
+                        : []
+            )
+                .filter((id): id is string => !!id && !isNaN(Number(id)))
+                .map(Number);
+
+            if (classIds.length) {
+                await tx.teacherClass.createMany({
+                    data: classIds.map((classId) => ({
+                        teacherId: data.id!,
+                        classId,
+                    })),
+                });
+            }
+
+            return teacher;
+
         });
 
-        if (!actor) throw new Error("UserProfile introuvable");
-
-        const after = {
-            username: updatedTeacher.username,
-            name: updatedTeacher.name,
-            surname: updatedTeacher.surname,
-        };
-
-        // 🧾 Audit
+        // Audit
+        console.log("1");
         await logAction({
             action: AuditAction.UPDATE_TEACHER,
             entityType: "Teacher",
-            entityId: data.id,
+            entityId: updatedTeacher.id,
             performedById: actor.id,
             role: actor.role,
             description: `Professeur ${updatedTeacher.name} mis à jour`,
             before,
-            after,
+            after: {
+                username: updatedTeacher.username,
+                name: updatedTeacher.name,
+                surname: updatedTeacher.surname,
+            },
             metadata: {
                 source: "updateTeacher",
             },
         });
+        console.log("6");
 
-        return { success: true, error: null };
-    } catch (error) {
-        console.error("updateTeacher error:", error);
+        return {
+            success: true,
+            error: null,
+        };
+
+    } catch (error: any) {
+
+        console.error(error);
+
         return {
             success: false,
-            error: "Erreur lors de la mise à jour.",
+            error:
+                error?.errors?.[0]?.longMessage ||
+                error?.errors?.[0]?.message ||
+                error?.message ||
+                "Erreur lors de la mise à jour.",
         };
+
     }
-};
+
+}
 
 // Delete Teacher Action
 export const deleteTeacher = async (
@@ -1039,12 +1796,39 @@ export const deleteTeacher = async (
     }
 
     try {
-        const teacher = await prisma.teacher.findUnique({
-            where: { id },
-        })
+        const actor = await prisma.userProfile.findUnique({
+            where: {
+                clerkId: userId!,
+            },
+            select: {
+                id: true,
+                role: true,
+                schoolId: true,
+            },
+        });
+
+        if (!actor?.schoolId) {
+            return {
+                success: false,
+                error: "Aucune école trouvée.",
+            };
+        }
+
+        const teacher = await prisma.teacher.findFirst({
+            where: {
+                id,
+                ...(actor?.role !== "SUPER_ADMIN" && actor?.schoolId
+                    ? { schoolId: actor.schoolId }
+                    : {}),
+                isDeleted: false,
+            },
+        });
 
         if (!teacher) {
-            return { success: false, error: "Teacher introuvable" }
+            return {
+                success: false,
+                error: "Professeur introuvable.",
+            };
         }
 
         const before = {
@@ -1053,7 +1837,7 @@ export const deleteTeacher = async (
             surname: teacher.surname,
         }
 
-        // ✅ soft delete
+        // soft delete
         await prisma.teacher.update({
             where: { id },
             data: {
@@ -1061,12 +1845,6 @@ export const deleteTeacher = async (
                 deletedAt: new Date(),
             },
         })
-
-        const actor = await prisma.userProfile.findUnique({
-            where: { clerkId: userId! },
-        })
-
-        if (!actor) throw new Error("UserProfile introuvable")
 
         await logAction({
             action: AuditAction.DELETE_TEACHER,
@@ -1103,10 +1881,37 @@ export const deleteTeacher = async (
 export const createStudent = async (
     _currentState: { success: boolean; error: string | null },
     data: StudentSchemaInput
-) => {
-    const { userId } = await auth()
 
+) => {
     let createdUserId: string | null = null
+
+    const { userId: actorClerkId } = await auth();
+
+    if (!actorClerkId) {
+        return {
+            success: false,
+            error: "Utilisateur non authentifié.",
+        };
+    }
+
+    const actor = await prisma.userProfile.findUnique({
+        where: {
+            clerkId: actorClerkId,
+        },
+        select: {
+            id: true,
+            role: true,
+            schoolId: true,
+        },
+    });
+
+    if (!actor || !actor.schoolId) {
+        return {
+            success: false,
+            error: "Aucune école associée à votre compte.",
+        };
+    }
+
 
     const clerk = createClerkClient({
         secretKey: process.env.CLERK_SECRET_KEY!,
@@ -1119,10 +1924,20 @@ export const createStudent = async (
         if (!classId) throw new Error("Class is required")
         if (!gradeId) throw new Error("Grade is required")
 
-        const classItem = await prisma.class.findUnique({
-            where: { id: classId },
-            include: { _count: { select: { students: true } } },
-        })
+        const classItem = await prisma.class.findFirst({
+            where: {
+                id: classId,
+                schoolId: actor.schoolId,
+                isDeleted: false,
+            },
+            include: {
+                _count: {
+                    select: {
+                        students: true,
+                    },
+                },
+            },
+        });
 
         if (!classItem) {
             return { success: false, error: "Classe introuvable." }
@@ -1130,6 +1945,36 @@ export const createStudent = async (
 
         if (classItem.capacity === classItem._count.students) {
             return { success: false, error: "La classe est pleine." }
+        }
+
+        const parent = await prisma.parent.findFirst({
+            where: {
+                id: parentId,
+                schoolId: actor.schoolId,
+                isDeleted: false,
+            },
+        });
+
+        if (!parent) {
+            return {
+                success: false,
+                error: "Parent introuvable.",
+            };
+        }
+
+        const grade = await prisma.grade.findFirst({
+            where: {
+                id: gradeId,
+                schoolId: actor.schoolId,
+                isDeleted: false,
+            },
+        });
+
+        if (!grade) {
+            return {
+                success: false,
+                error: "Niveau introuvable.",
+            };
         }
 
         // Générer un username unique vérifié dans Clerk ET Prisma
@@ -1146,6 +1991,7 @@ export const createStudent = async (
             lastName: data.surname,
             publicMetadata: {
                 role: "student",
+                schoolId: actor.schoolId,
                 status: "active",
             },
         })
@@ -1157,6 +2003,7 @@ export const createStudent = async (
             data: {
                 clerkId: user.id,
                 role: "STUDENT",
+                schoolId: actor.schoolId,
                 username: username,
                 firstName: data.name,
                 lastName: data.surname,
@@ -1172,12 +2019,14 @@ export const createStudent = async (
         const student = await prisma.student.create({
             data: {
                 id: user.id,
-                username: username,
+                username,
                 name: data.name,
                 surname: data.surname,
+
                 verificationToken: token,
                 cardExpiresAt: expiresAt,
                 cardNumber,
+
                 email: data.email || null,
                 phone: data.phone || null,
                 address: data.address,
@@ -1185,20 +2034,38 @@ export const createStudent = async (
                 bloodType: data.bloodType,
                 sex: data.sex,
                 birthday: data.birthday ?? null,
-                userProfile: {
-                    connect: { id: profile.id },
+
+                school: {
+                    connect: {
+                        id: actor.schoolId,
+                    },
                 },
-                parent: { connect: { id: parentId } },
-                class: { connect: { id: classId } },
-                grade: { connect: { id: gradeId } },
+
+                userProfile: {
+                    connect: {
+                        id: profile.id,
+                    },
+                },
+
+                parent: {
+                    connect: {
+                        id: parentId,
+                    },
+                },
+
+                class: {
+                    connect: {
+                        id: classId,
+                    },
+                },
+
+                grade: {
+                    connect: {
+                        id: gradeId,
+                    },
+                },
             },
-        })
-
-        const actor = await prisma.userProfile.findUnique({
-            where: { clerkId: userId! },
-        })
-
-        if (!actor) throw new Error("UserProfile introuvable")
+        });
 
         await logAction({
             action: AuditAction.CREATE_STUDENT,
@@ -1226,9 +2093,9 @@ export const createStudent = async (
 
         return { success: true, error: null }
     } catch (error) {
-        console.error("createStudent error:", error); // 🔥 toujours logger
+        console.error("createStudent error:", error);
 
-        // 🔥 Cleanup Clerk en premier dans tous les cas
+        // Cleanup Clerk en premier dans tous les cas
         if (createdUserId) {
             try {
                 await clerk.users.deleteUser(createdUserId);
@@ -1244,7 +2111,7 @@ export const createStudent = async (
             };
         }
 
-        // 🔥 Afficher l'erreur Prisma exacte en dev
+        // Afficher l'erreur Prisma exacte en dev
         if (process.env.NODE_ENV === "development") {
             return {
                 success: false,
@@ -1264,177 +2131,309 @@ export const updateStudent = async (
     _currentState: { success: boolean; error: string | null },
     data: StudentSchemaInput
 ) => {
-    const { userId } = await auth()
-
-    if (!userId) {
-        return { success: false, error: "Utilisateur non authentifié" }
+    if (!data.id) {
+        return {
+            success: false,
+            error: "ID de l'élève manquant.",
+        };
     }
 
-    if (!data.id) {
-        return { success: false, error: "Student ID is required" }
+    const { userId } = await auth();
+
+    if (!userId) {
+        return {
+            success: false,
+            error: "Utilisateur non authentifié.",
+        };
     }
 
     const clerk = createClerkClient({
         secretKey: process.env.CLERK_SECRET_KEY!,
-    })
+    });
 
     try {
-        const { parentId, classId, gradeId } = data
+        // ACTOR
+        const actor = await prisma.userProfile.findUnique({
+            where: {
+                clerkId: userId,
+            },
+            select: {
+                id: true,
+                role: true,
+                schoolId: true,
+            },
+        });
 
-        // 🔍 Student existant
-        const existingStudent = await prisma.student.findUnique({
-            where: { id: data.id },
-        })
+        if (!actor?.schoolId) {
+            return {
+                success: false,
+                error: "Aucune école trouvée.",
+            };
+        }
+
+        // Existing student
+        const existingStudent = await prisma.student.findFirst({
+            where: {
+                id: data.id,
+                isDeleted: false,
+
+                // SUPER_ADMIN peut gérer toutes les écoles
+                // Les autres rôles (Admins...) restent limités à leur école
+                ...(actor.role !== "SUPER_ADMIN"
+                    ? {
+                        schoolId: actor.schoolId,
+                    }
+                    : {}),
+            },
+        });
 
         if (!existingStudent) {
-            return { success: false, error: "Élève introuvable." }
+            return {
+                success: false,
+                error: "Élève introuvable ou accès non autorisé.",
+            };
         }
 
-        // ✅ Vérifier parent
-        if (parentId) {
-            const parentExists = await prisma.parent.findUnique({
-                where: { id: parentId },
-            })
+        // PARENT
+        const { parentId, classId, gradeId } = data;
 
-            if (!parentExists) {
-                return {
-                    success: false,
-                    error: "Parent introuvable.",
-                }
+        if (!parentId) {
+            return {
+                success: false,
+                error: "Le parent est obligatoire.",
+            };
+        }
+
+        const parent = await prisma.parent.findFirst({
+            where: {
+                id: parentId,
+                isDeleted: false,
+
+                ...(actor.role !== "SUPER_ADMIN"
+                    ? {
+                        schoolId: actor.schoolId,
+                    }
+                    : {}),
+            },
+            select: {
+                id: true,
+            },
+        });
+
+        if (!parent) {
+            return {
+                success: false,
+                error: "Parent introuvable ou appartenant à une autre école.",
+            };
+        }
+
+        // CLASSE
+        if (!classId) {
+            return {
+                success: false,
+                error: "La classe est obligatoire.",
+            };
+        }
+
+        const classItem = await prisma.class.findFirst({
+            where: {
+                id: classId,
+                isDeleted: false,
+
+                ...(actor.role !== "SUPER_ADMIN"
+                    ? {
+                        schoolId: actor.schoolId,
+                    }
+                    : {}),
+            },
+            include: {
+                _count: {
+                    select: {
+                        students: true,
+                    },
+                },
+            },
+        });
+
+        if (!classItem) {
+            return {
+                success: false,
+                error: "Classe introuvable ou appartenant à une autre école.",
+            };
+        }
+
+        // VÉRIFICATION CAPACITÉ CLASSE
+        // Si l'élève change de classe, on vérifie la capacité.
+        if (
+            existingStudent.classId !== classId &&
+            classItem.capacity !== null &&
+            classItem._count.students >= classItem.capacity
+        ) {
+            return {
+                success: false,
+                error: "La classe sélectionnée est pleine.",
+            };
+        }
+
+        // GRADE
+        if (!gradeId) {
+            return {
+                success: false,
+                error: "Le niveau est obligatoire.",
+            };
+        }
+
+        const grade = await prisma.grade.findFirst({
+            where: {
+                id: gradeId,
+                isDeleted: false,
+
+                ...(actor.role !== "SUPER_ADMIN"
+                    ? {
+                        schoolId: actor.schoolId,
+                    }
+                    : {}),
+            },
+            select: {
+                id: true,
             }
+        });
+
+        if (!grade) {
+            return {
+                success: false,
+                error: "Niveau introuvable ou appartenant à une autre école.",
+            };
         }
 
-        // ✅ Vérifier classe
-        if (classId) {
-            const classExists = await prisma.class.findUnique({
-                where: { id: classId },
-            })
-
-            if (!classExists) {
-                return {
-                    success: false,
-                    error: "Classe introuvable.",
-                }
-            }
-        }
-
-        // ✅ Vérifier grade
-        if (gradeId) {
-            const gradeExists = await prisma.grade.findUnique({
-                where: { id: gradeId },
-            })
-
-            if (!gradeExists) {
-                return {
-                    success: false,
-                    error: "Niveau introuvable.",
-                }
-            }
-        }
-
-        // 🔥 BEFORE (audit)
+        // BEFORE - AUDIT
         const before = {
             username: existingStudent.username,
             name: existingStudent.name,
             surname: existingStudent.surname,
+            email: existingStudent.email,
+            phone: existingStudent.phone,
             classId: existingStudent.classId,
             gradeId: existingStudent.gradeId,
             parentId: existingStudent.parentId,
-        }
+            schoolId: existingStudent.schoolId,
+        };
 
-        // Vérifier si le nouveau username est disponible
+        // USERNAME
         const available = await isUsernameAvailableForUpdate(
             clerk,
             data.username,
             data.id
-        )
+        );
 
         if (!available) {
             return {
                 success: false,
-                error: "Ce nom d'utilisateur est déjà pris. Choisissez-en un autre.",
-            }
+                error:
+                    "Ce nom d'utilisateur est déjà pris. Choisissez-en un autre.",
+            };
         }
-        // 🔐 Clerk update
-        await clerk.users.updateUser(data.id!, {
+
+        // CLERK
+        await clerk.users.updateUser(data.id, {
             username: data.username,
-            ...(data.password && { password: data.password }),
+
+            ...(data.password && {
+                password: data.password,
+            }),
+
             firstName: data.name,
             lastName: data.surname,
-        })
 
-        // 🔐 UserProfile update
-        await prisma.userProfile.update({
-            where: { id: existingStudent.userProfileId },
-            data: {
-                username: data.username,
-                firstName: data.name,
-                lastName: data.surname,
+            publicMetadata: {
+                role: "student",
+                schoolId: actor.schoolId,
+                status: "active",
             },
-        })
+        });
 
-        const { token, expiresAt } = generateCardData();
-        const cardNumber = await generateUniqueCardNumber();
+        // DATABASE TRANSACTION
+        const updatedStudent = await prisma.$transaction(async (tx) => {
+            // USER PROFILE
+            await tx.userProfile.update({
+                where: {
+                    id: existingStudent.userProfileId,
+                },
+                data: {
+                    username: data.username,
+                    firstName: data.name,
+                    lastName: data.surname,
 
-        // 🔥 Student update (SAFE CONNECT)
-        const student = await prisma.student.update({
-            where: { id: data.id },
-            data: {
-                username: data.username,
-                name: data.name,
-                surname: data.surname,
-                verificationToken: token,
-                cardExpiresAt: expiresAt,
-                cardNumber,
-                email: data.email || null,
-                phone: data.phone || null,
-                address: data.address,
-                image: data.image || null,
-                bloodType: data.bloodType,
-                sex: data.sex,
-                birthday: data.birthday ?? null,
+                    // On ne change pas de school pendant un update
+                    schoolId: existingStudent.schoolId,
+                },
+            });
 
-                ...(parentId && {
-                    parent: { connect: { id: parentId } },
-                }),
+            // STUDENT
+            const student = await tx.student.update({
+                where: {
+                    id: data.id,
+                },
+                data: {
+                    username: data.username,
+                    name: data.name,
+                    surname: data.surname,
 
-                ...(classId && {
-                    class: { connect: { id: classId } },
-                }),
+                    email: data.email || null,
+                    phone: data.phone || null,
+                    address: data.address,
+                    image: data.image || null,
+                    bloodType: data.bloodType,
+                    sex: data.sex,
+                    birthday: data.birthday ?? null,
 
-                ...(gradeId && {
-                    grade: { connect: { id: gradeId } },
-                }),
-            },
-        })
+                    // Relations
+                    parent: {
+                        connect: {
+                            id: parent.id,
+                        },
+                    },
 
-        // 🔍 Actor (audit)
-        const actor = await prisma.userProfile.findUnique({
-            where: { clerkId: userId },
-        })
+                    class: {
+                        connect: {
+                            id: classItem.id,
+                        },
+                    },
 
-        if (!actor) throw new Error("UserProfile introuvable")
+                    grade: {
+                        connect: {
+                            id: grade.id,
+                        },
+                    },
+                },
+            });
 
-        // 🔥 AFTER (audit)
+            return student;
+        });
+
+        // AFTER - AUDIT
         const after = {
-            username: student.username,
-            name: student.name,
-            surname: student.surname,
-            classId: student.classId,
-            gradeId: student.gradeId,
-            parentId: student.parentId,
-        }
+            username: updatedStudent.username,
+            name: updatedStudent.name,
+            surname: updatedStudent.surname,
+            email: updatedStudent.email,
+            phone: updatedStudent.phone,
+            classId: updatedStudent.classId,
+            gradeId: updatedStudent.gradeId,
+            parentId: updatedStudent.parentId,
+            schoolId: updatedStudent.schoolId,
+        };
 
-        // 🧾 AUDIT LOG
+        // AUDIT LOG
         await logAction({
             action: AuditAction.UPDATE_STUDENT,
             entityType: "Student",
-            entityId: data.id,
+            entityId: updatedStudent.id,
 
             performedById: actor.id,
             role: actor.role,
 
-            description: `Élève ${student.name} mis à jour`,
+            description: `Élève ${updatedStudent.name} ${updatedStudent.surname} mis à jour`,
 
             before,
             after,
@@ -1442,97 +2441,182 @@ export const updateStudent = async (
             metadata: {
                 source: "updateStudent",
             },
-        })
+        });
 
-        return { success: true, error: null }
-
-    } catch (error) {
-        // console.log("updateStudent error:", error)
+        return {
+            success: true,
+            error: null,
+        };
+    } catch (error: any) {
+        console.error("updateStudent error:", error);
 
         return {
             success: false,
-            error: "Une erreur est survenue lors de la mise à jour de l'élève.",
-        }
+            error:
+                error?.errors?.[0]?.longMessage ||
+                error?.errors?.[0]?.message ||
+                error?.message ||
+                "Une erreur est survenue lors de la mise à jour de l'élève.",
+        };
     }
-}
+};
+
 
 // Delete Student Action
 export const deleteStudent = async (
     _currentState: currentState,
     data: FormData
 ) => {
-    const { userId } = await auth()
+    const { userId } = await auth();
 
-    const id = data.get("id") as string
+    if (!userId) {
+        return {
+            success: false,
+            error: "Utilisateur non authentifié.",
+        };
+    }
+
+    const id = data.get("id") as string;
+
+    if (!id) {
+        return {
+            success: false,
+            error: "ID de l'élève manquant.",
+        };
+    }
 
     try {
-        const student = await prisma.student.findUnique({
-            where: { id },
-        })
+        // ============================================================
+        // ACTOR
+        // ============================================================
+
+        const actor = await prisma.userProfile.findUnique({
+            where: {
+                clerkId: userId,
+            },
+            select: {
+                id: true,
+                role: true,
+                schoolId: true,
+            },
+        });
+
+        if (!actor?.schoolId) {
+            return {
+                success: false,
+                error: "Aucune école trouvée.",
+            };
+        }
+
+        // ============================================================
+        // STUDENT
+        // ============================================================
+
+        const student = await prisma.student.findFirst({
+            where: {
+                id,
+                isDeleted: false,
+
+                ...(actor.role !== "SUPER_ADMIN"
+                    ? {
+                        schoolId: actor.schoolId,
+                    }
+                    : {}),
+            },
+        });
 
         if (!student) {
-            return { success: false, error: "Élève introuvable." }
+            return {
+                success: false,
+                error: "Élève introuvable ou accès non autorisé.",
+            };
         }
+
+        // ============================================================
+        // BEFORE - AUDIT
+        // ============================================================
 
         const before = {
             username: student.username,
+            name: student.name,
+            surname: student.surname,
+            email: student.email,
+            phone: student.phone,
             classId: student.classId,
             gradeId: student.gradeId,
             parentId: student.parentId,
-        }
+            schoolId: student.schoolId,
+        };
 
-        await prisma.$transaction(async (tx) => {
-            await tx.student.update({
-                where: { id },
+        // ============================================================
+        // SOFT DELETE
+        // ============================================================
+
+        await prisma.$transaction([
+            prisma.student.update({
+                where: {
+                    id: student.id,
+                },
                 data: {
                     isDeleted: true,
                     deletedAt: new Date(),
                 },
-            })
+            }),
 
-            await tx.userProfile.update({
-                where: { id: student.userProfileId },
+            prisma.userProfile.update({
+                where: {
+                    id: student.userProfileId,
+                },
                 data: {
                     isActive: false,
                     isBanned: true,
                 },
-            })
-        })
+            }),
+        ]);
 
-        const actor = await prisma.userProfile.findUnique({
-            where: { clerkId: userId! },
-        })
-
-        if (!actor) throw new Error("UserProfile introuvable")
+        // ============================================================
+        // AUDIT
+        // ============================================================
 
         await logAction({
             action: AuditAction.DELETE_STUDENT,
             entityType: "Student",
-            entityId: id,
+            entityId: student.id,
 
             performedById: actor.id,
             role: actor.role,
 
-            description: `Élève supprimé`,
+            description: `Élève ${student.name} ${student.surname} supprimé`,
 
             before,
+
             after: null,
 
             metadata: {
                 source: "deleteStudent",
+                schoolId: student.schoolId,
             },
 
             isSoftDelete: true,
-        })
+        });
 
-        return { success: true, error: null }
-    } catch {
+        return {
+            success: true,
+            error: null,
+        };
+    } catch (error: any) {
+        console.error("deleteStudent error:", error);
+
         return {
             success: false,
-            error: "Erreur lors de la suppression.",
-        }
+            error:
+                error?.errors?.[0]?.longMessage ||
+                error?.errors?.[0]?.message ||
+                error?.message ||
+                "Erreur lors de la suppression de l'élève.",
+        };
     }
-}
+};
 
 // Create Exam Action
 export const createExam = async (currentState: currentState, data: ExamSchemaInput) => {
@@ -1632,76 +2716,112 @@ export const createParent = async (
     _currentState: { success: boolean; error: string | null },
     data: ParentSchemaInput
 ) => {
-    const { userId } = await auth()
 
-    let userIdCreated: string | null = null
+    let createdUserId: string | null = null;
+
+    const { userId: actorClerkId } = await auth();
+
+    if (!actorClerkId) {
+        return {
+            success: false,
+            error: "Utilisateur non authentifié.",
+        };
+    }
+
+    const actor = await prisma.userProfile.findUnique({
+        where: {
+            clerkId: actorClerkId,
+        },
+        select: {
+            id: true,
+            role: true,
+            schoolId: true,
+        },
+    });
+
+    if (!actor?.schoolId) {
+        return {
+            success: false,
+            error: "Aucune école associée à votre compte.",
+        };
+    }
 
     const clerk = createClerkClient({
         secretKey: process.env.CLERK_SECRET_KEY!,
-    })
-
-
-    // Générer un username unique vérifié dans Clerk ET Prisma
-    const username = await generateUniqueUsername(
-        clerk,
-        data.name,
-        data.surname
-    )
+    });
 
     try {
+
+        // Username
+        const username = await generateUniqueUsername(
+            clerk,
+            data.name,
+            data.surname
+        );
+
+        // Clerk
         const user = await clerk.users.createUser({
-            username: username,
-            password: data.password,
+            username,
             firstName: data.name,
             lastName: data.surname,
+            password: data.password,
             publicMetadata: {
                 role: "parent",
+                schoolId: actor.schoolId,
                 status: "active",
             },
-        })
+        });
 
-        userIdCreated = user.id
+        createdUserId = user.id;
 
+        // Transaction
+        const parent = await prisma.$transaction(async (tx) => {
 
-        const profile = await prisma.userProfile.create({
-            data: {
-                clerkId: user.id,
-                role: "PARENT",
-                username: username,
-                firstName: data.name,
-                lastName: data.surname,
-                isActive: true,
-                isBanned: false,
-            },
-        })
+            const profile = await tx.userProfile.create({
+                data: {
+                    clerkId: user.id,
+                    schoolId: actor.schoolId,
 
-        const parent = await prisma.parent.create({
-            data: {
-                id: user.id,
-                username: username,
-                name: data.name,
-                surname: data.surname,
-                email: data.email || null,
-                phone: data.phone,
-                address: data.address,
-                image: data.image || null,
-                sex: data.sex,
-                birthday: data.birthday ?? null,
-                userProfile: {
-                    connect: { id: profile.id },
+                    role: "PARENT",
+
+                    username,
+
+                    firstName: data.name,
+                    lastName: data.surname,
+
+                    isActive: true,
+                    isBanned: false,
                 },
-            },
-        })
+            });
 
+            return tx.parent.create({
+                data: {
+                    id: user.id,
 
-        // 🔥 récupérer userProfile (admin qui crée)
-        const actor = await prisma.userProfile.findUnique({
-            where: { clerkId: userId! },
-        })
+                    schoolId: actor.schoolId!,
 
-        if (!actor) throw new Error("UserProfile introuvable")
+                    userProfileId: profile.id,
 
-        // ✅ AUDIT
+                    username,
+
+                    name: data.name,
+                    surname: data.surname,
+
+                    email: data.email ?? null,
+                    phone: data.phone ?? null,
+
+                    address: data.address,
+
+                    image: data.image ?? null,
+
+                    sex: data.sex,
+                    birthday: data.birthday ?? null,
+                },
+            });
+
+        });
+
+        // Audit
         await logAction({
             action: AuditAction.CREATE_PARENT,
             entityType: "Parent",
@@ -1723,20 +2843,34 @@ export const createParent = async (
             metadata: {
                 source: "createParent",
             },
-        })
+        });
 
-        return { success: true, error: null }
-    } catch (error) {
-        if (userIdCreated) {
-            await clerk.users.deleteUser(userIdCreated)
+        return {
+            success: true,
+            error: null,
+        };
+
+    } catch (error: any) {
+
+        // Rollback Clerk
+        if (createdUserId) {
+            await clerk.users.deleteUser(createdUserId).catch(() => { });
         }
+
+        console.error(error);
 
         return {
             success: false,
-            error: "Une erreur est survenue lors de la création du parent.",
-        }
+            error:
+                error?.errors?.[0]?.longMessage ||
+                error?.errors?.[0]?.message ||
+                error?.message ||
+                "Une erreur est survenue lors de la création du parent.",
+        };
+
     }
-}
+
+};
 
 // Update Parent Action
 export const updateParent = async (
@@ -1744,10 +2878,18 @@ export const updateParent = async (
     _currentState: { success: boolean; error: string | null },
     data: ParentSchemaInput
 ) => {
-    const { userId } = await auth()
 
     if (!data.id) {
         return { success: false, error: "ID manquant" }
+    }
+
+    const { userId } = await auth()
+
+    if (!userId) {
+        return {
+            success: false,
+            error: "Utilisateur non authentifié.",
+        };
     }
 
     const clerk = createClerkClient({
@@ -1755,14 +2897,40 @@ export const updateParent = async (
     })
 
     const available = await isUsernameAvailableForUpdate(clerk, data.username, data.id)
+
     if (!available) {
         return { success: false, error: "Ce nom d'utilisateur est déjà pris." }
     }
 
     try {
-        const existingParent = await prisma.parent.findUnique({
-            where: { id: data.id },
-        })
+        // Trouver l'auteur
+        const actor = await prisma.userProfile.findUnique({
+            where: {
+                clerkId: userId,
+            },
+            select: {
+                id: true,
+                role: true,
+                schoolId: true,
+            },
+        });
+
+        if (!actor?.schoolId) {
+            return {
+                success: false,
+                error: "Aucune école trouvée.",
+            };
+        }
+
+        const existingParent = await prisma.parent.findFirst({
+            where: {
+                id: data.id,
+                isDeleted: false,
+                ...(actor.role !== "SUPER_ADMIN"
+                    ? { schoolId: actor.schoolId }
+                    : {}),
+            },
+        });
 
         if (!existingParent) {
             return { success: false, error: "Parent introuvable." }
@@ -1776,44 +2944,54 @@ export const updateParent = async (
             phone: existingParent.phone,
         }
 
-        await prisma.$transaction(async (tx) => {
-            await clerk.users.updateUser(data.id!, {
-                username: data.username,
-                ...(data.password && { password: data.password }),
-                firstName: data.name,
-                lastName: data.surname,
-            })
+        // Clerk
+        await clerk.users.updateUser(data.id!, {
+            username: data.username,
+            ...(data.password && {
+                password: data.password,
+            }),
+            firstName: data.name,
+            lastName: data.surname,
+            publicMetadata: {
+                role: "parent",
+                schoolId: actor.schoolId,
+                status: "active",
+            },
+        });
+
+        // Transaction
+        const updatedParent = await prisma.$transaction(async (tx) => {
 
             await tx.userProfile.update({
-                where: { id: existingParent.userProfileId },
+                where: {
+                    id: existingParent.userProfileId,
+                },
                 data: {
                     username: data.username,
                     firstName: data.name,
                     lastName: data.surname,
+                    schoolId: actor.schoolId,
                 },
-            })
+            });
 
-            await tx.parent.update({
-                where: { id: data.id },
+            return tx.parent.update({
+                where: {
+                    id: data.id,
+                },
                 data: {
                     username: data.username,
                     name: data.name,
                     surname: data.surname,
-                    email: data.email || null,
-                    phone: data.phone,
+                    email: data.email ?? null,
+                    phone: data.phone ?? null,
                     address: data.address,
-                    image: data.image || null,
+                    image: data.image ?? null,
                     sex: data.sex,
                     birthday: data.birthday ?? null,
                 },
-            })
-        })
+            });
 
-        const actor = await prisma.userProfile.findUnique({
-            where: { clerkId: userId! },
-        })
-
-        if (!actor) throw new Error("UserProfile introuvable")
+        });
 
         const after = {
             username: data.username,
@@ -1855,14 +3033,53 @@ export const deleteParent = async (
     _currentState: currentState,
     data: FormData
 ) => {
+    const id = data.get("id") as string;
+
+    if (!id) {
+        return {
+            success: false,
+            error: "ID invalide.",
+        };
+    }
+
     const { userId } = await auth()
 
-    const id = data.get("id") as string
+    if (!userId) {
+        return {
+            success: false,
+            error: "Utilisateur non authentifié.",
+        };
+    }
 
     try {
-        const parent = await prisma.parent.findUnique({
-            where: { id },
-        })
+
+        const actor = await prisma.userProfile.findUnique({
+            where: {
+                clerkId: userId!,
+            },
+            select: {
+                id: true,
+                role: true,
+                schoolId: true,
+            },
+        });
+
+        if (!actor?.schoolId) {
+            return {
+                success: false,
+                error: "Aucune école trouvée.",
+            };
+        }
+
+        const parent = await prisma.parent.findFirst({
+            where: {
+                id,
+                ...(actor?.role !== "SUPER_ADMIN" && actor?.schoolId
+                    ? { schoolId: actor.schoolId }
+                    : {}),
+                isDeleted: false,
+            },
+        });
 
         if (!parent) {
             return { success: false, error: "Parent introuvable." }
@@ -1891,12 +3108,6 @@ export const deleteParent = async (
                 },
             })
         })
-
-        const actor = await prisma.userProfile.findUnique({
-            where: { clerkId: userId! },
-        })
-
-        if (!actor) throw new Error("UserProfile introuvable")
 
         await logAction({
             action: AuditAction.DELETE_PARENT,
@@ -2022,7 +3233,7 @@ export const createLesson = async (
 
 
         /**
-        * ✅ AUTO GENERATE SESSIONS
+        * AUTO GENERATE SESSIONS
         */
         const sessionDates = generateSessionDates(startDate, dueDate, data.weekDay)
 
@@ -2462,7 +3673,7 @@ export const deleteLesson = async (
             performedById: userProfile.id,
             role: userProfile.role,
 
-            description: `Le cours ${lesson.name} a été supprimé`,
+            //description: `Cours ${lesson.name} a été supprimé`,
 
             before,       // snapshot complet
             after: null,  // logique pour delete
@@ -2502,15 +3713,15 @@ export const createSession = async (
             return { success: false, error: "Rôle interdit." };
         }
 
-        // ✅ Normaliser la date (jour pur)
+        // Normaliser la date (jour pur)
         const baseDate = new Date(data.date);
         baseDate.setHours(0, 0, 0, 0);
 
-        // ✅ Extraire heures une seule fois
+        // Extraire heures une seule fois
         const startInput = new Date(data.startTime);
         const endInput = new Date(data.endTime);
 
-        // ✅ Construire heures liées au jour
+        // Construire heures liées au jour
         const startTime = new Date(baseDate);
         startTime.setHours(startInput.getHours(), startInput.getMinutes(), 0, 0);
 
@@ -2528,7 +3739,7 @@ export const createSession = async (
             };
         }
 
-        // ✅ Récupérer le lesson
+        // Récupérer le lesson
         const lesson = await prisma.lesson.findUnique({
             where: { id: data.lessonId },
         });
@@ -2540,7 +3751,7 @@ export const createSession = async (
             };
         }
 
-        // 👨‍🏫 Vérification ownership
+        // Vérification ownership
         if (role === "teacher" && lesson.teacherId !== userId) {
             return {
                 success: false,
@@ -2548,7 +3759,7 @@ export const createSession = async (
             };
         }
 
-        // ✅ Normaliser aussi les dates du lesson
+        // Normaliser aussi les dates du lesson
         const lessonStart = lesson.startDate
             ? new Date(lesson.startDate)
             : null;
@@ -2567,14 +3778,14 @@ export const createSession = async (
             };
         }
 
-        // ✅ Définir la journée
+        // Définir la journée
         const startOfDay = new Date(baseDate);
         startOfDay.setHours(0, 0, 0, 0);
 
         const endOfDay = new Date(baseDate);
         endOfDay.setHours(23, 59, 59, 999);
 
-        // 🚫 Vérifier conflits
+        // Vérifier conflits
         const conflict = await prisma.session.findFirst({
             where: {
                 isDeleted: false,
@@ -2604,7 +3815,7 @@ export const createSession = async (
             };
         }
 
-        // ✅ Création
+        // Création
         const createdSession = await prisma.session.create({
             data: {
                 date: baseDate,
@@ -2618,14 +3829,14 @@ export const createSession = async (
             },
         })
 
-        // 🔥 récupérer userProfile
+        // Récupérer userProfile
         const userProfile = await prisma.userProfile.findUnique({
             where: { clerkId: userId },
         })
 
         if (!userProfile) throw new Error("UserProfile introuvable")
 
-        // 🔥 AUDIT
+        // AUDIT
         await logAction({
             action: AuditAction.CREATE_SESSION,
             entityType: "Session",
@@ -2634,7 +3845,7 @@ export const createSession = async (
             performedById: userProfile.id,
             role: userProfile.role,
 
-            description: `Séance créée (${createdSession.startTime.toISOString()})`,
+            description: `Séance créée(${createdSession.startTime.toISOString()})`,
 
             before: null,
 
@@ -3195,7 +4406,7 @@ export const createResult = async (
             performedById: userProfile.id,
             role: userProfile.role,
 
-            description: `Note ajoutée (${result.score})`,
+            description: `Note ajoutée(${result.score})`,
 
             before: null,
             after: {
@@ -3314,7 +4525,7 @@ export const updateResult = async (
             performedById: userProfile.id,
             role: userProfile.role,
 
-            description: `Note modifiée (${updatedResult.score})`,
+            description: `Note modifiée(${updatedResult.score})`,
 
             before,
             after,
@@ -3410,7 +4621,7 @@ export const deleteResult = async (
             performedById: userProfile.id,
             role: userProfile.role,
 
-            description: `Note supprimée (${existingResult.score})`,
+            description: `Note supprimée(${existingResult.score})`,
 
             before,
             after: null,
@@ -3513,7 +4724,7 @@ export const createAttendance = async (
             performedById: userProfile.id,
             role: userProfile.role,
 
-            description: `Absence enregistrée (${attendance.status})`,
+            description: `Absence enregistrée(${attendance.status})`,
 
             before: null,
 
@@ -3619,7 +4830,7 @@ export const updateAttendance = async (
             performedById: userProfile.id,
             role: userProfile.role,
 
-            description: `Présence modifiée (${updated.status})`,
+            description: `Présence modifiée(${updated.status})`,
 
             before,
             after,
@@ -3711,7 +4922,7 @@ export const deleteAttendance = async (
             performedById: userProfile.id,
             role: userProfile.role,
 
-            description: `Présence supprimée (${attendance.status})`,
+            description: `Présence supprimée(${attendance.status})`,
 
             before,
             after: null,

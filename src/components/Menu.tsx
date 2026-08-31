@@ -20,6 +20,13 @@ import {
   Trophy,
   FileCheck2,
   NotebookPen,
+  School,
+  School2,
+  Handshake,
+  CreditCard,
+  BadgeDollarSign,
+  BarChart3,
+  LifeBuoy,
 } from "lucide-react";
 
 const menuItems = [
@@ -60,7 +67,7 @@ const menuItems = [
         icon: BookOpen,
         label: "Matières",
         href: "/list/subjects",
-        visible: ["admin", "super_admin", "teacher"],
+        visible: ["admin", "teacher"],
       },
       {
         icon: ClipboardList,
@@ -72,55 +79,55 @@ const menuItems = [
         icon: FileText,
         label: "Cours",
         href: "/list/lessons",
-        visible: ["admin", "teacher", "super_admin"],
+        visible: ["admin", "teacher"],
       },
       {
         icon: FileText,
         label: "Séances",
         href: "/list/sessions",
-        visible: ["admin", "teacher", "super_admin"],
+        visible: ["admin", "teacher"],
       },
       {
         icon: Trophy,
         label: "Trimestre",
         href: "/list/exams",
-        visible: ["admin", "teacher", "student", "parent", "super_admin"],
+        visible: ["admin", "teacher", "student", "parent"],
       },
       {
         icon: FileCheck2,
         label: "Devoirs",
         href: "/list/assignments",
-        visible: ["admin", "teacher", "student", "parent", "super_admin"],
+        visible: ["admin", "teacher", "student", "parent"],
       },
       {
         icon: NotebookPen,
         label: "Résultats",
         href: "/list/results",
-        visible: ["admin", "teacher", "student", "parent", "super_admin"],
+        visible: ["admin", "teacher", "student", "parent"],
       },
       {
         icon: NotebookPen,
         label: "Bulletins",
         href: "/bulletins",
-        visible: ["admin", "teacher", "student", "parent", "super_admin"],
+        visible: ["admin", "teacher", "student", "parent"],
       },
       {
         icon: NotebookPen,
         label: "Rapports",
         href: "/report-cards",
-        visible: ["admin", "teacher", "super_admin"],
+        visible: ["admin", "teacher"],
       },
       {
         icon: CheckSquare,
         label: "Absences",
         href: "/list/attendances",
-        visible: ["admin", "teacher", "student", "parent", "super_admin"],
+        visible: ["admin", "teacher", "student", "parent"],
       },
       {
         icon: Calendar,
         label: "Événements",
         href: "/list/events",
-        visible: ["admin", "super_admin"],
+        visible: ["admin"],
       },
       {
         icon: MessageSquare,
@@ -132,7 +139,44 @@ const menuItems = [
         icon: Megaphone,
         label: "Annonces",
         href: "/list/announcements",
-        visible: ["admin", "super_admin"],
+        visible: ["admin"],
+      },
+
+      {
+        icon: Handshake,
+        label: "Demamdes d'ecoles",
+        href: "/super_admin/schools-request",
+        visible: ["super_admin"],
+      },
+      {
+        icon: School2,
+        label: "Ecoles",
+        href: "/super_admin/schools-list",
+        visible: ["super_admin"],
+      },
+      {
+        icon: CreditCard,
+        label: "Paiement",
+        href: "/super_admin/payment",
+        visible: ["super_admin"],
+      },
+      {
+        icon: BadgeDollarSign,
+        label: "Abonnements",
+        href: "/super_admin/subscription",
+        visible: ["super_admin"],
+      },
+      {
+        icon: BarChart3,
+        label: "Statistiques",
+        href: "/list/statistics",
+        visible: ["super_admin"],
+      },
+      {
+        icon: LifeBuoy,
+        label: "Support",
+        href: "/list/support",
+        visible: ["super_admin"],
       },
     ],
   },
@@ -167,7 +211,7 @@ const Menu = ({ isMobileOpen = false }: MenuProps) => {
   const getHomeRoute = (role: string) => {
     switch (role) {
       case "super_admin":
-        return "/dashboard/super_admin";
+        return "/super_admin";
       case "admin":
         return "/admin";
       case "teacher":
